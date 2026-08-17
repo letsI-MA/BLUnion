@@ -5,12 +5,12 @@
   "AssemblyVersion": "0.1.0.0",
   "Description": "Vergleicht die gelernten Blue-Mage-Spells einer Party und hilft beim gemeinsamen Lernplan. Keine Gameplay-Automatisierung.",
   "ApplicableVersion": "any",
-  "RepoUrl": "TODO: GitHub-Repo-URL",
+  "RepoUrl": "https://github.com/letsI-MA/BLUnion",
   "DalamudApiLevel": 15,
   "LoadRequiredState": 0,
   "LoadSync": false,
   "CanUnloadAsync": false,
   "LoadPriority": 0,
-  "Punchline": "Vergleicht die gelernten Blue-Mage-Spells einer Party und plant gemeinsam, was noch fehlt.",
+  "Punchline": "Unite. Learn. Mimic.",
   "AcceptsFeedback": true
 }

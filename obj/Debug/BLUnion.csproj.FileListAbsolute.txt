@@ -10,3 +10,16 @@ C:\Users\matth\Documents\GitHub\BLU\obj\Debug\BLUnion.AssemblyInfoInputs.cache
 C:\Users\matth\Documents\GitHub\BLU\obj\Debug\BLUnion.AssemblyInfo.cs
 C:\Users\matth\Documents\GitHub\BLU\obj\Debug\BLUnion.csproj.CoreCompileInputs.cache
 C:\Users\matth\Documents\GitHub\BLU\obj\Debug\BLUnion.dll
+C:\Users\matth\Documents\GitHub\BLUnion\bin\Debug\Data\locations.json
+C:\Users\matth\Documents\GitHub\BLUnion\bin\Debug\Data\monsters.json
+C:\Users\matth\Documents\GitHub\BLUnion\bin\Debug\Data\sources.json
+C:\Users\matth\Documents\GitHub\BLUnion\bin\Debug\Data\spells.json
+C:\Users\matth\Documents\GitHub\BLUnion\bin\Debug\BLUnion.deps.json
+C:\Users\matth\Documents\GitHub\BLUnion\bin\Debug\BLUnion.dll
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.csproj.AssemblyReference.cache
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.AssemblyInfoInputs.cache
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.AssemblyInfo.cs
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.csproj.CoreCompileInputs.cache
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.sourcelink.json
+C:\Users\matth\Documents\GitHub\BLUnion\obj\Debug\BLUnion.dll

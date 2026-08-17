@@ -16,5 +16,12 @@ public sealed class Spell
     /// <summary>1-5 Sterne Lernschwierigkeit, wie im Spellbook angezeigt.</summary>
     public int Stars { get; init; }
 
+    /// <summary>Icon-Id des zugehörigen Action-Sheet-Eintrags (Lumina), z.B. für UI-Icons.</summary>
+    public uint IconId { get; init; }
+
+    /// <summary>Slot-Index im Spellbook ("#001"-"#124"), also die gewünschte Anzeige-Reihenfolge.
+    /// Entspricht der RowId im AozAction-Sheet - NICHT identisch mit <see cref="Id"/>.</summary>
+    public int SpellbookOrder { get; init; }
+
     public string? Description { get; init; }
 }

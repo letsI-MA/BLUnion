@@ -35,6 +35,7 @@ public sealed class Plugin : IDalamudPlugin
         IDataManager dataManager,
         IObjectTable objectTable,
         IUnlockState unlockState,
+        ITextureProvider textureProvider,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
@@ -56,7 +57,8 @@ public sealed class Plugin : IDalamudPlugin
             this.spellDataService,
             this.comparisonService,
             this.localSpellUnlockService,
-            this.syncProvider);
+            this.syncProvider,
+            textureProvider);
 
         this.windowSystem.AddWindow(this.mainWindow);
 

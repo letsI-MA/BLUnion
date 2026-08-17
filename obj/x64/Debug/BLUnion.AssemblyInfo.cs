@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BLUnion")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0.0+a6c3cc4ad320a87415d65df6417d55069e4d2714")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0.0+9e11441fa455063f1be3454f2c876e802f8e0717")]
 [assembly: System.Reflection.AssemblyProductAttribute("BLUnion")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BLUnion")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]

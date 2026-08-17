@@ -1,7 +1,9 @@
 using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Textures;
 using Dalamud.Interface.Windowing;
+using Dalamud.Plugin.Services;
 
 namespace BLUnion.UI;
 
@@ -18,6 +20,7 @@ public sealed class MainWindow : Window
     private readonly ComparisonService comparisonService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
+    private readonly ITextureProvider textureProvider;
 
     private string importCodeBuffer = string.Empty;
     private string? lastError;
@@ -27,7 +30,8 @@ public sealed class MainWindow : Window
         SpellDataService spellDataService,
         ComparisonService comparisonService,
         LocalSpellUnlockService localSpellUnlockService,
-        ManualCodeSyncProvider syncProvider)
+        ManualCodeSyncProvider syncProvider,
+        ITextureProvider textureProvider)
         : base("BLUnion###BLUnion")
     {
         this.partyService = partyService;
@@ -35,6 +39,7 @@ public sealed class MainWindow : Window
         this.comparisonService = comparisonService;
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;
+        this.textureProvider = textureProvider;
 
         this.SizeConstraints = new WindowSizeConstraints
         {
@@ -102,7 +107,15 @@ public sealed class MainWindow : Window
             return;
         }
 
-        var missing = this.comparisonService.GetCommonlyMissingSpells(allSpellIds, partyStatus);
+        // Priorität 1 bleibt die "fehlt bei"-Anzahl (von GetCommonlyMissingSpells schon
+        // absteigend sortiert); SpellbookOrder dient hier nur als stabiler, für Spieler
+        // nachvollziehbarer Tie-Breaker innerhalb gleicher Dringlichkeit - deshalb hier in
+        // der UI-Schicht nachsortiert statt im reinen ComparisonService, der bewusst keine
+        // Spell-Metadaten kennt.
+        var missing = this.comparisonService.GetCommonlyMissingSpells(allSpellIds, partyStatus)
+            .OrderByDescending(m => m.PlayersMissingIt.Count)
+            .ThenBy(m => this.spellDataService.Spells.TryGetValue(m.SpellId, out var s) ? s.SpellbookOrder : int.MaxValue)
+            .ToList();
 
         ImGui.TextUnformatted("Gemeinsam fehlend:");
         ImGui.Separator();
@@ -115,8 +128,10 @@ public sealed class MainWindow : Window
 
         const ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
 
-        if (ImGui.BeginTable("MissingSpellsTable", 3, tableFlags))
+        if (ImGui.BeginTable("MissingSpellsTable", 5, tableFlags))
         {
+            ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 28);
+            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 40);
             ImGui.TableSetupColumn("Spell");
             ImGui.TableSetupColumn("Fehlt bei", ImGuiTableColumnFlags.WidthFixed, 80);
             ImGui.TableSetupColumn("Quelle(n)");
@@ -124,9 +139,10 @@ public sealed class MainWindow : Window
 
             foreach (var entry in missing)
             {
-                var name = this.spellDataService.Spells.TryGetValue(entry.SpellId, out var spell)
-                    ? spell.Name
-                    : $"Spell #{entry.SpellId}";
+                var hasSpell = this.spellDataService.Spells.TryGetValue(entry.SpellId, out var spell);
+                var name = hasSpell ? spell!.Name : $"Spell #{entry.SpellId}";
+                var orderText = hasSpell ? $"#{spell!.SpellbookOrder:D3}" : "—";
+                var iconId = hasSpell ? spell!.IconId : 0u;
 
                 var sources = this.spellDataService.GetSourcesForSpell(entry.SpellId).ToList();
 
@@ -134,6 +150,12 @@ public sealed class MainWindow : Window
                 this.HighlightRowByUrgency(entry.PlayersMissingIt.Count, partyStatus.Count);
 
                 ImGui.TableSetColumnIndex(0);
+                this.DrawSpellIcon(iconId);
+
+                ImGui.TableSetColumnIndex(1);
+                ImGui.TextUnformatted(orderText);
+
+                ImGui.TableSetColumnIndex(2);
                 ImGui.Selectable(name, false, ImGuiSelectableFlags.SpanAllColumns);
 
                 if (ImGui.IsItemHovered())
@@ -147,15 +169,45 @@ public sealed class MainWindow : Window
                     ImGui.EndTooltip();
                 }
 
-                ImGui.TableSetColumnIndex(1);
+                ImGui.TableSetColumnIndex(3);
                 ImGui.TextUnformatted(entry.PlayersMissingIt.Count.ToString());
 
-                ImGui.TableSetColumnIndex(2);
+                ImGui.TableSetColumnIndex(4);
                 ImGui.TextUnformatted(FormatSourceSummary(sources));
             }
 
             ImGui.EndTable();
         }
+    }
+
+    /// <summary>Rendert ein 24x24-Spell-Icon aus den lokalen Spieldateien über
+    /// <see cref="ITextureProvider"/>. Wenn keine IconId bekannt ist, das Icon (noch) nicht
+    /// geladen werden konnte oder das Laden fehlschlägt, wird stattdessen nur ein leerer
+    /// Platzhalter derselben Größe gezeichnet - nie eine Exception nach außen geworfen, die
+    /// die gesamte Tabelle zum Absturz bringen würde.</summary>
+    private void DrawSpellIcon(uint iconId)
+    {
+        var size = new System.Numerics.Vector2(24, 24);
+
+        if (iconId != 0)
+        {
+            try
+            {
+                var texture = this.textureProvider.GetFromGameIcon(new GameIconLookup(iconId));
+                if (texture.TryGetWrap(out var wrap, out _))
+                {
+                    ImGui.Image(wrap.Handle, size);
+                    return;
+                }
+            }
+            catch
+            {
+                // Icon konnte nicht geladen werden (z.B. ungültige/unbekannte Id) -
+                // Zeile trotzdem ohne Icon anzeigen, siehe Doc-Kommentar oben.
+            }
+        }
+
+        ImGui.Dummy(size);
     }
 
     /// <summary>Färbt die aktuelle Tabellenzeile nach Dringlichkeit ein: rot/orange, wenn allen

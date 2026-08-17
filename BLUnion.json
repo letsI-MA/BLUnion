@@ -1,0 +1,11 @@
+{
+  "Author": "Galderia",
+  "Name": "BLUnion",
+  "Punchline": "Vergleicht die gelernten Blue-Mage-Spells einer Party und plant gemeinsam, was noch fehlt.",
+  "InternalName": "BLUnion",
+  "AssemblyVersion": "0.1.0.0",
+  "Description": "Vergleicht die gelernten Blue-Mage-Spells einer Party und hilft beim gemeinsamen Lernplan. Keine Gameplay-Automatisierung.",
+  "ApplicableVersion": "any",
+  "RepoUrl": "TODO: GitHub-Repo-URL",
+  "DalamudApiLevel": 15
+}

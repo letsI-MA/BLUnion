@@ -1,0 +1,877 @@
+[
+  {
+    "SpellId": 11383,
+    "MonsterId": 1,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11383,
+    "MonsterId": 2,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11383,
+    "MonsterId": 3,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11384,
+    "MonsterId": 4,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11386,
+    "MonsterId": 5,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11387,
+    "MonsterId": 6,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11387,
+    "MonsterId": 7,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11388,
+    "MonsterId": 8,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11388,
+    "MonsterId": 9,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11388,
+    "MonsterId": 10,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11388,
+    "MonsterId": 11,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11389,
+    "MonsterId": 12,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11391,
+    "MonsterId": 13,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11391,
+    "MonsterId": 14,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11391,
+    "MonsterId": 15,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11391,
+    "MonsterId": 16,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11392,
+    "MonsterId": 17,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11392,
+    "MonsterId": 18,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11392,
+    "MonsterId": 19,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11393,
+    "MonsterId": 20,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11394,
+    "MonsterId": 21,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11394,
+    "MonsterId": 22,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11395,
+    "MonsterId": 23,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11395,
+    "MonsterId": 24,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11395,
+    "MonsterId": 25,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11396,
+    "MonsterId": 26,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11397,
+    "MonsterId": 27,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11398,
+    "MonsterId": 28,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11398,
+    "MonsterId": 29,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11398,
+    "MonsterId": 30,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11399,
+    "MonsterId": 31,
+    "Method": "Levequest"
+  },
+  {
+    "SpellId": 11399,
+    "MonsterId": 32,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11399,
+    "MonsterId": 33,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11400,
+    "MonsterId": 34,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11402,
+    "MonsterId": 35,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11402,
+    "MonsterId": 36,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11402,
+    "MonsterId": 37,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11403,
+    "MonsterId": 38,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11403,
+    "MonsterId": 39,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11404,
+    "MonsterId": 40,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11405,
+    "MonsterId": 41,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11405,
+    "MonsterId": 42,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11406,
+    "MonsterId": 43,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 11407,
+    "MonsterId": 44,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11407,
+    "MonsterId": 45,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11409,
+    "MonsterId": 46,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 11410,
+    "MonsterId": 47,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11411,
+    "MonsterId": 48,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 11412,
+    "MonsterId": 49,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11412,
+    "MonsterId": 50,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11413,
+    "MonsterId": 51,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11414,
+    "MonsterId": 52,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11415,
+    "MonsterId": 53,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 11416,
+    "MonsterId": 54,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 11417,
+    "MonsterId": 55,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 11418,
+    "MonsterId": 56,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11418,
+    "MonsterId": 57,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11418,
+    "MonsterId": 16,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11419,
+    "MonsterId": 58,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11419,
+    "MonsterId": 59,
+    "Method": "Levequest"
+  },
+  {
+    "SpellId": 11419,
+    "MonsterId": 60,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11420,
+    "MonsterId": 58,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11420,
+    "MonsterId": 59,
+    "Method": "Levequest"
+  },
+  {
+    "SpellId": 11420,
+    "MonsterId": 60,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11421,
+    "MonsterId": 61,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11422,
+    "MonsterId": 62,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11423,
+    "MonsterId": 63,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11424,
+    "MonsterId": 64,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11425,
+    "MonsterId": 65,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11426,
+    "MonsterId": 66,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11427,
+    "MonsterId": 67,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11428,
+    "MonsterId": 68,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11429,
+    "MonsterId": 69,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11430,
+    "MonsterId": 70,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11431,
+    "MonsterId": 71,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18295,
+    "MonsterId": 72,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18295,
+    "MonsterId": 73,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18296,
+    "MonsterId": 74,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 18296,
+    "MonsterId": 75,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18297,
+    "MonsterId": 76,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18297,
+    "MonsterId": 77,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18298,
+    "MonsterId": 78,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18300,
+    "MonsterId": 79,
+    "Method": "Levequest"
+  },
+  {
+    "SpellId": 18300,
+    "MonsterId": 80,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18300,
+    "MonsterId": 81,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18301,
+    "MonsterId": 82,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18302,
+    "MonsterId": 83,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18302,
+    "MonsterId": 41,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18302,
+    "MonsterId": 84,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18303,
+    "MonsterId": 85,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18304,
+    "MonsterId": 86,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18305,
+    "MonsterId": 87,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18305,
+    "MonsterId": 88,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 18306,
+    "MonsterId": 89,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18307,
+    "MonsterId": 90,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18308,
+    "MonsterId": 91,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18309,
+    "MonsterId": 92,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18310,
+    "MonsterId": 93,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18311,
+    "MonsterId": 94,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18312,
+    "MonsterId": 95,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18313,
+    "MonsterId": 96,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18314,
+    "MonsterId": 97,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18315,
+    "MonsterId": 98,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18316,
+    "MonsterId": 99,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 18317,
+    "MonsterId": 100,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 18318,
+    "MonsterId": 101,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18319,
+    "MonsterId": 102,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 18320,
+    "MonsterId": 103,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18320,
+    "MonsterId": 104,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18320,
+    "MonsterId": 105,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18321,
+    "MonsterId": 106,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18321,
+    "MonsterId": 107,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 18322,
+    "MonsterId": 108,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18323,
+    "MonsterId": 109,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18324,
+    "MonsterId": 110,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18325,
+    "MonsterId": 111,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23264,
+    "MonsterId": 112,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23265,
+    "MonsterId": 112,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23266,
+    "MonsterId": 113,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23267,
+    "MonsterId": 114,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23269,
+    "MonsterId": 115,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23270,
+    "MonsterId": 116,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23271,
+    "MonsterId": 117,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23272,
+    "MonsterId": 118,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 23273,
+    "MonsterId": 119,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23275,
+    "MonsterId": 120,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23276,
+    "MonsterId": 121,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23276,
+    "MonsterId": 122,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23277,
+    "MonsterId": 123,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23278,
+    "MonsterId": 124,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23279,
+    "MonsterId": 37,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23280,
+    "MonsterId": 125,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 23281,
+    "MonsterId": 126,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23282,
+    "MonsterId": 127,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23283,
+    "MonsterId": 128,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23284,
+    "MonsterId": 129,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 23285,
+    "MonsterId": 125,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 23286,
+    "MonsterId": 37,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23287,
+    "MonsterId": 130,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23288,
+    "MonsterId": 131,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 23290,
+    "MonsterId": 132,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34563,
+    "MonsterId": 133,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 34564,
+    "MonsterId": 134,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34565,
+    "MonsterId": 135,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 34566,
+    "MonsterId": 136,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 34567,
+    "MonsterId": 137,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 34568,
+    "MonsterId": 138,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34569,
+    "MonsterId": 139,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34570,
+    "MonsterId": 140,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34571,
+    "MonsterId": 141,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34572,
+    "MonsterId": 142,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34573,
+    "MonsterId": 143,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34574,
+    "MonsterId": 144,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34575,
+    "MonsterId": 145,
+    "Method": "Totem"
+  },
+  {
+    "SpellId": 34575,
+    "MonsterId": 146,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34576,
+    "MonsterId": 147,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34577,
+    "MonsterId": 148,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34578,
+    "MonsterId": 149,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34578,
+    "MonsterId": 150,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34579,
+    "MonsterId": 151,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34580,
+    "MonsterId": 152,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34581,
+    "MonsterId": 153,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 34582,
+    "MonsterId": 142,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11390,
+    "MonsterId": 4,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11390,
+    "MonsterId": 71,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11390,
+    "MonsterId": 154,
+    "Method": "Masked Carnivale"
+  },
+  {
+    "SpellId": 11401,
+    "MonsterId": 155,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11401,
+    "MonsterId": 156,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11401,
+    "MonsterId": 157,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11401,
+    "MonsterId": 158,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 11408,
+    "MonsterId": 159,
+    "Method": "Open World"
+  },
+  {
+    "SpellId": 11408,
+    "MonsterId": 160,
+    "Method": "Dungeon-Trash"
+  },
+  {
+    "SpellId": 11408,
+    "MonsterId": 161,
+    "Method": "Dungeon-Trash"
+  },
+  {
+    "SpellId": 11408,
+    "MonsterId": 162,
+    "Method": "Dungeon-Trash"
+  },
+  {
+    "SpellId": 11408,
+    "MonsterId": 163,
+    "Method": "Masked Carnivale"
+  }
+]

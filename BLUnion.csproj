@@ -1,0 +1,43 @@
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+
+  <!--
+    Dalamud.NET.Sdk (statt Microsoft.NET.Sdk + manuellem Targets-Import) ist seit
+    Dalamud v12 der offizielle, empfohlene Weg (siehe
+    https://dalamud.dev/plugin-development/how-tos/v12-SDK-migration/). Die SDK-
+    Version hier ist auf die tatsächlich lokal installierte Dalamud-Version
+    abgestimmt (geprüft am 2026-08-17 gegen %AppData%\XIVLauncher\addon\Hooks\dev:
+    Dalamud.dll = 15.0.3.2 -> API Level 15, TargetFramework net10.0 laut
+    Dalamud.runtimeconfig.json). Der alte manuelle Import von
+    "$(DALAMUD_HOME)/targets/Dalamud.Plugin.Bootstrap.targets" wurde entfernt, weil
+    diese Datei im aktuellen Hooks/dev-Ordner nicht mehr existiert (das Projekt
+    konnte davor also gar keine Dalamud-Referenzen auflösen).
+
+    TargetFramework, PlatformTarget, Nullable, AllowUnsafeBlocks etc. setzt die SDK
+    selbst schon sinnvoll vor (siehe Sdk.props im dalamud.net.sdk-NuGet-Paket).
+    ImplicitUsings NICHT (per Build-Test am 2026-08-17 verifiziert - ohne
+    ImplicitUsings scheitert der Build an fehlenden BCL-Typen wie HashSet<>),
+    deshalb hier weiterhin explizit gesetzt.
+
+    DalamudPackager (Teil der SDK, läuft automatisch nach jedem Build) liest das
+    Manifest weiterhin aus der separaten BLUnion.json (Datei, die dem
+    InternalName entspricht - wird automatisch erkannt und hat Vorrang vor
+    Manifest-Feldern hier in der .csproj, per Build-Test am 2026-08-17 bestätigt:
+    csproj-PropertyGroup-Felder wurden ignoriert, solange die .json-Datei existiert).
+    Punchline ist dort ein Pflichtfeld (Build bricht sonst mit "Punchline is
+    required in your plugin manifest" ab).
+
+    Baut niemals gegen eine gecrackte oder inoffizielle Dalamud-Kopie.
+  -->
+
+  <PropertyGroup>
+    <Version>0.1.0.0</Version>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BLUnion</RootNamespace>
+    <AssemblyName>BLUnion</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Data\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

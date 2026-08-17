@@ -19,8 +19,11 @@ public sealed class Spell
     /// <summary>Icon-Id des zugehörigen Action-Sheet-Eintrags (Lumina), z.B. für UI-Icons.</summary>
     public uint IconId { get; init; }
 
-    /// <summary>Slot-Index im Spellbook ("#001"-"#124"), also die gewünschte Anzeige-Reihenfolge.
-    /// Entspricht der RowId im AozAction-Sheet - NICHT identisch mit <see cref="Id"/>.</summary>
+    /// <summary>Echte Spellbook-UI-Anzeigereihenfolge ("#001"-"#124"), verifiziert gegen
+    /// In-Game-Tooltips + Community-Quelle, gematcht über <see cref="IconId"/> (sprachunabhängig,
+    /// eindeutig). Entspricht NICHT der RowId im AozAction-Sheet - das war eine frühere,
+    /// falsifizierte Annahme (siehe git-Historie) - und ist auch nicht identisch mit
+    /// <see cref="Id"/>.</summary>
     public int SpellbookOrder { get; init; }
 
     public string? Description { get; init; }

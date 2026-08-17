@@ -4,7 +4,7 @@
     "Name": "Nieser",
     "Stars": 4,
     "IconId": 3251,
-    "SpellbookOrder": 1,
+    "SpellbookOrder": 25,
     "Description": "Typhons Spezialwaffe.\r\nEin kr\u00E4ftiger Nieser, der f\u00E4cherf\u00F6rmig vor dem Wirkenden alle Gegner erfasst. Neben dem starken Windsto\u00DF zieht auch der Ekel die Getroffenen nicht unerheblich in Leidenschaft."
   },
   {
@@ -12,7 +12,7 @@
     "Name": "4-Tonzen-Gewicht",
     "Stars": 4,
     "IconId": 3252,
-    "SpellbookOrder": 2,
+    "SpellbookOrder": 26,
     "Description": "Ultros\u0027 Spezialattacke.\r\nEin wahrlich niederschmetternder Angriff, dessen Wirkung von seinen Opfern als \u201Eerdr\u00FCckend\u201C beschrieben wird."
   },
   {
@@ -20,7 +20,7 @@
     "Name": "Wasserkanone",
     "Stars": 1,
     "IconId": 3253,
-    "SpellbookOrder": 3,
+    "SpellbookOrder": 1,
     "Description": "Angriffszauber der Kraken.\r\nSchie\u00DFt mit Hochdruck einen harten Wasserstrahl auf den Gegner. Sammelt den in der Luft enthaltenen wasserbasierten \u00C4ther und kann deshalb auch an trockenen Orten eingesetzt werden."
   },
   {
@@ -28,7 +28,7 @@
     "Name": "Gesang der Gemarterten",
     "Stars": 2,
     "IconId": 3254,
-    "SpellbookOrder": 4,
+    "SpellbookOrder": 9,
     "Description": "Nat\u00FCrliches Talent der Sirenen.\r\nEin bet\u00F6render Gesang, der sich unweigerlich in das Innere seiner Opfer bohrt und so starke - wenn auch eingebildete - Schmerzen hervorruft, dass sie k\u00F6rperliche Sch\u00E4den hinterlassen."
   },
   {
@@ -36,7 +36,7 @@
     "Name": "Hochstrom",
     "Stars": 4,
     "IconId": 3255,
-    "SpellbookOrder": 5,
+    "SpellbookOrder": 6,
     "Description": "Ein technologiebasierter Zauber der Allager.\r\nDer Stromschlag mit Fl\u00E4chenwirkung wird durch eine Ansammlung von Blitz\u00E4ther erzeugt, kann aber aufgrund einer komplizierten Verstrickungsmagie auch von unbeseelten Maschinen ausgef\u00FChrt werden."
   },
   {
@@ -44,7 +44,7 @@
     "Name": "Schlechter Atem",
     "Stars": 3,
     "IconId": 3256,
-    "SpellbookOrder": 6,
+    "SpellbookOrder": 28,
     "Description": "Hinterh\u00E4ltiger Angriff der Morbol.\r\nWind oder Erde sollen einen gro\u00DFen Anteil an dieser m\u00FCffeligen Fl\u00E4chenattacke haben, aber auch die anderen Elemente, in ihrer verdorbensten Form, m\u00FCssen eine Rolle spielen. Kein Element alleine kann so stinken."
   },
   {
@@ -52,7 +52,7 @@
     "Name": "Rasender Sturz",
     "Stars": 3,
     "IconId": 3257,
-    "SpellbookOrder": 7,
+    "SpellbookOrder": 4,
     "Description": "Aggressivverhalten der Anzu.\r\nUm ihre Jungtiere zu sch\u00FCtzen, haben die Anzu eine Attacke entwickelt, mit der sie ihren ganzen Zorn in einem angsterf\u00FCllenden Angriff b\u00FCndeln, der beim Opfer bleibende Sch\u00E4den hinterl\u00E4sst."
   },
   {
@@ -60,7 +60,7 @@
     "Name": "Aqua-Atem",
     "Stars": 4,
     "IconId": 3258,
-    "SpellbookOrder": 8,
+    "SpellbookOrder": 3,
     "Description": "Zum Standardrepertoire geh\u00F6render Wasserzauber.\r\nUmfasst Gegner mit einer gewaltigen Wasserfont\u00E4ne, die zu allem \u00DCbel auch noch mit Giftstoffen versetzt ist. Wohl bekomms."
   },
   {
@@ -68,7 +68,7 @@
     "Name": "Plattensprenger",
     "Stars": 2,
     "IconId": 3259,
-    "SpellbookOrder": 9,
+    "SpellbookOrder": 11,
     "Description": "Gabe erdbasierter Magiewesen.\r\nL\u00E4sst durch Manipulation des Umgebungs\u00E4thers \u00F6rtliche Erdbeben entstehen, die teils gewaltige Ausma\u00DFe annehmen k\u00F6nnen."
   },
   {
@@ -76,7 +76,7 @@
     "Name": "Eichelbombe",
     "Stars": 1,
     "IconId": 3260,
-    "SpellbookOrder": 10,
+    "SpellbookOrder": 18,
     "Description": "Abwehrmechanismus von Baumschraten und anderen Waldwesen.\r\nStreut magische Eicheln, die in einer Kettenexplosion detonieren und dabei einen schl\u00E4frig machenden Wirkstoff freisetzen. Eigentlich zur Abwehr von Fressfeinden und Parasiten entwickelt."
   },
   {
@@ -84,7 +84,7 @@
     "Name": "Borstigkeit",
     "Stars": 2,
     "IconId": 3261,
-    "SpellbookOrder": 11,
+    "SpellbookOrder": 12,
     "Description": "Kampfinstinkt wilder Kreaturen.\r\nEntfesselt den angeborenen T\u00F6tungsinstinkt von jagdtreibenden Bestien und steigert, wenn von Magiern gewirkt, die Angriffskraft von anderen Blauzaubern."
   },
   {
@@ -92,7 +92,7 @@
     "Name": "Geiststo\u00DF",
     "Stars": 1,
     "IconId": 3262,
-    "SpellbookOrder": 12,
+    "SpellbookOrder": 41,
     "Description": "Mentale Attacke der Seelenschinder.\r\nL\u00E4hmt Geist wie K\u00F6rper\u00A0- eine Angewohnheit, die sich auch ein gewisses brutales Konstrukt der Indigohand zu Nutze gemacht hat."
   },
   {
@@ -100,7 +100,7 @@
     "Name": "Blutsauger",
     "Stars": 1,
     "IconId": 3263,
-    "SpellbookOrder": 13,
+    "SpellbookOrder": 17,
     "Description": "Fressmethode von Flederm\u00E4usen und Stechm\u00FCcken.\r\nDurch die Entziehung von Blut wird dem Opfer K\u00F6rper\u00E4ther entnommen und das eigene magische Potenzial aufgebaut. Wilde Tiere haben diese F\u00E4higkeit aus ihrer t\u00E4glichen Nahrungsaufnahme entwickelt."
   },
   {
@@ -108,7 +108,7 @@
     "Name": "Bombenwurf",
     "Stars": 2,
     "IconId": 3264,
-    "SpellbookOrder": 14,
+    "SpellbookOrder": 19,
     "Description": "Imitation goblinscher Bombenattacken.\r\nEin Blauzauber, der die mit magischen Elementen verst\u00E4rkten Bombenw\u00FCrfe der Goblins imitiert."
   },
   {
@@ -116,7 +116,7 @@
     "Name": "1000 Nadeln",
     "Stars": 4,
     "IconId": 3265,
-    "SpellbookOrder": 15,
+    "SpellbookOrder": 36,
     "Description": "Nat\u00FCrlicher Abwehrmechanismus der Sabotender.\r\nDie winzigen Nadeln sind magische Imitate, aber die von ihnen verursachten Schmerzen und Wunden sind sehr real."
   },
   {
@@ -124,7 +124,7 @@
     "Name": "Bohrkanone",
     "Stars": 2,
     "IconId": 3266,
-    "SpellbookOrder": 16,
+    "SpellbookOrder": 5,
     "Description": "Magitek-basierte Werktechnik.\r\nDie hochdrehzahlige Rotation erzeugt eine erschreckende Durchschlagskraft, die besonders bei versteinerten Gegnern f\u00FCrchterliche Sch\u00E4den anrichtet."
   },
   {
@@ -132,7 +132,7 @@
     "Name": "Schiefer Blick",
     "Stars": 2,
     "IconId": 3267,
-    "SpellbookOrder": 17,
+    "SpellbookOrder": 27,
     "Description": "Kampftechnik der Dahak und anderer Nichtsgesandter.\r\nMagische Konzentration b\u00F6ser Absichten, die \u00FCber dem Schlachtfeld ausgestrahlt wird und die Feindseligkeit gegnerischer Truppen auf den Wirkenden zieht."
   },
   {
@@ -140,7 +140,7 @@
     "Name": "Blankes Messer",
     "Stars": 4,
     "IconId": 3268,
-    "SpellbookOrder": 18,
+    "SpellbookOrder": 15,
     "Description": "Lieblingswaffe der Tomberrys.\r\nEin gef\u00FCrchteter Angriff. Die mit einem hasserf\u00FCllten Grinsen gef\u00FChrte Waffe vermag das Opfer zu verkr\u00FCppeln und zu l\u00E4hmen."
   },
   {
@@ -148,7 +148,7 @@
     "Name": "B\u00F6se Ahnung",
     "Stars": 1,
     "IconId": 3269,
-    "SpellbookOrder": 19,
+    "SpellbookOrder": 7,
     "Description": "Niederer Transportzauber.\r\nL\u00F6st den K\u00F6rper in seine \u00E4therischen Bestandteile auf, wodurch er \u00FCber eine kurze Distanz durch den \u00C4therstrom gleiten und an anderer Stelle materialisiert werden kann. Gut geeignet f\u00FCr Fluchtman\u00F6ver."
   },
   {
@@ -156,7 +156,7 @@
     "Name": "Flammensturm",
     "Stars": 4,
     "IconId": 3270,
-    "SpellbookOrder": 20,
+    "SpellbookOrder": 2,
     "Description": "Strahlf\u00F6rmige Feuerattacke.\r\nDie nach vorne gerichtete Konzentration von Feuer\u00E4ther verh\u00E4lt sich wie eine hochentz\u00FCndliche Fl\u00FCssigkeit, die sich an das bemitleidenswerte Opfer heftet."
   },
   {
@@ -164,7 +164,7 @@
     "Name": "Verwirrung",
     "Stars": 3,
     "IconId": 3271,
-    "SpellbookOrder": 21,
+    "SpellbookOrder": 23,
     "Description": "List der Qiqirn.\r\nDie fleischfressenden Qiqirn ver\u00E4ngstigen ihre Opfer mit einer magischen Schockwelle aus der hohlen Hand, bevor sie sich geifernd daran machen, sie zu verzehren."
   },
   {
@@ -172,7 +172,7 @@
     "Name": "Finsterer Blick",
     "Stars": 4,
     "IconId": 3272,
-    "SpellbookOrder": 22,
+    "SpellbookOrder": 10,
     "Description": "Kraft des Zyklopen.\r\nEntfesselt einen stark geb\u00FCndelten Lichtstrahl, der wie ein Blitz niedergeht und den Gegner bet\u00E4ubt."
   },
   {
@@ -180,7 +180,7 @@
     "Name": "Rakete",
     "Stars": 4,
     "IconId": 3273,
-    "SpellbookOrder": 23,
+    "SpellbookOrder": 35,
     "Description": "Blaumagische Technologienachbildung.\r\nEine \u00E4therisch gelenkte Waffe, deren Detonation beim Aufschlag auch gut gepanzerten Gegnern gro\u00DFen Schaden zuf\u00FCgt."
   },
   {
@@ -188,7 +188,7 @@
     "Name": "Wei\u00DFer Wind",
     "Stars": 3,
     "IconId": 3274,
-    "SpellbookOrder": 24,
+    "SpellbookOrder": 13,
     "Description": "Archaischer Heilzauber.\r\nWarme Winde tragen heilende \u00C4therkraft \u00FCber einen begrenzten Bereich. Die gro\u00DFe Heilwirkung verlangt dem Wirkenden einiges an Kr\u00E4ften ab."
   },
   {
@@ -196,7 +196,7 @@
     "Name": "Schlussstich",
     "Stars": 2,
     "IconId": 3275,
-    "SpellbookOrder": 25,
+    "SpellbookOrder": 8,
     "Description": "Attacke der Vespula.\r\nDie t\u00F6dlich verletzte Vespula verwandelt den letzten Rest ihrer Lebenskraft in einen hochgiftigen Stachelstich, mit dem sie ihren Bezwinger mit in den Tod rei\u00DFt."
   },
   {
@@ -204,7 +204,7 @@
     "Name": "Selbstzerst\u00F6rung",
     "Stars": 1,
     "IconId": 3276,
-    "SpellbookOrder": 26,
+    "SpellbookOrder": 21,
     "Description": "Typische Attacke der Bomber.\r\nVerwandelt den gesamten \u00C4ther urpl\u00F6tzlich in feuerbasierten und l\u00F6st so eine Explosion aus. Besonders gef\u00E4hrlich in \u00F6lverschmierten Umgebungen."
   },
   {
@@ -212,7 +212,7 @@
     "Name": "Assimilation",
     "Stars": 2,
     "IconId": 3277,
-    "SpellbookOrder": 27,
+    "SpellbookOrder": 22,
     "Description": "Blaumagie aus der Geisterwelt der Neuen Welt.\r\nOpfert die eigene Lebensenergie, um das Leiden eines anderen zu lindern und ihn vollst\u00E4ndig zu heilen."
   },
   {
@@ -220,7 +220,7 @@
     "Name": "Schleimiges Sekret",
     "Stars": 3,
     "IconId": 3278,
-    "SpellbookOrder": 28,
+    "SpellbookOrder": 32,
     "Description": "Von der Karpfenkr\u00F6te erworbener Blauzauber.\r\nDieser Ausweichzauber ist der eigentliche Grund f\u00FCr die sagenhafte Schl\u00FCpfrigkeit der Karpfenkr\u00F6te und streicht den Blaumagier mit glitschigem \u00D6l ein. Manche stehen drauf, andere finden\u0027s widerlich."
   },
   {
@@ -228,7 +228,7 @@
     "Name": "Einsch\u00FCchtern",
     "Stars": 2,
     "IconId": 3279,
-    "SpellbookOrder": 29,
+    "SpellbookOrder": 20,
     "Description": "Blauzauber des Stammes der Riesen.\r\nEin uralter Fluch aus der Neuen Welt, der den Geist des Gegners zerfrisst und schw\u00E4cht. Folgeangriffe k\u00F6nnen das wehrlos gewordene Opfer empfindlich treffen."
   },
   {
@@ -236,7 +236,7 @@
     "Name": "Spitze Zunge",
     "Stars": 4,
     "IconId": 3280,
-    "SpellbookOrder": 30,
+    "SpellbookOrder": 31,
     "Description": "Von der Karpfenkr\u00F6te erworbener Blauzauber.\r\nDie Klebrigkeit der Zunge der Karpfenkr\u00F6te ist legend\u00E4r und erm\u00F6glicht ihr, Fressbeute von weit her heranzuziehen. Der Zauber imitiert diese F\u00E4higkeit."
   },
   {
@@ -244,7 +244,7 @@
     "Name": "Schweifschraube",
     "Stars": 4,
     "IconId": 3281,
-    "SpellbookOrder": 31,
+    "SpellbookOrder": 40,
     "Description": "Attacke des Karlabos.\r\nWirbelt den in der Schwanzspitze konzentrierten \u00C4ther auf den Feind, um ihm Lebensenergie zu entziehen. Erfordert eine hohe Kontrolle \u00FCber den \u00C4ther und ist nicht leicht zu erlernen."
   },
   {
@@ -252,7 +252,7 @@
     "Name": "Petrifikation Stufe 5",
     "Stars": 2,
     "IconId": 3282,
-    "SpellbookOrder": 32,
+    "SpellbookOrder": 14,
     "Description": "Fluch der Ahriman und anderer Nichtsgesandten.\r\nSetzt sich in den kleinen Rissen der Seele fest, die im Laufe des Lebens entstehen. Die Verderbnis, die sich ausbreitet, verh\u00E4rtet nicht nur Herz und Gewissen."
   },
   {
@@ -260,7 +260,7 @@
     "Name": "Mondfl\u00F6te",
     "Stars": 1,
     "IconId": 3283,
-    "SpellbookOrder": 33,
+    "SpellbookOrder": 39,
     "Description": "Zauber der Nichtsgesandten.\r\nNichtsgesandte der Neuen Welt versetzen mit diesem Zauber die Angeh\u00F6rigen eines Stammes Mondanbeter in Ekstase, um sich von ihnen verehren zu lassen."
   },
   {
@@ -268,7 +268,7 @@
     "Name": "Verh\u00E4ngnis",
     "Stars": 4,
     "IconId": 3284,
-    "SpellbookOrder": 34,
+    "SpellbookOrder": 42,
     "Description": "Zauber der Nichtsgesandten.\r\nEin enorm starker Fluch aus der Neuen Welt, der dem Opfer jeglichen Lebenswillen entzieht. Wirkt allerdings nicht zuverl\u00E4ssig."
   },
   {
@@ -276,7 +276,7 @@
     "Name": "Totalabwehr",
     "Stars": 4,
     "IconId": 3285,
-    "SpellbookOrder": 35,
+    "SpellbookOrder": 30,
     "Description": "Blauzauber aus den Meeren der Neuen Welt.\r\nSchutzzauber eines d\u00FCnnh\u00E4utigen Meeresbewohners, mit dem er eine magische Mauer um sich errichtet und Fressfeinde abh\u00E4lt."
   },
   {
@@ -284,7 +284,7 @@
     "Name": "Eisstachel",
     "Stars": 1,
     "IconId": 3286,
-    "SpellbookOrder": 36,
+    "SpellbookOrder": 16,
     "Description": "Zauber der Nichtsgesandten.\r\nB\u00FCndelt die Feindseligkeit eines Angreifers in eine eisbasierte \u00C4therspitze, die auf den Aggressor zur\u00FCckgeschleudert werden kann."
   },
   {
@@ -292,7 +292,7 @@
     "Name": "Stimme des Widders",
     "Stars": 2,
     "IconId": 3287,
-    "SpellbookOrder": 37,
+    "SpellbookOrder": 33,
     "Description": "Angriffstalent der Chim\u00E4ra.\r\nAus dem Ziegenteil der Chim\u00E4ra stammende und zur Waffe gemachte F\u00E4higkeit, mit dem Bergziegen der n\u00F6rdlichen Polarregionen den eisigen Umgebungs\u00E4ther kontrollieren."
   },
   {
@@ -300,7 +300,7 @@
     "Name": "Stimme des Drachen",
     "Stars": 2,
     "IconId": 3288,
-    "SpellbookOrder": 38,
+    "SpellbookOrder": 34,
     "Description": "Angriffstalent der Chim\u00E4ra.\r\nEine blaumagische Version der Gabe, Blitze auf die Umgebung niederfahren zu lassen, welche die Chim\u00E4ra von ihrem Drachenteil geerbt hat. "
   },
   {
@@ -308,7 +308,7 @@
     "Name": "Unheimliche Aura",
     "Stars": 2,
     "IconId": 3289,
-    "SpellbookOrder": 39,
+    "SpellbookOrder": 43,
     "Description": "Von Salamandern absorbierter Blauzauber.\r\nBlendet Angreifer mit einem hellen Lichtblitz und steigert ihre Verwundbarkeit."
   },
   {
@@ -316,7 +316,7 @@
     "Name": "Tintenstrahl",
     "Stars": 3,
     "IconId": 3290,
-    "SpellbookOrder": 40,
+    "SpellbookOrder": 37,
     "Description": "Von Kraken stammender Blauzauber.\r\nEine Weiterentwicklung der Wasserkanone, mit der Angreifer durch einen Strahl dickfl\u00FCssiger Tinte geblendet werden."
   },
   {
@@ -324,7 +324,7 @@
     "Name": "Spucksardine",
     "Stars": 1,
     "IconId": 3291,
-    "SpellbookOrder": 41,
+    "SpellbookOrder": 24,
     "Description": "Blaumagisches Imitat einer Apkallu-Attacke.\r\nDieser Zauber ahmt die unappetitliche Angewohnheit der Apkallu nach, ihren Gegnern verschluckte Fische ins Gesicht zu spucken. Verschl\u00E4gt dem Opfer nicht selten die Sprache."
   },
   {
@@ -332,7 +332,7 @@
     "Name": "Diamantr\u00FCcken",
     "Stars": 4,
     "IconId": 3292,
-    "SpellbookOrder": 42,
+    "SpellbookOrder": 29,
     "Description": "Schutzzauber eines Panzerdrachen.\r\nEine Anh\u00E4ufung von Erd\u00E4ther errichtet eine magische Barriere, die Kleidung und R\u00FCstung h\u00E4rtet und jegliche Bewegung unm\u00F6glich macht."
   },
   {
@@ -340,7 +340,7 @@
     "Name": "Feuer-Ango",
     "Stars": 3,
     "IconId": 3293,
-    "SpellbookOrder": 43,
+    "SpellbookOrder": 38,
     "Description": "Traditionelle Attacke der Mamool Ja.\r\nEin Ango genannter, mit einer Prise Feuer\u00E4ther versehener Wurfspeer. Der Speer ist eine blaumagische Illusion, der Schmerz ist echt."
   },
   {

@@ -112,7 +112,7 @@
     <input type="text" id="charName" placeholder="z.B. Alice Beispiel">
 
     <div class="toolbar" style="margin-top:14px;">
-      <input type="text" id="filterExport" placeholder="Spell filtern...">
+      <input type="text" id="filterExport" placeholder="Name oder Nr. (z.B. 58, #058, a)...">
       <span class="count-badge" id="exportCount">0 / 124 gelernt</span>
     </div>
     <div class="spell-list" id="exportList"></div>
@@ -168,6 +168,7 @@ function buildList(containerId, filterInputId) {
     const row = document.createElement('div');
     row.className = 'spell-row';
     row.dataset.name = s.name.toLowerCase();
+    row.dataset.order = String(s.order);
     row.innerHTML = `
       <input type="checkbox" id="${containerId}_${s.id}" data-id="${s.id}">
       <span class="spell-order">${orderLabel(s.order)}</span>
@@ -179,9 +180,20 @@ function buildList(containerId, filterInputId) {
     container.appendChild(row);
   });
   document.getElementById(filterInputId).addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase();
+    const raw = e.target.value.trim();
+    // Reine Zahl (mit optionalem führenden '#', führende Nullen egal) -> nach
+    // Spellbook-Nummer filtern. Alles andere -> Teilstring-Suche im Namen.
+    const numMatch = raw.match(/^#?(\d+)$/);
     container.querySelectorAll('.spell-row').forEach(r => {
-      r.style.display = r.dataset.name.includes(q) ? '' : 'none';
+      let visible;
+      if (raw === '') {
+        visible = true;
+      } else if (numMatch) {
+        visible = parseInt(r.dataset.order, 10) === parseInt(numMatch[1], 10);
+      } else {
+        visible = r.dataset.name.includes(raw.toLowerCase());
+      }
+      r.style.display = visible ? '' : 'none';
     });
   });
   container.addEventListener('change', updateExportCount);

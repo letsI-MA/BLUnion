@@ -1,55 +1,90 @@
-# BLUnion — MVP-Gerüst (Phase 1)
+# BLUnion
 
-## Setup lokal
+A [Dalamud](https://github.com/goatcorp/Dalamud) plugin for FINAL FANTASY XIV that helps Blue Mage parties plan together which spells to learn next – including source locations and a web companion for players without the plugin installed.
 
-1. Das Projekt nutzt `Dalamud.NET.Sdk` (aktuell Version 15.0.0, passend zu
-   Dalamud API Level 15 / Spielpatch 7.5) als Projekt-SDK in der `.csproj` —
-   das bindet `Dalamud`, `Lumina`/`Lumina.Excel` und ImGui automatisch ein,
-   kein manuelles Referenzieren mehr nötig. Falls eure lokal installierte
-   Dalamud-Version einen anderen API-Level hat, die SDK-Version in der ersten
-   Zeile von `BLUnion.csproj` entsprechend anpassen (siehe
-   https://dalamud.dev/plugin-development/how-tos/v12-SDK-migration/) und
-   `DalamudApiLevel` in `BLUnion.json` gegenprüfen.
-2. Es wird trotzdem die Umgebungsvariable `DALAMUD_HOME` erwartet (zeigt
-   normalerweise auf `%AppData%\XIVLauncher\addon\Hooks\dev`) — für's Laden
-   als Dev-Plugin im Spiel, nicht mehr für die Build-Referenzen selbst.
-3. `dotnet build`. Das Manifest (`BLUnion.json`) wird von
-   `DalamudPackager` (Teil der SDK) automatisch nach jedem Build gelesen und
-   neben die `.dll` in den Output-Ordner kopiert/ergänzt — dort erwartet
-   Dalamud es beim Laden als Dev-Plugin. `Punchline` ist darin ein
-   Pflichtfeld (der Build bricht sonst ab).
+> ⚠️ **Early development stage.** This project is being actively developed for a small test group. It is not (yet) listed in the official Dalamud plugin repository.
 
-Stand 2026-08-17 lokal verifiziert: `dotnet build` läuft mit dieser
-Konfiguration sauber durch (0 Warnungen, 0 Fehler) gegen Dalamud 15.0.3.2 /
-API Level 15.
+## What does BLUnion do?
 
-## Was funktioniert (soweit auf offiziellen, stabilen APIs aufgebaut)
+When several Blue Mages are in a party together, BLUnion shows:
 
-- `PartyService`: Party lesen, Blue Mages filtern (über `IPartyList` +
-  dynamischer ClassJob-Lookup, keine hartcodierte Job-Id).
-- `SpellDataService`: lädt spells/monsters/sources/locations.json.
-- `ComparisonService`: reiner Algorithmus, testbar ohne Spielverbindung.
-- `ManualCodeSyncProvider`: Export/Import-Code (Sync-Option A).
-- `LocalSpellUnlockService`: liest den eigenen BLU-Unlock-Status über den
-  offiziellen (aber noch als "experimental" markierten) Dalamud-Service
-  `IUnlockState.IsAozActionUnlocked(...)` (Details + Versionsstand siehe
-  Kommentar in der Datei). **Noch nicht im Spiel gegen das eigene Spellbook
-  verifiziert** — das ist ein manueller Schritt vor produktivem Einsatz.
-- UI-Grundgerüst mit Party/Comparison/Sync-Tabs.
+- **Who already has which spells learned** – detected automatically, no manual entry needed
+- **Which spells the group is still missing**, prioritized by how many players need them
+- **Where to learn a missing spell** (monster, zone/dungeon/trial, coordinates where known)
+- **Which monster covers several missing spells at once** (the "Learning Plan" tab), so the group can plan efficiently
 
-## Beispieldaten
+The plugin does **not** automate any gameplay – it only reads and compares information.
 
-Die JSON-Dateien unter `Data/` enthalten nur 3 Beispiel-Spells zum Testen der
-Struktur (Glower, Bad Breath, Missile) — Action-Ids, Monster und Koordinaten
-sind **nicht verifiziert** und müssen vor echter Nutzung gegen eine
-verlässliche Quelle (z.B. Lumina-Sheets, aktuelle Community-Guides)
-gegengeprüft werden.
+## Features
 
-## Nächste Schritte
+- Party and Blue Mage detection
+- Automatic spell status detection via the official (experimental) Dalamud API `IUnlockState`
+- Multi-player comparison, sorted by urgency
+- Monster/source location database for all 124 Blue Magic spells
+- Filter by name or spellbook number (`58`, `#058`, `a`, ...)
+- "Hide totems" filter for the source display
+- Fully localized UI: **German, English, French, Japanese**
+- Sync between players via export/import codes – no server required
+- A companion **website** (see below), so people without the plugin installed can still contribute their status
 
-1. `LocalSpellUnlockService`-Ergebnis im Spiel gegen das eigene Spellbook
-   verifizieren (Plugin laden, "Eigenen Status ermitteln + exportieren"
-   klicken, `LearnedSpellIds` mit dem AOZ-Notizbuch abgleichen).
-2. Sobald das steht: Comparison-Tab end-to-end mit echten Daten testen.
-3. Danach Phase 2 (Party-Vergleich mit mehreren echten Spielern über
-   Sync-Option A) und später Sync-Option C (Cloudflare Worker).
+## Sync without a server
+
+Each player can export their own spell status as a compact text code (`BLU1:...`) and share it with others, e.g. via Discord. Others import the code in the plugin and immediately see the comparison – no central server, no registration required.
+
+For players who don't want to (or can't) install a Dalamud plugin, there's a **web companion**: [`docs/index.html`](docs/index.html), which can generate and read the same code directly in the browser – without FFXIV even running.
+
+## Installation
+
+1. In XIVLauncher, under `/xlsettings` → *Experimental* → *Dev Plugin Locations*, add the path to the built `BLUnion.dll` (no official custom repository available yet).
+2. Enable the plugin via `/xlplugins`.
+3. Open the main window with `/blunion`.
+
+## Build
+
+Requires a local Dalamud installation (`DALAMUD_HOME`) and the .NET SDK matching the installed Dalamud API version.
+
+```
+dotnet build
+```
+
+## Data sources & credits
+
+Spell, monster, and source-location data comes from several sources:
+
+- Spell names, icons, and ordering: pulled directly from the game files (via [Lumina](https://github.com/NotAdam/Lumina)/Dalamud)
+- Monster/source-location mappings: curated with the help of the public API from [FFXIV Collect](https://ffxivcollect.com/) (non-commercial use)
+- Supplementary research: [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary)
+
+Not all monster/location names have been verified in every supported language yet – missing translations are marked as placeholders in the code (falling back to English).
+
+## Architecture
+
+```
+Plugin
+  ├── PartyService            – party / Blue Mage detection
+  ├── LocalSpellUnlockService – own spell status (IUnlockState)
+  ├── SpellDataService        – loads spell/monster/source/location data
+  ├── ComparisonService       – comparison & monster grouping
+  ├── SpellFilter             – name/number filtering
+  ├── ISyncProvider           – swappable sync strategy
+  │     └── ManualCodeSyncProvider (export/import code)
+  ├── UiStrings                – centralized, localized UI strings
+  └── UI
+        └── MainWindow – Party / Spell Comparison / Learning Plan / Sync / Settings
+```
+
+Static game data (`Data/*.json`) is intentionally kept separate from user settings.
+
+## Known limitations
+
+- 2 of 124 spells have no source listed (Kaltstrahl, partially) or need none (Water Cannon)
+- Some monster/location names are still placeholders for certain languages
+- Sync is currently manual (code-based) only, no automatic live sync
+
+## License
+
+See [LICENSE](LICENSE).
+
+---
+
+*This is an unofficial fan project and is not affiliated with SQUARE ENIX. FINAL FANTASY XIV © SQUARE ENIX CO., LTD.*

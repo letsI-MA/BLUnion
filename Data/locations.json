@@ -1,521 +1,845 @@
 [
   {
     "Id": 1,
-    "ZoneName": "The Dragon's Neck",
+    "ZoneNameDe": "The Dragon's Neck",
+    "ZoneNameEn": "The Dragon's Neck",
+    "ZoneNameFr": "The Dragon's Neck",
+    "ZoneNameJa": "アマジナ杯闘技会決勝戦",
     "DutyName": "The Dragon's Neck"
   },
   {
     "Id": 2,
-    "ZoneName": "Masked Carnivale: 20",
+    "ZoneNameDe": "Die Große Maskerade Nr. 20",
+    "ZoneNameEn": "Masked Carnivale: 20",
+    "ZoneNameFr": "La Grande Mascarade n°20",
+    "ZoneNameJa": "Masked Carnivale: 20",
     "DutyName": "Masked Carnivale: 20"
   },
   {
     "Id": 3,
-    "ZoneName": "Masked Carnivale: 27",
+    "ZoneNameDe": "Masked Carnivale: 27",
+    "ZoneNameEn": "Masked Carnivale: 27",
+    "ZoneNameFr": "Masked Carnivale: 27",
+    "ZoneNameJa": "Masked Carnivale: 27",
     "DutyName": "Masked Carnivale: 27"
   },
   {
     "Id": 4,
-    "ZoneName": "Pharos Sirius",
+    "ZoneNameDe": "Pharos Sirius",
+    "ZoneNameEn": "Pharos Sirius",
+    "ZoneNameFr": "Le Phare de Sirius",
+    "ZoneNameJa": "シリウス大灯台",
     "DutyName": "Pharos Sirius"
   },
   {
     "Id": 5,
-    "ZoneName": "Masked Carnivale: 15",
+    "ZoneNameDe": "Die Große Maskerade Nr. 15",
+    "ZoneNameEn": "Masked Carnivale: 15",
+    "ZoneNameFr": "La Grande Mascarade n°15",
+    "ZoneNameJa": "Masked Carnivale: 15",
     "DutyName": "Masked Carnivale: 15"
   },
   {
     "Id": 6,
-    "ZoneName": "The Binding Coil of Bahamut (Turn 1-2)",
+    "ZoneNameDe": "The Binding Coil of Bahamut (Turn 1-2)",
+    "ZoneNameEn": "The Binding Coil of Bahamut (Turn 1-2)",
+    "ZoneNameFr": "The Binding Coil of Bahamut (Turn 1-2)",
+    "ZoneNameJa": "The Binding Coil of Bahamut (Turn 1-2)",
     "DutyName": "The Binding Coil of Bahamut (Turn 1-2)"
   },
   {
     "Id": 7,
-    "ZoneName": "Central Shroud"
+    "ZoneNameDe": "Tiefer Wald",
+    "ZoneNameEn": "Central Shroud",
+    "ZoneNameFr": "Forêt centrale",
+    "ZoneNameJa": "黒衣森：中央森林"
   },
   {
     "Id": 8,
-    "ZoneName": "South Shroud"
+    "ZoneNameDe": "South Shroud",
+    "ZoneNameEn": "South Shroud",
+    "ZoneNameFr": "South Shroud",
+    "ZoneNameJa": "黒衣森：南部森林"
   },
   {
     "Id": 9,
-    "ZoneName": "The Aurum Vale"
+    "ZoneNameDe": "Goldklamm",
+    "ZoneNameEn": "The Aurum Vale",
+    "ZoneNameFr": "Le Val d'Aurum",
+    "ZoneNameJa": "オーラムヴェイル"
   },
   {
     "Id": 10,
-    "ZoneName": "Masked Carnivale: 19",
+    "ZoneNameDe": "Masked Carnivale: 19",
+    "ZoneNameEn": "Masked Carnivale: 19",
+    "ZoneNameFr": "Masked Carnivale: 19",
+    "ZoneNameJa": "Masked Carnivale: 19",
     "DutyName": "Masked Carnivale: 19"
   },
   {
     "Id": 11,
-    "ZoneName": "North Shroud"
+    "ZoneNameDe": "Nordwald",
+    "ZoneNameEn": "North Shroud",
+    "ZoneNameFr": "Forêt du nord",
+    "ZoneNameJa": "黒衣森：北部森林"
   },
   {
     "Id": 12,
-    "ZoneName": "Southern Thanalan"
+    "ZoneNameDe": "Südliches Thanalan",
+    "ZoneNameEn": "Southern Thanalan",
+    "ZoneNameFr": "Thanalan méridional",
+    "ZoneNameJa": "南ザナラーン"
   },
   {
     "Id": 13,
-    "ZoneName": "Outer La Noscea"
+    "ZoneNameDe": "Äußeres La Noscea",
+    "ZoneNameEn": "Outer La Noscea",
+    "ZoneNameFr": "Noscea extérieure",
+    "ZoneNameJa": "外地ラノシア"
   },
   {
     "Id": 14,
-    "ZoneName": "Masked Carnivale: 25",
+    "ZoneNameDe": "Die große Maskerade Nr. 25",
+    "ZoneNameEn": "Masked Carnivale: 25",
+    "ZoneNameFr": "La Grande Mascarade n°25",
+    "ZoneNameJa": "Masked Carnivale: 25",
     "DutyName": "Masked Carnivale: 25"
   },
   {
     "Id": 15,
-    "ZoneName": "East Shroud"
+    "ZoneNameDe": "Ostwald",
+    "ZoneNameEn": "East Shroud",
+    "ZoneNameFr": "Forêt de l'est",
+    "ZoneNameJa": "黒衣森：東部森林"
   },
   {
     "Id": 16,
-    "ZoneName": "The Tam-Tara Deepcroft (Hard)",
+    "ZoneNameDe": "Totenacker Tam-Tara (schwer)",
+    "ZoneNameEn": "The Tam-Tara Deepcroft (Hard)",
+    "ZoneNameFr": "L'Hypogée de Tam-Tara (brutal)",
+    "ZoneNameJa": "タムタラの墓所 (Hard)",
     "DutyName": "The Tam-Tara Deepcroft (Hard)"
   },
   {
     "Id": 17,
-    "ZoneName": "Alexander: The Burden of the Son",
+    "ZoneNameDe": "Alexander: The Burden of the Son",
+    "ZoneNameEn": "Alexander: The Burden of the Son",
+    "ZoneNameFr": "Alexander: The Burden of the Son",
+    "ZoneNameJa": "Alexander: The Burden of the Son",
     "DutyName": "Alexander: The Burden of the Son"
   },
   {
     "Id": 18,
-    "ZoneName": "Lower La Noscea"
+    "ZoneNameDe": "Lower La Noscea",
+    "ZoneNameEn": "Lower La Noscea",
+    "ZoneNameFr": "Lower La Noscea",
+    "ZoneNameJa": "低地ラノシア"
   },
   {
     "Id": 19,
-    "ZoneName": "Haukke Manor",
+    "ZoneNameDe": "Haukke-Herrenhaus",
+    "ZoneNameEn": "Haukke Manor",
+    "ZoneNameFr": "Le Manoir des Haukke",
+    "ZoneNameJa": "ハウケタ御用邸",
     "DutyName": "Haukke Manor"
   },
   {
     "Id": 20,
-    "ZoneName": "Middle La Noscea"
+    "ZoneNameDe": "Zentrales La Noscea",
+    "ZoneNameEn": "Middle La Noscea",
+    "ZoneNameFr": "Noscea centrale",
+    "ZoneNameJa": "中央ラノシア"
   },
   {
     "Id": 21,
-    "ZoneName": "Northern Thanalan"
+    "ZoneNameDe": "Nördliches Thanalan",
+    "ZoneNameEn": "Northern Thanalan",
+    "ZoneNameFr": "Thanalan septentrional",
+    "ZoneNameJa": "北ザナラーン"
   },
   {
     "Id": 22,
-    "ZoneName": "Brayflox's Longstop (Hard)",
+    "ZoneNameDe": "Brüllvolx' Langrast (schwer)",
+    "ZoneNameEn": "Brayflox's Longstop (Hard)",
+    "ZoneNameFr": "Bivouac de Brayflox (brutal)",
+    "ZoneNameJa": "ブレイフロクスの野営地 (Hard)",
     "DutyName": "Brayflox's Longstop (Hard)"
   },
   {
     "Id": 23,
-    "ZoneName": "Castrum Meridianum",
+    "ZoneNameDe": "Castrum Meridianum",
+    "ZoneNameEn": "Castrum Meridianum",
+    "ZoneNameFr": "Castrum Meridianum",
+    "ZoneNameJa": "カストルム・メリディアヌム",
     "DutyName": "Castrum Meridianum"
   },
   {
     "Id": 24,
-    "ZoneName": "Mor Dhona"
+    "ZoneNameDe": "Mor Dhona",
+    "ZoneNameEn": "Mor Dhona",
+    "ZoneNameFr": "Mor Dhona",
+    "ZoneNameJa": "モードゥナ"
   },
   {
     "Id": 25,
-    "ZoneName": "Amdapor Keep",
+    "ZoneNameDe": "Die Ruinen von Amdapor",
+    "ZoneNameEn": "Amdapor Keep",
+    "ZoneNameFr": "Le Château d'Amdapor",
+    "ZoneNameJa": "古城アムダプール",
     "DutyName": "Amdapor Keep"
   },
   {
     "Id": 26,
-    "ZoneName": "The Labyrinth of the Ancients",
+    "ZoneNameDe": "The Labyrinth of the Ancients",
+    "ZoneNameEn": "The Labyrinth of the Ancients",
+    "ZoneNameFr": "The Labyrinth of the Ancients",
+    "ZoneNameJa": "クリスタルタワー：古代の民の迷宮",
     "DutyName": "The Labyrinth of the Ancients"
   },
   {
     "Id": 27,
-    "ZoneName": "The Wanderer's Palace",
+    "ZoneNameDe": "The Wanderer's Palace",
+    "ZoneNameEn": "The Wanderer's Palace",
+    "ZoneNameFr": "The Wanderer's Palace",
+    "ZoneNameJa": "ワンダラーパレス",
     "DutyName": "The Wanderer's Palace"
   },
   {
     "Id": 28,
-    "ZoneName": "The Keeper of the Lake",
+    "ZoneNameDe": "Hüter des Sees",
+    "ZoneNameEn": "The Keeper of the Lake",
+    "ZoneNameFr": "Le Gardien du lac",
+    "ZoneNameJa": "黙約の塔",
     "DutyName": "The Keeper of the Lake"
   },
   {
     "Id": 29,
-    "ZoneName": "Alphascape v3.0",
+    "ZoneNameDe": "Alphametrie 3.0",
+    "ZoneNameEn": "Alphascape v3.0",
+    "ZoneNameFr": "Alphastice v3.0",
+    "ZoneNameJa": "次元の狭間オメガ：アルファ編3",
     "DutyName": "Alphascape v3.0"
   },
   {
     "Id": 30,
-    "ZoneName": "Central Thanalan"
+    "ZoneNameDe": "Zentrales Thanalan",
+    "ZoneNameEn": "Central Thanalan",
+    "ZoneNameFr": "Thanalan central",
+    "ZoneNameJa": "中央ザナラーン"
   },
   {
     "Id": 31,
-    "ZoneName": "Battle in the Big Keep",
+    "ZoneNameDe": "Duell auf der großen Brücke",
+    "ZoneNameEn": "Battle in the Big Keep",
+    "ZoneNameFr": "Revanche au vieux château",
+    "ZoneNameJa": "真ギルガメッシュ討滅戦",
     "DutyName": "Battle in the Big Keep"
   },
   {
     "Id": 32,
-    "ZoneName": "Sigmascape v3.0",
+    "ZoneNameDe": "Sigmametrie 3.0",
+    "ZoneNameEn": "Sigmascape v3.0",
+    "ZoneNameFr": "Sigmastice v3.0",
+    "ZoneNameJa": "被検世界「シグマ」V3.0",
     "DutyName": "Sigmascape v3.0"
   },
   {
     "Id": 33,
-    "ZoneName": "The Sunken Temple of Qarn",
+    "ZoneNameDe": "The Sunken Temple of Qarn",
+    "ZoneNameEn": "The Sunken Temple of Qarn",
+    "ZoneNameFr": "The Sunken Temple of Qarn",
+    "ZoneNameJa": "カルン埋没寺院",
     "DutyName": "The Sunken Temple of Qarn"
   },
   {
     "Id": 34,
-    "ZoneName": "Western Thanalan"
+    "ZoneNameDe": "Westliches Thanalan",
+    "ZoneNameEn": "Western Thanalan",
+    "ZoneNameFr": "Thanalan occidental",
+    "ZoneNameJa": "西ザナラーン"
   },
   {
     "Id": 35,
-    "ZoneName": "Sastasha (Hard)",
+    "ZoneNameDe": "Sastasha (schwer)",
+    "ZoneNameEn": "Sastasha (Hard)",
+    "ZoneNameFr": "Sastasha (brutal)",
+    "ZoneNameJa": "サスタシャ浸食洞 (Hard)",
     "DutyName": "Sastasha (Hard)"
   },
   {
     "Id": 36,
-    "ZoneName": "Cutter's Cry",
+    "ZoneNameDe": "Sägerschrei",
+    "ZoneNameEn": "Cutter's Cry",
+    "ZoneNameFr": "Gouffre hurlant",
+    "ZoneNameJa": "カッターズクライ",
     "DutyName": "Cutter's Cry"
   },
   {
     "Id": 37,
-    "ZoneName": "Masked Carnivale",
+    "ZoneNameDe": "Die große Maskerade Nr. 25",
+    "ZoneNameEn": "Masked Carnivale",
+    "ZoneNameFr": "La Grande Mascarade n°25",
+    "ZoneNameJa": "Masked Carnivale",
     "DutyName": "Masked Carnivale"
   },
   {
     "Id": 38,
-    "ZoneName": "Eastern La Noscea"
+    "ZoneNameDe": "Östliches La Noscea",
+    "ZoneNameEn": "Eastern La Noscea",
+    "ZoneNameFr": "Noscea orientale",
+    "ZoneNameJa": "東ラノシア"
   },
   {
     "Id": 39,
-    "ZoneName": "The Stone Vigil (Hard)",
+    "ZoneNameDe": "Steinerne Wacht (schwer)",
+    "ZoneNameEn": "The Stone Vigil (Hard)",
+    "ZoneNameFr": "Le Vigile de Pierre (brutal)",
+    "ZoneNameJa": "ストーンヴィジル (Hard)",
     "DutyName": "The Stone Vigil (Hard)"
   },
   {
     "Id": 40,
-    "ZoneName": "The Wanderer's Palace (Hard)",
+    "ZoneNameDe": "Palast des Wanderers (schwer)",
+    "ZoneNameEn": "The Wanderer's Palace (Hard)",
+    "ZoneNameFr": "Le Palais du Vagabond (brutal)",
+    "ZoneNameJa": "ワンダラーパレス (Hard)",
     "DutyName": "The Wanderer's Palace (Hard)"
   },
   {
     "Id": 41,
-    "ZoneName": "The Howling Eye (Extreme)",
+    "ZoneNameDe": "Zenit der Götter - Garuda",
+    "ZoneNameEn": "The Howling Eye (Extreme)",
+    "ZoneNameFr": "Hurlœil (extrême)",
+    "ZoneNameJa": "極ガルーダ討滅戦",
     "DutyName": "The Howling Eye (Extreme)"
   },
   {
     "Id": 42,
-    "ZoneName": "The Bowl of Embers (Normal, Hard oder Extreme)",
+    "ZoneNameDe": "Das Grab der Lohe",
+    "ZoneNameEn": "The Bowl of Embers (Normal, Hard oder Extreme)",
+    "ZoneNameFr": "Le Cratère des tisons",
+    "ZoneNameJa": "The Bowl of Embers (Normal, Hard oder Extreme)",
     "DutyName": "The Bowl of Embers (Normal, Hard oder Extreme)"
   },
   {
     "Id": 43,
-    "ZoneName": "The Navel (Hard oder Extreme)",
+    "ZoneNameDe": "Götterdämmerung - Titan",
+    "ZoneNameEn": "The Navel (Hard oder Extreme)",
+    "ZoneNameFr": "Le Nombril (brutal)",
+    "ZoneNameJa": "The Navel (Hard oder Extreme)",
     "DutyName": "The Navel (Hard oder Extreme)"
   },
   {
     "Id": 44,
-    "ZoneName": "The Striking Tree (Hard oder Extreme)",
+    "ZoneNameDe": "Götterdämmerung - Ramuh",
+    "ZoneNameEn": "The Striking Tree (Hard oder Extreme)",
+    "ZoneNameFr": "L'Arbre du jugement (brutal)",
+    "ZoneNameJa": "The Striking Tree (Hard oder Extreme)",
     "DutyName": "The Striking Tree (Hard oder Extreme)"
   },
   {
     "Id": 45,
-    "ZoneName": "Akh Afah Amphitheatre (Extreme)",
+    "ZoneNameDe": "Zenit der Götter - Shiva",
+    "ZoneNameEn": "Akh Afah Amphitheatre (Extreme)",
+    "ZoneNameFr": "L'Amphithéâtre d'Akh Afah (extrême)",
+    "ZoneNameJa": "Akh Afah Amphitheatre (Extreme)",
     "DutyName": "Akh Afah Amphitheatre (Extreme)"
   },
   {
     "Id": 46,
-    "ZoneName": "The Whorleater (Hard oder Extreme)",
+    "ZoneNameDe": "Götterdämmerung - Leviathan",
+    "ZoneNameEn": "The Whorleater (Hard oder Extreme)",
+    "ZoneNameFr": "Le Briseur de marées",
+    "ZoneNameJa": "The Whorleater (Hard oder Extreme)",
     "DutyName": "The Whorleater (Hard oder Extreme)"
   },
   {
     "Id": 47,
-    "ZoneName": "The Sea of Clouds"
+    "ZoneNameDe": "Abalathisches Wolkenmeer",
+    "ZoneNameEn": "The Sea of Clouds",
+    "ZoneNameFr": "L'Écume des cieux d'Abalathia",
+    "ZoneNameJa": "アバラシア雲海"
   },
   {
     "Id": 48,
-    "ZoneName": "The Dusk Vigil",
+    "ZoneNameDe": "Abendrot-Wacht",
+    "ZoneNameEn": "The Dusk Vigil",
+    "ZoneNameFr": "Le Vigile du Crépuscule",
+    "ZoneNameJa": "廃砦捜索 ダスクヴィジル",
     "DutyName": "The Dusk Vigil"
   },
   {
     "Id": 49,
-    "ZoneName": "Masked Carnivale: 29",
+    "ZoneNameDe": "Masked Carnivale: 29",
+    "ZoneNameEn": "Masked Carnivale: 29",
+    "ZoneNameFr": "Masked Carnivale: 29",
+    "ZoneNameJa": "Masked Carnivale: 29",
     "DutyName": "Masked Carnivale: 29"
   },
   {
     "Id": 50,
-    "ZoneName": "Alexander: The Arm of the Father",
+    "ZoneNameDe": "Alexander: The Arm of the Father",
+    "ZoneNameEn": "Alexander: The Arm of the Father",
+    "ZoneNameFr": "Alexander: The Arm of the Father",
+    "ZoneNameJa": "Alexander: The Arm of the Father",
     "DutyName": "Alexander: The Arm of the Father"
   },
   {
     "Id": 51,
-    "ZoneName": "Coerthas Western Highlands"
+    "ZoneNameDe": "Coerthas Western Highlands",
+    "ZoneNameEn": "Coerthas Western Highlands",
+    "ZoneNameFr": "Coerthas Western Highlands",
+    "ZoneNameJa": "クルザス西部高地"
   },
   {
     "Id": 52,
-    "ZoneName": "Snowcloak",
+    "ZoneNameDe": "Schneekleid",
+    "ZoneNameEn": "Snowcloak",
+    "ZoneNameFr": "Manteneige",
+    "ZoneNameJa": "スノークローク大氷壁",
     "DutyName": "Snowcloak"
   },
   {
     "Id": 53,
-    "ZoneName": "Foundation"
+    "ZoneNameDe": "Foundation",
+    "ZoneNameEn": "Foundation",
+    "ZoneNameFr": "Foundation",
+    "ZoneNameJa": "イシュガルド：下層"
   },
   {
     "Id": 54,
-    "ZoneName": "Haukke Manor (Hard)",
+    "ZoneNameDe": "Haukke-Herrenhaus (schwer)",
+    "ZoneNameEn": "Haukke Manor (Hard)",
+    "ZoneNameFr": "Manoir des Haukke (brutal)",
+    "ZoneNameJa": "ハウケタ御用邸 (Hard)",
     "DutyName": "Haukke Manor (Hard)"
   },
   {
     "Id": 55,
-    "ZoneName": "The Great Gubal Library",
+    "ZoneNameDe": "The Great Gubal Library",
+    "ZoneNameEn": "The Great Gubal Library",
+    "ZoneNameFr": "The Great Gubal Library",
+    "ZoneNameJa": "グブラ幻想図書館",
     "DutyName": "The Great Gubal Library"
   },
   {
     "Id": 56,
-    "ZoneName": "Azys Lla"
+    "ZoneNameDe": "Azys Lla",
+    "ZoneNameEn": "Azys Lla",
+    "ZoneNameFr": "Azys Lla",
+    "ZoneNameJa": "アジス・ラー"
   },
   {
     "Id": 57,
-    "ZoneName": "The Lost City of Amdapor",
+    "ZoneNameDe": "Historisches Amdapor",
+    "ZoneNameEn": "The Lost City of Amdapor",
+    "ZoneNameFr": "Les Vestiges de la cité d'Amdapor",
+    "ZoneNameJa": "古アムダプール市街",
     "DutyName": "The Lost City of Amdapor"
   },
   {
     "Id": 58,
-    "ZoneName": "Thornmarch (Hard oder Extreme)",
+    "ZoneNameDe": "Thornmarch (Hard oder Extreme)",
+    "ZoneNameEn": "Thornmarch (Hard oder Extreme)",
+    "ZoneNameFr": "Thornmarch (Hard oder Extreme)",
+    "ZoneNameJa": "Thornmarch (Hard oder Extreme)",
     "DutyName": "Thornmarch (Hard oder Extreme)"
   },
   {
     "Id": 59,
-    "ZoneName": "Alexander: The Breath of the Creator",
+    "ZoneNameDe": "Alexander: The Breath of the Creator",
+    "ZoneNameEn": "Alexander: The Breath of the Creator",
+    "ZoneNameFr": "Alexander: The Breath of the Creator",
+    "ZoneNameJa": "Alexander: The Breath of the Creator",
     "DutyName": "Alexander: The Breath of the Creator"
   },
   {
     "Id": 60,
-    "ZoneName": "The Great Gubal Library (Hard)",
+    "ZoneNameDe": "Große Gubal-Bibliothek (schwer)",
+    "ZoneNameEn": "The Great Gubal Library (Hard)",
+    "ZoneNameFr": "La Grande bibliothèque de Gubal (brutal)",
+    "ZoneNameJa": "グブラ幻想図書館 (Hard)",
     "DutyName": "The Great Gubal Library (Hard)"
   },
   {
     "Id": 61,
-    "ZoneName": "Masked Carnivale: 24",
+    "ZoneNameDe": "Die Große Maskerade Nr. 24",
+    "ZoneNameEn": "Masked Carnivale: 24",
+    "ZoneNameFr": "La Grande Mascarade n°24",
+    "ZoneNameJa": "Masked Carnivale: 24",
     "DutyName": "Masked Carnivale: 24"
   },
   {
     "Id": 62,
-    "ZoneName": "Saint Mocianne's Arboretum",
+    "ZoneNameDe": "Sankt Mocianne-Arboretum",
+    "ZoneNameEn": "Saint Mocianne's Arboretum",
+    "ZoneNameFr": "L'Arboretum Sainte-Mocianne",
+    "ZoneNameJa": "聖モシャーヌ植物園",
     "DutyName": "Saint Mocianne's Arboretum"
   },
   {
     "Id": 63,
-    "ZoneName": "The Dravanian Hinterlands"
+    "ZoneNameDe": "Dravanisches Hinterland",
+    "ZoneNameEn": "The Dravanian Hinterlands",
+    "ZoneNameFr": "Arrière-pays dravanien",
+    "ZoneNameJa": "低地ドラヴァニア"
   },
   {
     "Id": 64,
-    "ZoneName": "The Vault",
+    "ZoneNameDe": "Erzbasilika",
+    "ZoneNameEn": "The Vault",
+    "ZoneNameFr": "La Voûte",
+    "ZoneNameJa": "イシュガルド教皇庁",
     "DutyName": "The Vault"
   },
   {
     "Id": 65,
-    "ZoneName": "Baelsar's Wall",
+    "ZoneNameDe": "Baelsar-Wall",
+    "ZoneNameEn": "Baelsar's Wall",
+    "ZoneNameFr": "La Muraille de Baelsar",
+    "ZoneNameJa": "バエサルの長城",
     "DutyName": "Baelsar's Wall"
   },
   {
     "Id": 66,
-    "ZoneName": "Alexander: The Burden of the Father",
+    "ZoneNameDe": "Alexander: The Burden of the Father",
+    "ZoneNameEn": "Alexander: The Burden of the Father",
+    "ZoneNameFr": "Alexander: The Burden of the Father",
+    "ZoneNameJa": "Alexander: The Burden of the Father",
     "DutyName": "Alexander: The Burden of the Father"
   },
   {
     "Id": 67,
-    "ZoneName": "The Sunken Temple of Qarn (Hard)",
+    "ZoneNameDe": "Versunkener Tempel von Qarn (schwer)",
+    "ZoneNameEn": "The Sunken Temple of Qarn (Hard)",
+    "ZoneNameFr": "Le Temple enseveli de Qarn (brutal)",
+    "ZoneNameJa": "カルン埋没寺院 (Hard)",
     "DutyName": "The Sunken Temple of Qarn (Hard)"
   },
   {
     "Id": 68,
-    "ZoneName": "The Churning Mists",
+    "ZoneNameDe": "Wallende Nebel",
+    "ZoneNameEn": "The Churning Mists",
+    "ZoneNameFr": "L'Écume des cieux de Dravania",
+    "ZoneNameJa": "ドラヴァニア雲海",
     "Coordinates": "23, 29"
   },
   {
     "Id": 69,
-    "ZoneName": "Saint Mocianne's Arboretum (Hard)",
+    "ZoneNameDe": "Sankt Mocianne-Arboretum (schwer)",
+    "ZoneNameEn": "Saint Mocianne's Arboretum (Hard)",
+    "ZoneNameFr": "L'Arboretum Sainte-Mocianne (brutal)",
+    "ZoneNameJa": "聖モシャーヌ植物園 (Hard)",
     "DutyName": "Saint Mocianne's Arboretum (Hard)"
   },
   {
     "Id": 70,
-    "ZoneName": "World of Darkness",
+    "ZoneNameDe": "World of Darkness",
+    "ZoneNameEn": "World of Darkness",
+    "ZoneNameFr": "World of Darkness",
+    "ZoneNameJa": "World of Darkness",
     "DutyName": "World of Darkness"
   },
   {
     "Id": 71,
-    "ZoneName": "Pharos Sirius (Hard)",
+    "ZoneNameDe": "Pharos Sirius (Hard)",
+    "ZoneNameEn": "Pharos Sirius (Hard)",
+    "ZoneNameFr": "Pharos Sirius (Hard)",
+    "ZoneNameJa": "シリウス大灯台 (Hard)",
     "DutyName": "Pharos Sirius (Hard)"
   },
   {
     "Id": 72,
-    "ZoneName": "Thok ast Thok (Hard oder Extreme)",
+    "ZoneNameDe": "Götterdämmerung - Ravana",
+    "ZoneNameEn": "Thok ast Thok (Hard oder Extreme)",
+    "ZoneNameFr": "Thok Ast Thok",
+    "ZoneNameJa": "Thok ast Thok (Hard oder Extreme)",
     "DutyName": "Thok ast Thok (Hard oder Extreme)"
   },
   {
     "Id": 73,
-    "ZoneName": "Containment Bay P1T6",
+    "ZoneNameDe": "Götterdämmerung - Sophia",
+    "ZoneNameEn": "Containment Bay P1T6",
+    "ZoneNameFr": "Unité de contention P1P6",
+    "ZoneNameJa": "コンテイメントベイP1T6",
     "DutyName": "Containment Bay P1T6"
   },
   {
     "Id": 74,
-    "ZoneName": "Yanxia"
+    "ZoneNameDe": "Yanxia",
+    "ZoneNameEn": "Yanxia",
+    "ZoneNameFr": "Yanxia",
+    "ZoneNameJa": "ヤンサ"
   },
   {
     "Id": 75,
-    "ZoneName": "Kugane Castle",
+    "ZoneNameDe": "Kugane Castle",
+    "ZoneNameEn": "Kugane Castle",
+    "ZoneNameFr": "Kugane Castle",
+    "ZoneNameJa": "クガネ城",
     "DutyName": "Kugane Castle"
   },
   {
     "Id": 76,
-    "ZoneName": "The Burn"
+    "ZoneNameDe": "The Burn (leave one head alive)",
+    "ZoneNameEn": "The Burn",
+    "ZoneNameFr": "L'Escarre (laisser une tête en vie)",
+    "ZoneNameJa": "ザ・バーン"
   },
   {
     "Id": 77,
-    "ZoneName": "Emanation",
+    "ZoneNameDe": "Götterdämmerung - Lakshmi",
+    "ZoneNameEn": "Emanation",
+    "ZoneNameFr": "Émanation",
+    "ZoneNameJa": "美神の地下神殿",
     "DutyName": "Emanation"
   },
   {
     "Id": 78,
-    "ZoneName": "Sigmascape v1.0",
+    "ZoneNameDe": "Sigmametrie 1.0",
+    "ZoneNameEn": "Sigmascape v1.0",
+    "ZoneNameFr": "Sigmastice v1.0",
+    "ZoneNameJa": "被検世界「シグマ」V1.0",
     "DutyName": "Sigmascape v1.0"
   },
   {
     "Id": 79,
-    "ZoneName": "Hells' Lid",
+    "ZoneNameDe": "Höllenspund",
+    "ZoneNameEn": "Hells' Lid",
+    "ZoneNameFr": "Le Couvercle des enfers",
+    "ZoneNameJa": "獄之蓋",
     "DutyName": "Hells' Lid"
   },
   {
     "Id": 80,
-    "ZoneName": "Temple of the Fist",
+    "ZoneNameDe": "Tempel der Faust",
+    "ZoneNameEn": "Temple of the Fist",
+    "ZoneNameFr": "Le Temple du Poing",
+    "ZoneNameJa": "Temple of the Fist",
     "DutyName": "Temple of the Fist"
   },
   {
     "Id": 81,
-    "ZoneName": "Upper La Noscea",
+    "ZoneNameDe": "Oberes La Noscea",
+    "ZoneNameEn": "Upper La Noscea",
+    "ZoneNameFr": "Haute-Noscea",
+    "ZoneNameJa": "高地ラノシア",
     "Coordinates": "9, 21"
   },
   {
     "Id": 82,
-    "ZoneName": "The Peaks",
+    "ZoneNameDe": "Die Zinnen",
+    "ZoneNameEn": "The Peaks",
+    "ZoneNameFr": "Les Pics",
+    "ZoneNameJa": "ギラバニア山岳地帯",
     "Coordinates": "11, 25"
   },
   {
     "Id": 83,
-    "ZoneName": "Deltascape v1.0",
+    "ZoneNameDe": "Deltametrie 1.0",
+    "ZoneNameEn": "Deltascape v1.0",
+    "ZoneNameFr": "Deltastice V1.0",
+    "ZoneNameJa": "被検世界「デルタ」V1.0",
     "DutyName": "Deltascape v1.0"
   },
   {
     "Id": 84,
-    "ZoneName": "The Lochs",
+    "ZoneNameDe": "Das Fenn",
+    "ZoneNameEn": "The Lochs",
+    "ZoneNameFr": "Les Lacs",
+    "ZoneNameJa": "ギラバニア湖畔地帯",
     "Coordinates": "22, 22"
   },
   {
     "Id": 85,
-    "ZoneName": "Drowned City of Skalla",
+    "ZoneNameDe": "Die versunkene Stadt Skalla",
+    "ZoneNameEn": "Drowned City of Skalla",
+    "ZoneNameFr": "La Cité engloutie de Skalla",
+    "ZoneNameJa": "Drowned City of Skalla",
     "DutyName": "Drowned City of Skalla"
   },
   {
     "Id": 86,
-    "ZoneName": "The Swallow's Compass",
+    "ZoneNameDe": "Kompass der Schwalbe",
+    "ZoneNameEn": "The Swallow's Compass",
+    "ZoneNameFr": "Le Compas de l'Hirondelle",
+    "ZoneNameJa": "ガンエン廟",
     "DutyName": "The Swallow's Compass"
   },
   {
     "Id": 87,
-    "ZoneName": "The Dravanian Forelands",
+    "ZoneNameDe": "Dravanisches Vorland",
+    "ZoneNameEn": "The Dravanian Forelands",
+    "ZoneNameFr": "Avant-pays dravanien",
+    "ZoneNameJa": "高地ドラヴァニア",
     "Coordinates": "34, 28"
   },
   {
     "Id": 88,
-    "ZoneName": "Hells' Kier",
+    "ZoneNameDe": "Seelentanz - Suzaku",
+    "ZoneNameEn": "Hells' Kier",
+    "ZoneNameFr": "Le Nid des Lamentations",
+    "ZoneNameJa": "獄之底",
     "DutyName": "Hells' Kier"
   },
   {
     "Id": 89,
-    "ZoneName": "Castrum Fluminis",
+    "ZoneNameDe": "Götterdämmerung - Tsukuyomi",
+    "ZoneNameEn": "Castrum Fluminis",
+    "ZoneNameFr": "Castrum Fluminis",
+    "ZoneNameJa": "カストルム・フルーミニス",
     "DutyName": "Castrum Fluminis"
   },
   {
     "Id": 90,
-    "ZoneName": "Kholusia",
+    "ZoneNameDe": "Kholusia",
+    "ZoneNameEn": "Kholusia",
+    "ZoneNameFr": "Kholusia",
+    "ZoneNameJa": "コルシア島",
     "Coordinates": "33, 33"
   },
   {
     "Id": 91,
-    "ZoneName": "Malikah's Well",
+    "ZoneNameDe": "Malikahs Brunnen",
+    "ZoneNameEn": "Malikah's Well",
+    "ZoneNameFr": "Le Puits de Malikah",
+    "ZoneNameJa": "マリカの大井戸",
     "DutyName": "Malikah's Well"
   },
   {
     "Id": 92,
-    "ZoneName": "Amh Araeng",
+    "ZoneNameDe": "Amh Araeng",
+    "ZoneNameEn": "Amh Araeng",
+    "ZoneNameFr": "Amh Araeng",
+    "ZoneNameJa": "アム・アレーン",
     "Coordinates": "16, 30"
   },
   {
     "Id": 93,
-    "ZoneName": "The Heroes' Gauntlet",
+    "ZoneNameDe": "Die Schlacht um Norvrandt",
+    "ZoneNameEn": "The Heroes' Gauntlet",
+    "ZoneNameFr": "La Traversée de Norvrandt",
+    "ZoneNameJa": "漆黒決戦 ノルヴラント",
     "DutyName": "The Heroes' Gauntlet"
   },
   {
     "Id": 94,
-    "ZoneName": "Matoya's Relict",
+    "ZoneNameDe": "Matoyas Atelier",
+    "ZoneNameEn": "Matoya's Relict",
+    "ZoneNameFr": "L'Atelier abandonné de Matoya",
+    "ZoneNameJa": "マトーヤのアトリエ",
     "DutyName": "Matoya's Relict"
   },
   {
     "Id": 95,
-    "ZoneName": "The Grand Cosmos",
+    "ZoneNameDe": "Chateau Cosmea",
+    "ZoneNameEn": "The Grand Cosmos",
+    "ZoneNameFr": "Le Cosmos coruscant",
+    "ZoneNameJa": "グラン・コスモス",
     "DutyName": "The Grand Cosmos"
   },
   {
     "Id": 96,
-    "ZoneName": "Cinder Drift",
+    "ZoneNameDe": "Rubinfeuer - Entfesslung",
+    "ZoneNameEn": "Cinder Drift",
+    "ZoneNameFr": "Les Nuées de Brandons",
+    "ZoneNameJa": "ギムリト防衛ライン",
     "DutyName": "Cinder Drift"
   },
   {
     "Id": 97,
-    "ZoneName": "The Dancing Plague",
+    "ZoneNameDe": "Offenbarung - Titania",
+    "ZoneNameEn": "The Dancing Plague",
+    "ZoneNameFr": "La Valse du Monarque",
+    "ZoneNameJa": "妖精王の舞踏場",
     "DutyName": "The Dancing Plague"
   },
   {
     "Id": 98,
-    "ZoneName": "Eden's Gate: Resurrection",
+    "ZoneNameDe": "Edens Erwachen - Auferstehung",
+    "ZoneNameEn": "Eden's Gate: Resurrection",
+    "ZoneNameFr": "L'Éveil d'Éden - Résurrection",
+    "ZoneNameJa": "希望の園エデン：覚醒編1",
     "DutyName": "Eden's Gate: Resurrection"
   },
   {
     "Id": 99,
-    "ZoneName": "Mt. Gulg",
+    "ZoneNameDe": "Der Gulg",
+    "ZoneNameEn": "Mt. Gulg",
+    "ZoneNameFr": "Mont Gulg",
+    "ZoneNameJa": "グルグ火山",
     "DutyName": "Mt. Gulg"
   },
   {
     "Id": 100,
-    "ZoneName": "Containment Bay P1T6 (Extreme)",
+    "ZoneNameDe": "Containment Bay P1T6 (Extreme)",
+    "ZoneNameEn": "Containment Bay P1T6 (Extreme)",
+    "ZoneNameFr": "Containment Bay P1T6 (Extreme)",
+    "ZoneNameJa": "極女神ソフィア討滅戦",
     "DutyName": "Containment Bay P1T6 (Extreme)"
   },
   {
     "Id": 101,
-    "ZoneName": "The Crown of the Immaculate",
+    "ZoneNameDe": "Offenbarung - Innozenz",
+    "ZoneNameEn": "The Crown of the Immaculate",
+    "ZoneNameFr": "La Couronne de l'Immaculé",
+    "ZoneNameJa": "イマキュレートクラウン",
     "DutyName": "The Crown of the Immaculate"
   },
   {
     "Id": 102,
-    "ZoneName": "Eden's Promise: Eternity",
+    "ZoneNameDe": "Edens Verheißung - Ewigkeit",
+    "ZoneNameEn": "Eden's Promise: Eternity",
+    "ZoneNameFr": "La Promesse d'Éden - Éternité",
+    "ZoneNameJa": "希望の園エデン：再生編4",
     "DutyName": "Eden's Promise: Eternity"
   },
   {
     "Id": 103,
-    "ZoneName": "Dohn Mheg",
+    "ZoneNameDe": "Dohn Mheg",
+    "ZoneNameEn": "Dohn Mheg",
+    "ZoneNameFr": "Dohn Mheg",
+    "ZoneNameJa": "ドォーヌ・メグ",
     "DutyName": "Dohn Mheg"
   },
   {
     "Id": 104,
-    "ZoneName": "Amaurot",
+    "ZoneNameDe": "Amaurot",
+    "ZoneNameEn": "Amaurot",
+    "ZoneNameFr": "Amaurote",
+    "ZoneNameJa": "アーモロート",
     "DutyName": "Amaurot"
   },
   {
     "Id": 105,
-    "ZoneName": "Western Thanalan",
+    "ZoneNameDe": "Westliches Thanalan",
+    "ZoneNameEn": "Western Thanalan",
+    "ZoneNameFr": "Thanalan occidental",
+    "ZoneNameJa": "西ザナラーン",
     "Coordinates": "27, 16"
   },
   {
     "Id": 106,
-    "ZoneName": "Copperbell Mines",
+    "ZoneNameDe": "Copperbell Mines",
+    "ZoneNameEn": "Copperbell Mines",
+    "ZoneNameFr": "Copperbell Mines",
+    "ZoneNameJa": "カッパーベル銅山",
     "DutyName": "Copperbell Mines"
   },
   {
     "Id": 107,
-    "ZoneName": "Halatali",
+    "ZoneNameDe": "Halatali",
+    "ZoneNameEn": "Halatali",
+    "ZoneNameFr": "Halatali",
+    "ZoneNameJa": "ハラタリ修練所",
     "DutyName": "Halatali"
   },
   {
     "Id": 108,
-    "ZoneName": "Masked Carnivale: 08",
+    "ZoneNameDe": "Masked Carnivale: 08",
+    "ZoneNameEn": "Masked Carnivale: 08",
+    "ZoneNameFr": "Masked Carnivale: 08",
+    "ZoneNameJa": "Masked Carnivale: 08",
     "DutyName": "Masked Carnivale: 08"
   }
 ]

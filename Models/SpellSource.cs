@@ -10,6 +10,5 @@ public sealed class SpellSource
 
     public required uint MonsterId { get; init; }
 
-    /// <summary>z.B. "Open World", "Dungeon-Trash", "Totem", "Trial-Boss".</summary>
-    public required string Method { get; init; }
+    public required SourceMethod Method { get; init; }
 }

@@ -7,12 +7,12 @@
   {
     "SpellId": 11383,
     "MonsterId": 2,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11383,
     "MonsterId": 3,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11384,
@@ -27,7 +27,7 @@
   {
     "SpellId": 11387,
     "MonsterId": 6,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11387,
@@ -37,22 +37,22 @@
   {
     "SpellId": 11388,
     "MonsterId": 8,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11388,
     "MonsterId": 9,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11388,
     "MonsterId": 10,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11388,
     "MonsterId": 11,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11389,
@@ -62,42 +62,42 @@
   {
     "SpellId": 11391,
     "MonsterId": 13,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11391,
     "MonsterId": 14,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11391,
     "MonsterId": 15,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11391,
     "MonsterId": 16,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11392,
     "MonsterId": 17,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11392,
     "MonsterId": 18,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11392,
     "MonsterId": 19,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11393,
     "MonsterId": 20,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11394,
@@ -112,12 +112,12 @@
   {
     "SpellId": 11395,
     "MonsterId": 23,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11395,
     "MonsterId": 24,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11395,
@@ -127,17 +127,17 @@
   {
     "SpellId": 11396,
     "MonsterId": 26,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11397,
     "MonsterId": 27,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11398,
     "MonsterId": 28,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11398,
@@ -187,17 +187,17 @@
   {
     "SpellId": 11403,
     "MonsterId": 38,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11403,
     "MonsterId": 39,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11404,
     "MonsterId": 40,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11405,
@@ -212,12 +212,12 @@
   {
     "SpellId": 11406,
     "MonsterId": 43,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 11407,
     "MonsterId": 44,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11407,
@@ -227,27 +227,27 @@
   {
     "SpellId": 11409,
     "MonsterId": 46,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 11410,
     "MonsterId": 47,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11411,
     "MonsterId": 48,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 11412,
     "MonsterId": 49,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11412,
     "MonsterId": 50,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11413,
@@ -262,22 +262,22 @@
   {
     "SpellId": 11415,
     "MonsterId": 53,
-    "Method": "Totem"
+    "Method": "MaskedCarnivaleProgress"
   },
   {
     "SpellId": 11416,
     "MonsterId": 54,
-    "Method": "Totem"
+    "Method": "MaskedCarnivaleProgress"
   },
   {
     "SpellId": 11417,
     "MonsterId": 55,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 11418,
     "MonsterId": 56,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11418,
@@ -287,7 +287,7 @@
   {
     "SpellId": 11418,
     "MonsterId": 16,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11419,
@@ -302,7 +302,7 @@
   {
     "SpellId": 11419,
     "MonsterId": 60,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11420,
@@ -317,12 +317,12 @@
   {
     "SpellId": 11420,
     "MonsterId": 60,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11421,
     "MonsterId": 61,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11422,
@@ -332,7 +332,7 @@
   {
     "SpellId": 11423,
     "MonsterId": 63,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11424,
@@ -377,7 +377,7 @@
   {
     "SpellId": 18295,
     "MonsterId": 72,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18295,
@@ -387,7 +387,7 @@
   {
     "SpellId": 18296,
     "MonsterId": 74,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 18296,
@@ -397,7 +397,7 @@
   {
     "SpellId": 18297,
     "MonsterId": 76,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18297,
@@ -407,7 +407,7 @@
   {
     "SpellId": 18298,
     "MonsterId": 78,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18300,
@@ -427,12 +427,12 @@
   {
     "SpellId": 18301,
     "MonsterId": 82,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18302,
     "MonsterId": 83,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18302,
@@ -462,7 +462,7 @@
   {
     "SpellId": 18305,
     "MonsterId": 88,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 18306,
@@ -472,17 +472,17 @@
   {
     "SpellId": 18307,
     "MonsterId": 90,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18308,
     "MonsterId": 91,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18309,
     "MonsterId": 92,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18310,
@@ -517,22 +517,22 @@
   {
     "SpellId": 18316,
     "MonsterId": 99,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 18317,
     "MonsterId": 100,
-    "Method": "Totem"
+    "Method": "MaskedCarnivaleProgress"
   },
   {
     "SpellId": 18318,
     "MonsterId": 101,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18319,
     "MonsterId": 102,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 18320,
@@ -557,7 +557,7 @@
   {
     "SpellId": 18321,
     "MonsterId": 107,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 18322,
@@ -582,12 +582,12 @@
   {
     "SpellId": 23264,
     "MonsterId": 112,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23265,
     "MonsterId": 112,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23266,
@@ -597,7 +597,7 @@
   {
     "SpellId": 23267,
     "MonsterId": 114,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23269,
@@ -617,7 +617,7 @@
   {
     "SpellId": 23272,
     "MonsterId": 118,
-    "Method": "Totem"
+    "Method": "TotemLevel"
   },
   {
     "SpellId": 23273,
@@ -632,7 +632,7 @@
   {
     "SpellId": 23276,
     "MonsterId": 121,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23276,
@@ -642,7 +642,7 @@
   {
     "SpellId": 23277,
     "MonsterId": 123,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23278,
@@ -657,12 +657,12 @@
   {
     "SpellId": 23280,
     "MonsterId": 125,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 23281,
     "MonsterId": 126,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23282,
@@ -677,12 +677,12 @@
   {
     "SpellId": 23284,
     "MonsterId": 129,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 23285,
     "MonsterId": 125,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 23286,
@@ -707,7 +707,7 @@
   {
     "SpellId": 34563,
     "MonsterId": 133,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 34564,
@@ -717,17 +717,17 @@
   {
     "SpellId": 34565,
     "MonsterId": 135,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 34566,
     "MonsterId": 136,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 34567,
     "MonsterId": 137,
-    "Method": "Totem"
+    "Method": "TotemLevel"
   },
   {
     "SpellId": 34568,
@@ -767,7 +767,7 @@
   {
     "SpellId": 34575,
     "MonsterId": 145,
-    "Method": "Totem"
+    "Method": "TotemSpellCount"
   },
   {
     "SpellId": 34575,
@@ -827,12 +827,12 @@
   {
     "SpellId": 11390,
     "MonsterId": 154,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
   },
   {
     "SpellId": 11401,
     "MonsterId": 155,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11401,
@@ -852,26 +852,31 @@
   {
     "SpellId": 11408,
     "MonsterId": 159,
-    "Method": "Open World"
+    "Method": "OpenWorld"
   },
   {
     "SpellId": 11408,
     "MonsterId": 160,
-    "Method": "Dungeon-Trash"
+    "Method": "DungeonTrash"
   },
   {
     "SpellId": 11408,
     "MonsterId": 161,
-    "Method": "Dungeon-Trash"
+    "Method": "DungeonTrash"
   },
   {
     "SpellId": 11408,
     "MonsterId": 162,
-    "Method": "Dungeon-Trash"
+    "Method": "DungeonTrash"
   },
   {
     "SpellId": 11408,
     "MonsterId": 163,
-    "Method": "Masked Carnivale"
+    "Method": "MaskedCarnivale"
+  },
+  {
+    "SpellId": 11385,
+    "MonsterId": 164,
+    "Method": "StartingSpell"
   }
 ]

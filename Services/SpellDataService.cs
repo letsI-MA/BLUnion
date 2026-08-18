@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using BLUnion.Models;
 using Dalamud.Plugin.Services;
 
@@ -14,6 +15,10 @@ public sealed class SpellDataService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        // SpellSource.Method ist als Enum (SourceMethod) modelliert, sources.json enthält den
+        // Namen als String (z.B. "OpenWorld") - ohne diesen Converter würde Deserialize hier
+        // scheitern.
+        Converters = { new JsonStringEnumConverter() },
     };
 
     private readonly IPluginLog log;
@@ -44,11 +49,18 @@ public sealed class SpellDataService
             $"{this.Sources.Count} Quellen geladen.");
     }
 
-    /// <summary>Alle bekannten Quellen (Monster + Fundort) für einen Spell, sofern vorhanden.</summary>
-    public IEnumerable<(Monster Monster, Location? Location, string Method)> GetSourcesForSpell(uint spellId)
+    /// <summary>Alle bekannten Quellen (Monster + Fundort) für einen Spell, sofern vorhanden.
+    /// Mit <paramref name="excludeTotems"/> = true werden alle totem-bezogenen Quellen
+    /// (<see cref="SourceMethodExtensions.IsTotemRelated"/>) ausgelassen - für den
+    /// "Totems ausblenden"-Filter in Comparison-/Lernplan-Tab. Ein Spell, der NUR über ein
+    /// Totem lernbar ist, liefert dann eine leere Quellenliste (siehe MainWindow.FormatSourceSummary).</summary>
+    public IEnumerable<(Monster Monster, Location? Location, SourceMethod Method)> GetSourcesForSpell(uint spellId, bool excludeTotems = false)
     {
         foreach (var source in this.Sources.Where(s => s.SpellId == spellId))
         {
+            if (excludeTotems && source.Method.IsTotemRelated())
+                continue;
+
             if (!this.Monsters.TryGetValue(source.MonsterId, out var monster))
                 continue;
 
@@ -56,6 +68,15 @@ public sealed class SpellDataService
             yield return (monster, location, source.Method);
         }
     }
+
+    /// <summary>True, wenn ein Spell zwar (ohne Totem-Filter) mindestens eine bekannte Quelle
+    /// hat, aber ALLE davon totem-bezogen sind (<see cref="SourceMethodExtensions.IsTotemRelated"/>)
+    /// - der Spell also nur über ein Totem lernbar ist. Spells OHNE jegliche bekannte Quelle
+    /// (unabhängig vom Totem-Filter, z.B. Datenlücken) liefern hier bewusst false - das ist ein
+    /// anderer Fall (fehlende Daten) und soll vom "Totems ausblenden"-Filter NICHT betroffen
+    /// sein, siehe MainWindow.DrawComparisonTab.</summary>
+    public bool IsOnlyLearnableViaTotem(uint spellId) =>
+        this.GetSourcesForSpell(spellId).Any() && !this.GetSourcesForSpell(spellId, excludeTotems: true).Any();
 
     private IReadOnlyDictionary<uint, T> LoadDictionary<T>(string path, Func<T, uint> keySelector)
     {

@@ -28,6 +28,11 @@ public sealed class MainWindow : Window
     private string learningPlanFilterText = string.Empty;
     private string? lastError;
 
+    /// <summary>"Totems ausblenden"-Filter (Comparison-/Lernplan-Tab, siehe DrawComparisonTab/
+    /// DrawLearningPlanTab) - EIN gemeinsamer Zustand für beide Tabs, kein separater Toggle pro
+    /// Tab. Default aus, wie gefordert.</summary>
+    private bool excludeTotems;
+
     /// <summary>Sprache, in der aktuell die GESAMTE Oberfläche angezeigt wird (Spell-Namen über
     /// <see cref="GetSpellName"/>, alle sonstigen Texte über <see cref="UiStrings"/>). Nur
     /// In-Memory für die laufende Sitzung, wird bewusst nicht persistiert (siehe
@@ -189,10 +194,18 @@ public sealed class MainWindow : Window
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint(
             "##ComparisonFilter", UiStrings.Get(UiStrings.Key.SpellFilterHint, this.displayLanguage), ref this.comparisonFilterText, 128);
+        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.HideTotemsToggle, this.displayLanguage), ref this.excludeTotems);
         ImGui.Separator();
 
+        // Totem-Filter blendet nur Spells aus, die NUR über ein Totem lernbar sind (siehe
+        // SpellDataService.IsOnlyLearnableViaTotem) - Spells mit gemischten Quellen (Totem +
+        // z.B. Open World) bleiben sichtbar, deren Tooltip/Quellenspalte zeigt dann weiterhin
+        // die verbleibenden Nicht-Totem-Quellen (über den bereits gefilterten GetSourcesForSpell-
+        // Aufruf weiter unten). Bewusst hier in der UI-Schicht gefiltert, nicht in
+        // ComparisonService.GetCommonlyMissingSpells - die bleibt neutral/ungefiltert.
         var filteredRows = rows
             .Where(r => SpellFilter.Matches(r.Name, r.SpellbookOrder, this.comparisonFilterText))
+            .Where(r => !this.excludeTotems || !this.spellDataService.IsOnlyLearnableViaTotem(r.Entry.SpellId))
             .ToList();
 
         const ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
@@ -210,7 +223,7 @@ public sealed class MainWindow : Window
             {
                 var entry = row.Entry;
                 var orderText = row.SpellbookOrder == int.MaxValue ? "—" : $"#{row.SpellbookOrder:D3}";
-                var sources = this.spellDataService.GetSourcesForSpell(entry.SpellId).ToList();
+                var sources = this.spellDataService.GetSourcesForSpell(entry.SpellId, this.excludeTotems).ToList();
 
                 ImGui.TableNextRow();
                 this.HighlightRowByUrgency(entry.PlayersMissingIt.Count, partyStatus.Count);
@@ -233,7 +246,7 @@ public sealed class MainWindow : Window
                     foreach (var (monster, location, method) in sources)
                     {
                         ImGui.TextUnformatted(UiStrings.Format(
-                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, monster.Name, method, this.FormatLocation(location)));
+                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
                     }
 
                     ImGui.EndTooltip();
@@ -276,7 +289,14 @@ public sealed class MainWindow : Window
             return;
         }
 
-        var groups = this.comparisonService.GroupMissingSpellsByMonster(missing, this.spellDataService)
+        // Checkbox bewusst VOR GroupMissingSpellsByMonster gezeichnet (nicht erst weiter unten
+        // bei den anderen Filterelementen) - sonst würde ein Klick erst im nächsten Frame
+        // wirken, weil die Gruppierung mit dem noch alten excludeTotems-Wert berechnet worden
+        // wäre. Analog zum Comparison-Tab, wo das Textfilter-Feld aus demselben Grund vor der
+        // Filterung sitzt.
+        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.HideTotemsToggle, this.displayLanguage), ref this.excludeTotems);
+
+        var groups = this.comparisonService.GroupMissingSpellsByMonster(missing, this.spellDataService, this.excludeTotems)
             .Where(g => g.CoveredMissingSpellIds.Count >= 2)
             .ToList();
 
@@ -300,7 +320,9 @@ public sealed class MainWindow : Window
         foreach (var group in groups)
         {
             this.spellDataService.Monsters.TryGetValue(group.MonsterId, out var monster);
-            var monsterName = monster?.Name ?? UiStrings.Format(UiStrings.Key.MonsterFallback, this.displayLanguage, group.MonsterId);
+            var monsterName = monster is not null
+                ? this.GetMonsterName(monster)
+                : UiStrings.Format(UiStrings.Key.MonsterFallback, this.displayLanguage, group.MonsterId);
 
             Location? location = null;
             if (monster is not null)
@@ -391,23 +413,27 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>Kurzer Anzeigetext für einen Fundort: Zone + Koordinaten (falls vorhanden),
-    /// sonst Dungeon/Trial-Name (falls vorhanden), sonst nur die Zone.</summary>
+    /// sonst Dungeon/Trial-Name (falls vorhanden), sonst nur die Zone. Zonenname folgt
+    /// <see cref="displayLanguage"/>; <see cref="Location.DutyName"/> ist bewusst einsprachig
+    /// (nicht Teil dieser Aufgabe, siehe Models/Location.cs).</summary>
     private string FormatLocation(Location? location)
     {
         if (location is null)
             return UiStrings.Get(UiStrings.Key.UnknownLocation, this.displayLanguage);
 
+        var zoneName = location.GetZoneName(this.displayLanguage);
+
         if (location.Coordinates is not null)
-            return $"{location.ZoneName} ({location.Coordinates})";
+            return $"{zoneName} ({location.Coordinates})";
 
         if (location.DutyName is not null)
             return location.DutyName;
 
-        return location.ZoneName;
+        return zoneName;
     }
 
     /// <summary>Kurze Quellen-Zusammenfassung für die Tabellenspalte; Details gibt's im Zeilen-Tooltip.</summary>
-    private string FormatSourceSummary(IReadOnlyList<(Monster Monster, Location? Location, string Method)> sources)
+    private string FormatSourceSummary(IReadOnlyList<(Monster Monster, Location? Location, SourceMethod Method)> sources)
     {
         if (sources.Count == 0)
             return UiStrings.Get(UiStrings.Key.UnknownLocation, this.displayLanguage);
@@ -415,7 +441,7 @@ public sealed class MainWindow : Window
         if (sources.Count == 1)
         {
             var (monster, location, _) = sources[0];
-            return $"{monster.Name} ({this.FormatLocation(location)})";
+            return $"{this.GetMonsterName(monster)} ({this.FormatLocation(location)})";
         }
 
         return UiStrings.Format(UiStrings.Key.SourceCountSummary, this.displayLanguage, sources.Count);
@@ -562,4 +588,9 @@ public sealed class MainWindow : Window
     /// Tooltips) auf den Spell-Namen in der aktuell gewählten <see cref="displayLanguage"/>
     /// zugegriffen wird, statt direkt eines der NameDe/NameEn/NameFr/NameJa-Felder zu lesen.</summary>
     private string GetSpellName(Spell spell) => spell.GetName(this.displayLanguage);
+
+    /// <summary>Analog zu <see cref="GetSpellName"/>, nur für Monster-Namen (Tooltips,
+    /// Lernplan-Tab). Für die meisten Monster DE/FR über FFXIV Collect verifiziert, JA aktuell
+    /// noch Platzhalter (= Englisch) bis zum Lumina-Nachzug, siehe Models/Monster.cs.</summary>
+    private string GetMonsterName(Monster monster) => monster.GetName(this.displayLanguage);
 }

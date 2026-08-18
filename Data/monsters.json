@@ -1,822 +1,1319 @@
 [
   {
     "Id": 1,
-    "Name": "Typhon",
+    "NameDe": "Typhon",
+    "NameEn": "Typhon",
+    "NameFr": "Typhon",
+    "NameJa": "テュポーン",
     "LocationId": 1
   },
   {
     "Id": 2,
-    "Name": "Typhon",
+    "NameDe": "Typhon",
+    "NameEn": "Typhon",
+    "NameFr": "Typhon",
+    "NameJa": "テュポーン",
     "LocationId": 2
   },
   {
     "Id": 3,
-    "Name": "Typhon",
+    "NameDe": "Typhon",
+    "NameEn": "Typhon",
+    "NameFr": "Typhon",
+    "NameJa": "テュポーン",
     "LocationId": 3
   },
   {
     "Id": 4,
-    "Name": "Ultros",
+    "NameDe": "Ultros",
+    "NameEn": "Ultros",
+    "NameFr": "Ultros",
+    "NameJa": "オルトロス",
     "LocationId": 1
   },
   {
     "Id": 5,
-    "Name": "Siren",
+    "NameDe": "Sirene",
+    "NameEn": "Siren",
+    "NameFr": "Sirène",
+    "NameJa": "セイレーン",
     "LocationId": 4
   },
   {
     "Id": 6,
-    "Name": "Bestial Node",
+    "NameDe": "Bestialisches System",
+    "NameEn": "Bestial Node",
+    "NameFr": "Sphère bestiale",
+    "NameJa": "闘獣システム",
     "LocationId": 5
   },
   {
     "Id": 7,
-    "Name": "A.D.S.",
+    "NameDe": "A.D.S.",
+    "NameEn": "A.D.S.",
+    "NameFr": "A.D.S.",
+    "NameJa": "A.D.S.",
     "LocationId": 6
   },
   {
     "Id": 8,
-    "Name": "Stroper",
+    "NameDe": "Todesweide",
+    "NameEn": "Stroper",
+    "NameFr": "Storoper",
+    "NameJa": "ストローパー",
     "LocationId": 7
   },
   {
     "Id": 9,
-    "Name": "Haliostroper",
+    "NameDe": "Haliostroper",
+    "NameEn": "Haliostroper",
+    "NameFr": "Haliostroper",
+    "NameJa": "Haliostroper",
     "LocationId": 8
   },
   {
     "Id": 10,
-    "Name": "Morbol",
+    "NameDe": "Morbol",
+    "NameEn": "Morbol",
+    "NameFr": "Morbol",
+    "NameJa": "モルボル",
     "LocationId": 9
   },
   {
     "Id": 11,
-    "Name": "Reflective Rebekah",
+    "NameDe": "Reflective Rebekah",
+    "NameEn": "Reflective Rebekah",
+    "NameFr": "Reflective Rebekah",
+    "NameJa": "Reflective Rebekah",
     "LocationId": 10
   },
   {
     "Id": 12,
-    "Name": "Zu",
+    "NameDe": "Montisaurus",
+    "NameEn": "Zu",
+    "NameFr": "Zu",
+    "NameJa": "ズー",
     "LocationId": 4
   },
   {
     "Id": 13,
-    "Name": "Clay Golem",
+    "NameDe": "Clay Golem",
+    "NameEn": "Clay Golem",
+    "NameFr": "Clay Golem",
+    "NameJa": "クレイゴーレム",
     "LocationId": 11
   },
   {
     "Id": 14,
-    "Name": "Sandstone Golem",
+    "NameDe": "Sandstein-Golem",
+    "NameEn": "Sandstone Golem",
+    "NameFr": "Golem de grès",
+    "NameJa": "サンドストーン・ゴーレム",
     "LocationId": 12
   },
   {
     "Id": 15,
-    "Name": "Basalt Golem",
+    "NameDe": "Basaltgolem",
+    "NameEn": "Basalt Golem",
+    "NameFr": "Golem de basalte",
+    "NameJa": "バサルトゴーレム",
     "LocationId": 13
   },
   {
     "Id": 16,
-    "Name": "Azulmagia",
+    "NameDe": "Azulmagia",
+    "NameEn": "Azulmagia",
+    "NameFr": "Azulmagia",
+    "NameJa": "アポカリョープス",
     "LocationId": 14
   },
   {
     "Id": 17,
-    "Name": "Treant Sapling",
+    "NameDe": "Baumschrat-Ableger",
+    "NameEn": "Treant Sapling",
+    "NameFr": "Pousse de tréant",
+    "NameJa": "トレント・サップリング",
     "LocationId": 11
   },
   {
     "Id": 18,
-    "Name": "Treant Sapling",
+    "NameDe": "Treant Sapling",
+    "NameEn": "Treant Sapling",
+    "NameFr": "Treant Sapling",
+    "NameJa": "トレント・サップリング",
     "LocationId": 7
   },
   {
     "Id": 19,
-    "Name": "Treant Sapling",
+    "NameDe": "Treant Sapling",
+    "NameEn": "Treant Sapling",
+    "NameFr": "Treant Sapling",
+    "NameJa": "トレント・サップリング",
     "LocationId": 15
   },
   {
     "Id": 20,
-    "Name": "Wild Boar",
+    "NameDe": "Wilder Keiler",
+    "NameEn": "Wild Boar",
+    "NameFr": "Sanglier sauvage",
+    "NameJa": "ワイルドボア",
     "LocationId": 15
   },
   {
     "Id": 21,
-    "Name": "Galvanth the Dominator",
+    "NameDe": "Großkönig Galvanth",
+    "NameEn": "Galvanth the Dominator",
+    "NameFr": "Galvanth le Tyran",
+    "NameJa": "絶対王ガルヴァンス",
     "LocationId": 16
   },
   {
     "Id": 22,
-    "Name": "Blaster",
+    "NameDe": "Blaster",
+    "NameEn": "Blaster",
+    "NameFr": "Blaster",
+    "NameJa": "ブラスター",
     "LocationId": 17
   },
   {
     "Id": 23,
-    "Name": "Chigoe",
+    "NameDe": "Chigoe",
+    "NameEn": "Chigoe",
+    "NameFr": "Chigoe",
+    "NameJa": "チゴー",
     "LocationId": 7
   },
   {
     "Id": 24,
-    "Name": "Cave Bat",
+    "NameDe": "Cave Bat",
+    "NameEn": "Cave Bat",
+    "NameFr": "Cave Bat",
+    "NameJa": "ケーブバット",
     "LocationId": 18
   },
   {
     "Id": 25,
-    "Name": "Attic Bat",
+    "NameDe": "Attic Bat",
+    "NameEn": "Attic Bat",
+    "NameFr": "Attic Bat",
+    "NameJa": "アティックバット",
     "LocationId": 19
   },
   {
     "Id": 26,
-    "Name": "Goblin Fisher & Gambler",
+    "NameDe": "Goblin Fisher & Gambler",
+    "NameEn": "Goblin Fisher & Gambler",
+    "NameFr": "Goblin Fisher & Gambler",
+    "NameJa": "Goblin Fisher & Gambler",
     "LocationId": 20
   },
   {
     "Id": 27,
-    "Name": "Sabetonder Bailaor",
+    "NameDe": "Sabetonder Bailaor",
+    "NameEn": "Sabetonder Bailaor",
+    "NameFr": "Sabetonder Bailaor",
+    "NameJa": "Sabetonder Bailaor",
     "LocationId": 12
   },
   {
     "Id": 28,
-    "Name": "Magitek Vanguard H-2",
+    "NameDe": "Frontbrecher H-2",
+    "NameEn": "Magitek Vanguard H-2",
+    "NameFr": "Avant-garde magitek améliorée",
+    "NameJa": "魔導ヴァンガード強化型",
     "LocationId": 21
   },
   {
     "Id": 29,
-    "Name": "Magitek Vangob G-III",
+    "NameDe": "Magitek Vangob G-III",
+    "NameEn": "Magitek Vangob G-III",
+    "NameFr": "Magitek Vangob G-III",
+    "NameJa": "III号ゴブリガード",
     "LocationId": 22
   },
   {
     "Id": 30,
-    "Name": "Magitek Vanguard",
+    "NameDe": "Magitek Vanguard",
+    "NameEn": "Magitek Vanguard",
+    "NameFr": "Magitek Vanguard",
+    "NameJa": "魔導ヴァンガード",
     "LocationId": 23
   },
   {
     "Id": 31,
-    "Name": "Denezen of the Dark",
+    "NameDe": "Denezen of the Dark",
+    "NameEn": "Denezen of the Dark",
+    "NameFr": "Denezen of the Dark",
+    "NameJa": "Denezen of the Dark",
     "Notes": "(Levequest)",
     "LocationId": 24
   },
   {
     "Id": 32,
-    "Name": "Anantaboga",
+    "NameDe": "Anantaboga",
+    "NameEn": "Anantaboga",
+    "NameFr": "Anantaboga",
+    "NameJa": "アナンタボガ",
     "LocationId": 25
   },
   {
     "Id": 33,
-    "Name": "Valefor",
+    "NameDe": "Valefor",
+    "NameEn": "Valefor",
+    "NameFr": "Valefor",
+    "NameJa": "バルフレー",
     "LocationId": 26
   },
   {
     "Id": 34,
-    "Name": "Tonberry King",
+    "NameDe": "Tonberry King",
+    "NameEn": "Tonberry King",
+    "NameFr": "Tonberry King",
+    "NameJa": "トンベリキング",
     "LocationId": 27
   },
   {
     "Id": 35,
-    "Name": "Magitek Gunship",
+    "NameDe": "Magitek-Kanonenschiff",
+    "NameEn": "Magitek Gunship",
+    "NameFr": "Vaisseau magitek",
+    "NameJa": "魔導ガンシップ",
     "LocationId": 28
   },
   {
     "Id": 36,
-    "Name": "Gobmachine G-VI",
+    "NameDe": "Gobmaschine VI",
+    "NameEn": "Gobmachine G-VI",
+    "NameFr": "Gobtank G-VI",
+    "NameJa": "VI号ゴブリタンク",
     "LocationId": 22
   },
   {
     "Id": 37,
-    "Name": "Omega",
+    "NameDe": "Omega",
+    "NameEn": "Omega",
+    "NameFr": "Oméga",
+    "NameJa": "オメガ",
     "LocationId": 29
   },
   {
     "Id": 38,
-    "Name": "Qiqirn Shellsweeper",
+    "NameDe": "Qiqirn Panzerbrecher",
+    "NameEn": "Qiqirn Shellsweeper",
+    "NameFr": "Qiqirn casse-coquille",
+    "NameJa": "キキルン・シェルスウィーパー",
     "LocationId": 30
   },
   {
     "Id": 39,
-    "Name": "Qiqirn Eggdigger",
+    "NameDe": "Qiqirn Eggdigger",
+    "NameEn": "Qiqirn Eggdigger",
+    "NameFr": "Qiqirn Eggdigger",
+    "NameJa": "キキルン・ビーチコンバー",
     "LocationId": 18
   },
   {
     "Id": 40,
-    "Name": "Coincounter",
+    "NameDe": "Münzzähler",
+    "NameEn": "Coincounter",
+    "NameFr": "Trésorier",
+    "NameJa": "コインカウンター",
     "LocationId": 9
   },
   {
     "Id": 41,
-    "Name": "Enkidu",
+    "NameDe": "Enkidu",
+    "NameEn": "Enkidu",
+    "NameFr": "Enkidu",
+    "NameJa": "Enkidu",
     "LocationId": 31
   },
   {
     "Id": 42,
-    "Name": "Guardian",
+    "NameDe": "Wächter",
+    "NameEn": "Guardian",
+    "NameFr": "Gardien",
+    "NameJa": "ガーディアン",
     "LocationId": 32
   },
   {
     "Id": 43,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 10 spells"
   },
   {
     "Id": 44,
-    "Name": "Killer Wespe",
+    "NameDe": "Killer-Vespula",
+    "NameEn": "Killer Wespe",
+    "NameFr": "Frelon tueur",
+    "NameJa": "キラー・ヴェスパ",
     "LocationId": 20
   },
   {
     "Id": 45,
-    "Name": "Temple Bee",
+    "NameDe": "Temple Bee",
+    "NameEn": "Temple Bee",
+    "NameFr": "Temple Bee",
+    "NameJa": "テンプルビー",
     "LocationId": 33
   },
   {
     "Id": 46,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 20 Spells"
   },
   {
     "Id": 47,
-    "Name": "Giggling Gigantoad",
+    "NameDe": "Kicherkröte",
+    "NameEn": "Giggling Gigantoad",
+    "NameFr": "Crapaud rieur géant",
+    "NameJa": "ラフィング・ギガントード",
     "LocationId": 34
   },
   {
     "Id": 48,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 5 Spells"
   },
   {
     "Id": 49,
-    "Name": "Toxic Toad",
+    "NameDe": "Toxic Toad",
+    "NameEn": "Toxic Toad",
+    "NameFr": "Toxic Toad",
+    "NameJa": "トキシックトード",
     "LocationId": 30
   },
   {
     "Id": 50,
-    "Name": "Laughing Toad",
+    "NameDe": "Lachkröte",
+    "NameEn": "Laughing Toad",
+    "NameFr": "Crapaud rieur",
+    "NameJa": "ラフィングトード",
     "LocationId": 34
   },
   {
     "Id": 51,
-    "Name": "Karlabos",
+    "NameDe": "Karlabos",
+    "NameEn": "Karlabos",
+    "NameFr": "Karlabos",
+    "NameJa": "カーラボス",
     "LocationId": 35
   },
   {
     "Id": 52,
-    "Name": "Manor Sentry",
+    "NameDe": "Wachposten",
+    "NameEn": "Manor Sentry",
+    "NameFr": "Sentinelle du manoir",
+    "NameJa": "Manor Sentry",
     "LocationId": 19
   },
   {
     "Id": 53,
-    "Name": "Totem",
+    "NameDe": "Maskenkarneval",
+    "NameEn": "Masked Carnivale",
+    "NameFr": "Carnaval masqué",
+    "NameJa": "仮面の謝肉祭",
     "Notes": "Complete 10 Masked Carnivale stages"
   },
   {
     "Id": 54,
-    "Name": "Totem",
+    "NameDe": "Maskenkarneval",
+    "NameEn": "Masked Carnivale",
+    "NameFr": "Carnaval masqué",
+    "NameJa": "仮面の謝肉祭",
     "Notes": "Clear 20 Masked Carnivale stages"
   },
   {
     "Id": 55,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 10 Spells"
   },
   {
     "Id": 56,
-    "Name": "Trickster Imp",
+    "NameDe": "Gauner-Imp",
+    "NameEn": "Trickster Imp",
+    "NameFr": "Imp farceur",
+    "NameJa": "Trickster Imp",
     "LocationId": 7
   },
   {
     "Id": 57,
-    "Name": "Manor Jester",
+    "NameDe": "Manor Jester",
+    "NameEn": "Manor Jester",
+    "NameFr": "Manor Jester",
+    "NameJa": "御用邸の道化師",
     "LocationId": 19
   },
   {
     "Id": 58,
-    "Name": "Chimera",
+    "NameDe": "Chimära",
+    "NameEn": "Chimera",
+    "NameFr": "Chimère",
+    "NameJa": "キマイラ",
     "LocationId": 36
   },
   {
     "Id": 59,
-    "Name": "Dhorme Chimera",
+    "NameDe": "Dhorme Chimera",
+    "NameEn": "Dhorme Chimera",
+    "NameFr": "Dhorme Chimera",
+    "NameJa": "ドルムキマイラ",
     "Notes": "Levequest \"A Relic Reborn: The Chimera\" (Levequest)",
     "LocationId": 24
   },
   {
     "Id": 60,
-    "Name": "Azulmagia",
+    "NameDe": "Azulmagia",
+    "NameEn": "Azulmagia",
+    "NameFr": "Azulmagia",
+    "NameJa": "アポカリョープス",
     "LocationId": 37
   },
   {
     "Id": 61,
-    "Name": "Lentic Mudpuppy",
+    "NameDe": "Aufrechter Olm",
+    "NameEn": "Lentic Mudpuppy",
+    "NameFr": "Protée lacustre",
+    "NameJa": "レンティック・マッドパピー",
     "LocationId": 24
   },
   {
     "Id": 62,
-    "Name": "Kraken",
+    "NameDe": "Aquadon",
+    "NameEn": "Kraken",
+    "NameFr": "Kraken",
+    "NameJa": "Kraken",
     "LocationId": 35
   },
   {
     "Id": 63,
-    "Name": "Apkallu",
+    "NameDe": "Apkallu",
+    "NameEn": "Apkallu",
+    "NameFr": "Apkallu",
+    "NameJa": "アプカル",
     "LocationId": 38
   },
   {
     "Id": 64,
-    "Name": "Cuca Fera",
+    "NameDe": "Cuca Fera",
+    "NameEn": "Cuca Fera",
+    "NameFr": "Cuca Fera",
+    "NameJa": "クカフェラ",
     "LocationId": 39
   },
   {
     "Id": 65,
-    "Name": "Frumious Koheel Ja",
+    "NameDe": "Koheel Ja",
+    "NameEn": "Frumious Koheel Ja",
+    "NameFr": "Koheel Ja",
+    "NameJa": "角折のコヘージャ",
     "LocationId": 40
   },
   {
     "Id": 66,
-    "Name": "Garuda",
+    "NameDe": "Garuda",
+    "NameEn": "Garuda",
+    "NameFr": "Garuda",
+    "NameJa": "ガルーダ",
     "LocationId": 41
   },
   {
     "Id": 67,
-    "Name": "Ifrit",
+    "NameDe": "Ifrit",
+    "NameEn": "Ifrit",
+    "NameFr": "Ifrit",
+    "NameJa": "イフリート",
     "LocationId": 42
   },
   {
     "Id": 68,
-    "Name": "Titan",
+    "NameDe": "Titan",
+    "NameEn": "Titan",
+    "NameFr": "Titan",
+    "NameJa": "タイタン",
     "LocationId": 43
   },
   {
     "Id": 69,
-    "Name": "Ramuh",
+    "NameDe": "Ramuh",
+    "NameEn": "Ramuh",
+    "NameFr": "Ramuh",
+    "NameJa": "ラムウ",
     "LocationId": 44
   },
   {
     "Id": 70,
-    "Name": "Shiva",
+    "NameDe": "Shiva",
+    "NameEn": "Shiva",
+    "NameFr": "Shiva",
+    "NameJa": "シヴァ",
     "LocationId": 45
   },
   {
     "Id": 71,
-    "Name": "Leviathan",
+    "NameDe": "Leviathan",
+    "NameEn": "Leviathan",
+    "NameFr": "Léviathan",
+    "NameJa": "リヴァイアサン",
     "LocationId": 46
   },
   {
     "Id": 72,
-    "Name": "Griffin",
+    "NameDe": "Greif",
+    "NameEn": "Griffin",
+    "NameFr": "Griffon",
+    "NameJa": "グリフィン",
     "LocationId": 47
   },
   {
     "Id": 73,
-    "Name": "Opinicus",
+    "NameDe": "Opinicus",
+    "NameEn": "Opinicus",
+    "NameFr": "Opinicus",
+    "NameJa": "オピニコス",
     "LocationId": 48
   },
   {
     "Id": 74,
-    "Name": "Shikigami of the Undertow",
+    "NameDe": "Shikigami of the Undertow",
+    "NameEn": "Shikigami of the Undertow",
+    "NameFr": "Shikigami of the Undertow",
+    "NameJa": "水のシキガミ",
     "LocationId": 49
   },
   {
     "Id": 75,
-    "Name": "Living Liquid",
+    "NameDe": "Living Liquid",
+    "NameEn": "Living Liquid",
+    "NameFr": "Living Liquid",
+    "NameJa": "リビングリキッド",
     "LocationId": 50
   },
   {
     "Id": 76,
-    "Name": "Yeti",
+    "NameDe": "Yeti",
+    "NameEn": "Yeti",
+    "NameFr": "Yeti",
+    "NameJa": "イエティ",
     "LocationId": 51
   },
   {
     "Id": 77,
-    "Name": "Yeti",
+    "NameDe": "Yeti",
+    "NameEn": "Yeti",
+    "NameFr": "Yéti",
+    "NameJa": "イエティ",
     "LocationId": 52
   },
   {
     "Id": 78,
-    "Name": "Conodont",
+    "NameDe": "Conodont",
+    "NameEn": "Conodont",
+    "NameFr": "Conodont",
+    "NameJa": "コノドント",
     "LocationId": 47
   },
   {
     "Id": 79,
-    "Name": "Arch Demon",
+    "NameDe": "Arch Demon",
+    "NameEn": "Arch Demon",
+    "NameFr": "Arch Demon",
+    "NameJa": "アークデーモン",
     "Notes": "(Levequest)",
     "LocationId": 53
   },
   {
     "Id": 80,
-    "Name": "Ash",
+    "NameDe": "Ashur",
+    "NameEn": "Ash",
+    "NameFr": "Astaroth",
+    "NameJa": "アッシュ",
     "LocationId": 54
   },
   {
     "Id": 81,
-    "Name": "Everlasting Bibliotaph",
+    "NameDe": "Everlasting Bibliotaph",
+    "NameEn": "Everlasting Bibliotaph",
+    "NameFr": "Everlasting Bibliotaph",
+    "NameJa": "Everlasting Bibliotaph",
     "LocationId": 55
   },
   {
     "Id": 82,
-    "Name": "Paissa",
+    "NameDe": "Paissa",
+    "NameEn": "Paissa",
+    "NameFr": "Païssa",
+    "NameJa": "パイッサ",
     "LocationId": 47
   },
   {
     "Id": 83,
-    "Name": "Empuse",
+    "NameDe": "Empusa",
+    "NameEn": "Empuse",
+    "NameFr": "Emoussa",
+    "NameJa": "エンプーサ",
     "LocationId": 56
   },
   {
     "Id": 84,
-    "Name": "Arioch",
+    "NameDe": "Arioch",
+    "NameEn": "Arioch",
+    "NameFr": "Arioch",
+    "NameJa": "アリオク",
     "LocationId": 57
   },
   {
     "Id": 85,
-    "Name": "Furryfoot Kupil Kipp",
+    "NameDe": "Furryfoot Kupil Kipp",
+    "NameEn": "Furryfoot Kupil Kipp",
+    "NameFr": "Furryfoot Kupil Kipp",
+    "NameJa": "Furryfoot Kupil Kipp",
     "LocationId": 58
   },
   {
     "Id": 86,
-    "Name": "Alexandrian Hider",
+    "NameDe": "Alexandrian Hider",
+    "NameEn": "Alexandrian Hider",
+    "NameFr": "Alexandrian Hider",
+    "NameJa": "アレキ・アンブッシャー",
     "LocationId": 59
   },
   {
     "Id": 87,
-    "Name": "Apanda",
+    "NameDe": "Apanda",
+    "NameEn": "Apanda",
+    "NameFr": "Apanda",
+    "NameJa": "アパンダ",
     "LocationId": 60
   },
   {
     "Id": 88,
-    "Name": "Epilogi",
+    "NameDe": "Epilogi",
+    "NameEn": "Epilogi",
+    "NameFr": "Epilogi",
+    "NameJa": "エペロギ",
     "LocationId": 61
   },
   {
     "Id": 89,
-    "Name": "Queen Hawk",
+    "NameDe": "Falkenkönigin",
+    "NameEn": "Queen Hawk",
+    "NameFr": "Reine des guêpes",
+    "NameJa": "Queen Hawk",
     "LocationId": 62
   },
   {
     "Id": 90,
-    "Name": "Poroggo",
+    "NameDe": "Poroggo",
+    "NameEn": "Poroggo",
+    "NameFr": "Poroggo",
+    "NameJa": "ポロッゴ",
     "LocationId": 63
   },
   {
     "Id": 91,
-    "Name": "Anzu",
+    "NameDe": "Anzu",
+    "NameEn": "Anzu",
+    "NameFr": "Anzu",
+    "NameJa": "アンズー",
     "LocationId": 47
   },
   {
     "Id": 92,
-    "Name": "Dhalmel",
+    "NameDe": "Dhalmel",
+    "NameEn": "Dhalmel",
+    "NameFr": "Dhalmel",
+    "NameJa": "ダルメル",
     "LocationId": 47
   },
   {
     "Id": 93,
-    "Name": "White Knight",
+    "NameDe": "Weißes Ross",
+    "NameEn": "White Knight",
+    "NameFr": "Cavalier blanc",
+    "NameJa": "ホワイト・オートナイト",
     "LocationId": 64
   },
   {
     "Id": 94,
-    "Name": "Black Knight",
+    "NameDe": "Schwarzes Ross",
+    "NameEn": "Black Knight",
+    "NameFr": "Cavalier noir",
+    "NameJa": "ブラック・オートナイト",
     "LocationId": 64
   },
   {
     "Id": 95,
-    "Name": "Page 64",
+    "NameDe": "Page 64",
+    "NameEn": "Page 64",
+    "NameFr": "Page 64",
+    "NameJa": "64ページ",
     "LocationId": 55
   },
   {
     "Id": 96,
-    "Name": "Armored Weapon",
+    "NameDe": "Panzerwaffe",
+    "NameEn": "Armored Weapon",
+    "NameFr": "Arme blindée",
+    "NameJa": "アームドウェポン",
     "LocationId": 65
   },
   {
     "Id": 97,
-    "Name": "The Manipulator",
+    "NameDe": "The Manipulator",
+    "NameEn": "The Manipulator",
+    "NameFr": "The Manipulator",
+    "NameJa": "マニピュレーター",
     "LocationId": 66
   },
   {
     "Id": 98,
-    "Name": "Sabotender Guardia",
+    "NameDe": "Sabotender-Wächter",
+    "NameEn": "Sabotender Guardia",
+    "NameFr": "Pampa garde",
+    "NameJa": "サボテンダー・ガーディア",
     "LocationId": 67
   },
   {
     "Id": 99,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 50 Spells"
   },
   {
     "Id": 100,
-    "Name": "Totem",
+    "NameDe": "Maskenkarneval",
+    "NameEn": "Masked Carnivale",
+    "NameFr": "Carnaval masqué",
+    "NameJa": "仮面の謝肉祭",
     "Notes": "Complete 30 Masked Carnivale stages"
   },
   {
     "Id": 101,
-    "Name": "Abalathian Wamoura",
+    "NameDe": "Abalathian Wamoura",
+    "NameEn": "Abalathian Wamoura",
+    "NameFr": "Abalathian Wamoura",
+    "NameJa": "アバラシア・ワモーラ",
     "LocationId": 47
   },
   {
     "Id": 102,
-    "Name": "Cloud Wyvern",
+    "NameDe": "Wolken-Wyvern",
+    "NameEn": "Cloud Wyvern",
+    "NameFr": "Wyverne des nuages",
+    "NameJa": "クラウドワイバーン",
     "LocationId": 68
   },
   {
     "Id": 103,
-    "Name": "Decaying Gourmand",
+    "NameDe": "Verrottender Gourmet",
+    "NameEn": "Decaying Gourmand",
+    "NameFr": "Glouton putride",
+    "NameJa": "ロッティング・グルマン",
     "LocationId": 57
   },
   {
     "Id": 104,
-    "Name": "Nullchu",
+    "NameDe": "Nullchu",
+    "NameEn": "Nullchu",
+    "NameFr": "Nullchu",
+    "NameJa": "ヌルチュー",
     "LocationId": 69
   },
   {
     "Id": 105,
-    "Name": "Cerberus",
+    "NameDe": "Cerberus",
+    "NameEn": "Cerberus",
+    "NameFr": "Cerberus",
+    "NameJa": "ケルベロス",
     "LocationId": 70
   },
   {
     "Id": 106,
-    "Name": "Mechanoscribe",
+    "NameDe": "Mechanoscholar",
+    "NameEn": "Mechanoscribe",
+    "NameFr": "Mécano-scribe",
+    "NameJa": "メカノスクライブ",
     "LocationId": 60
   },
   {
     "Id": 107,
-    "Name": "Arena Scribe",
+    "NameDe": "Arena-Scholar",
+    "NameEn": "Arena Scribe",
+    "NameFr": "Scribe de l'arène",
+    "NameJa": "アリーナ・スクライブ",
     "LocationId": 61
   },
   {
     "Id": 108,
-    "Name": "Ghrah Luminary",
+    "NameDe": "Ghrah Luminary",
+    "NameEn": "Ghrah Luminary",
+    "NameFr": "Ghrah Luminary",
+    "NameJa": "ルミナリー・ゴラホ",
     "LocationId": 71
   },
   {
     "Id": 109,
-    "Name": "Ravana",
+    "NameDe": "Ravana",
+    "NameEn": "Ravana",
+    "NameFr": "Ravana",
+    "NameJa": "ラーヴァナ",
     "LocationId": 72
   },
   {
     "Id": 110,
-    "Name": "Sophia",
+    "NameDe": "Sophia",
+    "NameEn": "Sophia",
+    "NameFr": "Sophia",
+    "NameJa": "ソフィア",
     "LocationId": 73
   },
   {
     "Id": 111,
-    "Name": "Brute Justice",
+    "NameDe": "Brute Justice",
+    "NameEn": "Brute Justice",
+    "NameFr": "Brute Justice",
+    "NameJa": "ブルートジャスティス",
     "LocationId": 17
   },
   {
     "Id": 112,
-    "Name": "Ebisu Catfish",
+    "NameDe": "Ebisu Namazuo",
+    "NameEn": "Ebisu Catfish",
+    "NameFr": "Namazu ebisu",
+    "NameJa": "エビス・ナマズオ",
     "LocationId": 74
   },
   {
     "Id": 113,
-    "Name": "Dojun-maru",
+    "NameDe": "Dojun-maru",
+    "NameEn": "Dojun-maru",
+    "NameFr": "Dojun-maru",
+    "NameJa": "ドウジュン丸",
     "LocationId": 75
   },
   {
     "Id": 114,
-    "Name": "Mist Dragon",
+    "NameDe": "Mist Dragon",
+    "NameEn": "Mist Dragon",
+    "NameFr": "Dragon des brumes",
+    "NameJa": "ミストドラゴン",
     "LocationId": 76
   },
   {
     "Id": 115,
-    "Name": "Lakshmi",
+    "NameDe": "Lakshmi",
+    "NameEn": "Lakshmi",
+    "NameFr": "Lakshmi",
+    "NameJa": "ラクシュミ",
     "LocationId": 77
   },
   {
     "Id": 116,
-    "Name": "Phantom Train",
+    "NameDe": "Phantomzug",
+    "NameEn": "Phantom Train",
+    "NameFr": "Train fantôme",
+    "NameJa": "魔列車",
     "LocationId": 78
   },
   {
     "Id": 117,
-    "Name": "Tokkapchi",
+    "NameDe": "Tokkapchi",
+    "NameEn": "Tokkapchi",
+    "NameFr": "Tokkapchi",
+    "NameJa": "トカップチ",
     "LocationId": 69
   },
   {
     "Id": 118,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Reach level 70"
   },
   {
     "Id": 119,
-    "Name": "Genbu",
+    "NameDe": "Genbu",
+    "NameEn": "Genbu",
+    "NameFr": "Genbu",
+    "NameJa": "玄武",
     "LocationId": 79
   },
   {
     "Id": 120,
-    "Name": "Ivon Coeurlfist",
+    "NameDe": "Ivon Coeurlfaust",
+    "NameEn": "Ivon Coeurlfist",
+    "NameFr": "Ivon le Coeurl",
+    "NameJa": "双豹のイヴォン",
     "LocationId": 80
   },
   {
     "Id": 121,
-    "Name": "Master Coeurl",
+    "NameDe": "Meister-Coeurl",
+    "NameEn": "Master Coeurl",
+    "NameFr": "Maître coeurl",
+    "NameJa": "マスタークァール",
     "LocationId": 81
   },
   {
     "Id": 122,
-    "Name": "Coeurl Sruti or Smriti",
+    "NameDe": "Coeurl Sruti or Smriti",
+    "NameEn": "Coeurl Sruti or Smriti",
+    "NameFr": "Coeurl Sruti or Smriti",
+    "NameJa": "Coeurl Sruti or Smriti",
     "LocationId": 80
   },
   {
     "Id": 123,
-    "Name": "Kongamato",
+    "NameDe": "Kongamato",
+    "NameEn": "Kongamato",
+    "NameFr": "Kongamato",
+    "NameJa": "コンガマトー",
     "LocationId": 82
   },
   {
     "Id": 124,
-    "Name": "Alte Roite",
+    "NameDe": "Alte Roite",
+    "NameEn": "Alte Roite",
+    "NameFr": "Alte Roite",
+    "NameJa": "アルテ・ロイテ",
     "LocationId": 83
   },
   {
     "Id": 125,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 100 spells"
   },
   {
     "Id": 126,
-    "Name": "Salt Dhruva",
+    "NameDe": "Salz-Dhruva",
+    "NameEn": "Salt Dhruva",
+    "NameFr": "Dhruva de sel",
+    "NameJa": "ドルヴァ",
     "LocationId": 84
   },
   {
     "Id": 127,
-    "Name": "Kelpie",
+    "NameDe": "Kelpie",
+    "NameEn": "Kelpie",
+    "NameFr": "Kelpie",
+    "NameJa": "ケルピー",
     "LocationId": 85
   },
   {
     "Id": 128,
-    "Name": "Sai Taisui",
+    "NameDe": "Sai Taisui",
+    "NameEn": "Sai Taisui",
+    "NameFr": "Sai Taisui",
+    "NameJa": "サイタイサイ",
     "LocationId": 86
   },
   {
     "Id": 129,
-    "Name": "Courser Chocobo",
+    "NameDe": "Kurier-Chocobo",
+    "NameEn": "Courser Chocobo",
+    "NameFr": "Chocobo coursier",
+    "NameJa": "コーサーチョコボ",
     "LocationId": 87
   },
   {
     "Id": 130,
-    "Name": "Qitian Dasheng",
+    "NameDe": "Qitian Dasheng",
+    "NameEn": "Qitian Dasheng",
+    "NameFr": "Qitian Dasheng",
+    "NameJa": "セイテンタイセイ",
     "LocationId": 86
   },
   {
     "Id": 131,
-    "Name": "Suzaku",
+    "NameDe": "Suzaku",
+    "NameEn": "Suzaku",
+    "NameFr": "Suzaku",
+    "NameJa": "朱雀",
     "LocationId": 88
   },
   {
     "Id": 132,
-    "Name": "Tsukuyomi",
+    "NameDe": "Tsukuyomi",
+    "NameEn": "Tsukuyomi",
+    "NameFr": "Tsukuyomi",
+    "NameJa": "ツクヨミ",
     "LocationId": 89
   },
   {
     "Id": 133,
-    "Name": "Hobgoblin",
+    "NameDe": "Hobgoblin",
+    "NameEn": "Hobgoblin",
+    "NameFr": "Hobgobelin",
+    "NameJa": "ホブゴブリン",
     "LocationId": 90
   },
   {
     "Id": 134,
-    "Name": "Greater Armadillo",
+    "NameDe": "Riesengürteltier",
+    "NameEn": "Greater Armadillo",
+    "NameFr": "Grand tatou",
+    "NameJa": "グレーター・アルマジロ",
     "LocationId": 91
   },
   {
     "Id": 135,
-    "Name": "Long-tailed Armadillo",
+    "NameDe": "Panzerschwanz-Gürteltier",
+    "NameEn": "Long-tailed Armadillo",
+    "NameFr": "Tatou longue-queue",
+    "NameJa": "ロングテール・アルマジロ",
     "LocationId": 92
   },
   {
     "Id": 136,
-    "Name": "Slippery Armadillo",
+    "NameDe": "Flutschiges Gürteltier",
+    "NameEn": "Slippery Armadillo",
+    "NameFr": "Tatou fuyard",
+    "NameJa": "スリッパリー・アルマジロ",
     "LocationId": 92
   },
   {
     "Id": 137,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Reach Level 80"
   },
   {
     "Id": 138,
-    "Name": "Spectral Berserker",
+    "NameDe": "Phantom-Berserker",
+    "NameEn": "Spectral Berserker",
+    "NameFr": "Berserker spectral",
+    "NameJa": "幻光のバーサーカー",
     "LocationId": 93
   },
   {
     "Id": 139,
-    "Name": "Mudman",
+    "NameDe": "Matschmann",
+    "NameEn": "Mudman",
+    "NameFr": "Tadboue",
+    "NameJa": "マッドマン",
     "LocationId": 94
   },
   {
     "Id": 140,
-    "Name": "Seeker Of Solitude",
+    "NameDe": "Einsiedler",
+    "NameEn": "Seeker Of Solitude",
+    "NameFr": "Ermite du palais",
+    "NameJa": "宮殿の隠者",
     "LocationId": 95
   },
   {
     "Id": 141,
-    "Name": "The Ruby Weapon",
+    "NameDe": "Rubin-Waffe",
+    "NameEn": "The Ruby Weapon",
+    "NameFr": "Arme Rubis",
+    "NameJa": "ルビーウェポン",
     "LocationId": 96
   },
   {
     "Id": 142,
-    "Name": "Titania",
+    "NameDe": "Titania",
+    "NameEn": "Titania",
+    "NameFr": "Titania",
+    "NameJa": "ティターニア",
     "LocationId": 97
   },
   {
     "Id": 143,
-    "Name": "Eden Prime",
+    "NameDe": "Prim-Eden",
+    "NameEn": "Eden Prime",
+    "NameFr": "Primo-Éden",
+    "NameJa": "エデン・プライム",
     "LocationId": 98
   },
   {
     "Id": 144,
-    "Name": "Forgiven Obscenity",
+    "NameDe": "Geläuterte Unzucht",
+    "NameEn": "Forgiven Obscenity",
+    "NameFr": "Obscénité pardonnée",
+    "NameJa": "フォーギヴン・オブセニティー",
     "LocationId": 99
   },
   {
     "Id": 145,
-    "Name": "Totem",
+    "NameDe": "Totem",
+    "NameEn": "Totem",
+    "NameFr": "Totem",
+    "NameJa": "トーテム",
     "Notes": "Learn 120 Spells"
   },
   {
     "Id": 146,
-    "Name": "Sephirot",
+    "NameDe": "Sephirot",
+    "NameEn": "Sephirot",
+    "NameFr": "Sephirot",
+    "NameJa": "セフィロト",
     "LocationId": 100
   },
   {
     "Id": 147,
-    "Name": "Innocence",
+    "NameDe": "Innozenz",
+    "NameEn": "Innocence",
+    "NameFr": "Innocence",
+    "NameJa": "イノセンス",
     "LocationId": 101
   },
   {
     "Id": 148,
-    "Name": "Eden's Promise",
+    "NameDe": "Edens Verheißung",
+    "NameEn": "Eden's Promise",
+    "NameFr": "Promesse d'Éden",
+    "NameJa": "プロミス・オブ・エデン",
     "LocationId": 102
   },
   {
     "Id": 149,
-    "Name": "Aenc Thon",
+    "NameDe": "Aenc Thon",
+    "NameEn": "Aenc Thon",
+    "NameFr": "Aenc Thon",
+    "NameJa": "Aenc Thon",
     "LocationId": 103
   },
   {
     "Id": 150,
-    "Name": "Lord of the Lingering Gaze",
+    "NameDe": "Lord of the Lingering Gaze",
+    "NameEn": "Lord of the Lingering Gaze",
+    "NameFr": "Lord of the Lingering Gaze",
+    "NameJa": "Lord of the Lingering Gaze",
     "LocationId": 103
   },
   {
     "Id": 151,
-    "Name": "Lugus",
+    "NameDe": "Lugus",
+    "NameEn": "Lugus",
+    "NameFr": "Lugus",
+    "NameJa": "ルゴス",
     "LocationId": 95
   },
   {
     "Id": 152,
-    "Name": "Nixie",
+    "NameDe": "Nixchen",
+    "NameEn": "Nixie",
+    "NameFr": "Nixe",
+    "NameJa": "ノッケン",
     "LocationId": 94
   },
   {
     "Id": 153,
-    "Name": "Therion",
+    "NameDe": "Therion",
+    "NameEn": "Therion",
+    "NameFr": "Mégatherion",
+    "NameJa": "メガセリオン",
     "LocationId": 104
   },
   {
     "Id": 154,
-    "Name": "Ultros",
+    "NameDe": "Ultros",
+    "NameEn": "Ultros",
+    "NameFr": "Orthros",
+    "NameJa": "オルトロス",
     "Notes": "Masked Carnivale: erscheint als \"Miss Typhon\"",
     "LocationId": 2
   },
   {
     "Id": 155,
-    "Name": "Flame Sergeant Dalvag",
+    "NameDe": "Dalvag (B Rang)",
+    "NameEn": "Flame Sergeant Dalvag",
+    "NameFr": "Sergent-major Dalvag (Rang B)",
+    "NameJa": "不滅のフェランド闘軍曹",
     "Notes": "B-Rang-Mark",
     "LocationId": 21
   },
   {
     "Id": 156,
-    "Name": "Baalzephon",
+    "NameDe": "Baalzephon",
+    "NameEn": "Baalzephon",
+    "NameFr": "Baalzephon",
+    "NameJa": "バールゼフォン",
     "LocationId": 57
   },
   {
     "Id": 157,
-    "Name": "Dantalion",
+    "NameDe": "Dantalion",
+    "NameEn": "Dantalion",
+    "NameFr": "Dantalion",
+    "NameJa": "ダンタリオン",
     "LocationId": 16
   },
   {
     "Id": 158,
-    "Name": "Phantom Knight",
+    "NameDe": "Phantom Knight",
+    "NameEn": "Phantom Knight",
+    "NameFr": "Phantom Knight",
+    "NameJa": "ファントムナイト",
     "LocationId": 16
   },
   {
     "Id": 159,
-    "Name": "Glide Bomb",
+    "NameDe": "Rutschbomber",
+    "NameEn": "Glide Bomb",
+    "NameFr": "Bombo planeur",
+    "NameJa": "グライド・ボム",
     "LocationId": 105
   },
   {
     "Id": 160,
-    "Name": "Bomb",
+    "NameDe": "Bomb",
+    "NameEn": "Bomb",
+    "NameFr": "Bomb",
+    "NameJa": "Bomb",
     "LocationId": 106
   },
   {
     "Id": 161,
-    "Name": "Bomb",
+    "NameDe": "Bomb",
+    "NameEn": "Bomb",
+    "NameFr": "Bomb",
+    "NameJa": "Bomb",
     "LocationId": 107
   },
   {
     "Id": 162,
-    "Name": "Bomb",
+    "NameDe": "Bomb",
+    "NameEn": "Bomb",
+    "NameFr": "Bomb",
+    "NameJa": "Bomb",
     "LocationId": 36
   },
   {
     "Id": 163,
-    "Name": "Cherry Bomb",
+    "NameDe": "Cherry Bomb",
+    "NameEn": "Cherry Bomb",
+    "NameFr": "Cherry Bomb",
+    "NameJa": "タイニーボム",
     "LocationId": 108
+  },
+  {
+    "Id": 164,
+    "NameDe": "Von Anfang an bekannt",
+    "NameEn": "Learned First",
+    "NameFr": "Connu dès le départ",
+    "NameJa": "最初から習得",
+    "Notes": "Von Anfang an bekannt (Default-Spell), kein echtes Monster."
   }
 ]

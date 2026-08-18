@@ -7,5 +7,6 @@
   "Description": "Vergleicht die gelernten Blue-Mage-Spells einer Party und hilft beim gemeinsamen Lernplan. Keine Gameplay-Automatisierung.",
   "ApplicableVersion": "any",
   "RepoUrl": "https://github.com/letsI-MA/BLUnion",
+  "IconUrl": "https://raw.githubusercontent.com/letsI-MA/BLUnion/main/images/icon.png",
   "DalamudApiLevel": 15
 }

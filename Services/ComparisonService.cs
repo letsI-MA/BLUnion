@@ -40,17 +40,21 @@ public sealed class ComparisonService
     /// Gruppiert fehlende Spells nach Monster, um "ein Monster besuchen,
     /// mehrere Spells gleichzeitig lernen"-Kombinationen sichtbar zu machen
     /// (Konzept Punkt 5). Erfordert die Source-Daten aus SpellDataService.
+    /// Mit <paramref name="excludeTotems"/> = true werden totem-bezogene Quellen bei der
+    /// Gruppierung nicht berücksichtigt (siehe SpellDataService.GetSourcesForSpell) - ein Spell,
+    /// der NUR über ein Totem lernbar ist, taucht dann in keiner Monster-Gruppe auf.
     /// </summary>
     public IReadOnlyList<(uint MonsterId, IReadOnlyList<uint> CoveredMissingSpellIds)> GroupMissingSpellsByMonster(
         IReadOnlyList<MissingSpellInfo> missingSpells,
-        SpellDataService dataService)
+        SpellDataService dataService,
+        bool excludeTotems = false)
     {
         var missingIds = missingSpells.Select(m => m.SpellId).ToHashSet();
         var byMonster = new Dictionary<uint, List<uint>>();
 
         foreach (var spellId in missingIds)
         {
-            foreach (var (monster, _, _) in dataService.GetSourcesForSpell(spellId))
+            foreach (var (monster, _, _) in dataService.GetSourcesForSpell(spellId, excludeTotems))
             {
                 if (!byMonster.TryGetValue(monster.Id, out var list))
                     byMonster[monster.Id] = list = [];

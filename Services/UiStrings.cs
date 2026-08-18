@@ -72,6 +72,7 @@ public static class UiStrings
         DevFixtureLoaded,
         DisplayLanguageHeader,
         DisplayLanguageHint,
+        HideTotemsToggle,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -428,6 +429,13 @@ public static class UiStrings
             [DisplayLanguage.Japanese] =
                 "画面全体(スペル名を含む)に適用され、現在のセッションのみ有効です。意図的に保存され" +
                 "ないため、次回開いたときはクライアント言語に基づくデフォルトに戻ります。",
+        },
+        [Key.HideTotemsToggle] = new()
+        {
+            [DisplayLanguage.German] = "Totems ausblenden",
+            [DisplayLanguage.English] = "Hide totems",
+            [DisplayLanguage.French] = "Masquer les totems",
+            [DisplayLanguage.Japanese] = "トーテムを非表示",
         },
     };
 

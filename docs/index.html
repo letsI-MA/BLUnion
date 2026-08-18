@@ -538,6 +538,50 @@ function base64ToBytes(b64) {
   return bytes;
 }
 
+// URL-sicheres Base64 ohne Padding, für das kompakte "BLU:"-Format.
+function bytesToBase64Url(bytes) {
+  return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlToBytes(str) {
+  let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  return base64ToBytes(b64);
+}
+
+// Feste, stabile Bit-Reihenfolge: alle 124 Spell-Ids aufsteigend sortiert.
+const SORTED_IDS = SPELLS.map(s => s.id).slice().sort((a, b) => a - b);
+
+function encodeCompact(name, learnedIds) {
+  const nameBytes = new TextEncoder().encode(name);
+  if (nameBytes.length > 255) throw new Error('Name too long.');
+
+  const bitmask = new Uint8Array(16); // 128 Bits, 124 genutzt
+  SORTED_IDS.forEach((id, idx) => {
+    if (learnedIds.has(id)) bitmask[idx >> 3] |= (1 << (idx % 8));
+  });
+
+  const payload = new Uint8Array(1 + nameBytes.length + 16);
+  payload[0] = nameBytes.length;
+  payload.set(nameBytes, 1);
+  payload.set(bitmask, 1 + nameBytes.length);
+
+  return 'BLU:' + bytesToBase64Url(payload);
+}
+
+function decodeCompact(payload) {
+  const nameLen = payload[0];
+  const name = new TextDecoder().decode(payload.slice(1, 1 + nameLen));
+  const bitmask = payload.slice(1 + nameLen, 1 + nameLen + 16);
+
+  const learned = new Set();
+  SORTED_IDS.forEach((id, idx) => {
+    if (bitmask[idx >> 3] & (1 << (idx % 8))) learned.add(id);
+  });
+
+  return { name, learned };
+}
+
 async function generateCode() {
   const statusEl = document.getElementById('exportStatus');
   statusEl.className = 'status-msg';
@@ -551,17 +595,8 @@ async function generateCode() {
   const ids = Array.from(document.querySelectorAll('#exportList input[type=checkbox]:checked'))
     .map(cb => parseInt(cb.dataset.id, 10));
 
-  // Feldnamen exakt wie Models/PlayerSpellStatus.cs in C# (PascalCase).
-  const payload = {
-    CharacterName: name,
-    LearnedSpellIds: ids,
-    Timestamp: new Date().toISOString(),
-    IsLocalPlayer: false
-  };
-
   try {
-    const compressed = await gzipCompress(JSON.stringify(payload));
-    const code = 'BLU1:' + bytesToBase64(compressed);
+    const code = encodeCompact(name, new Set(ids));
     document.getElementById('exportOutput').value = code;
     statusEl.className = 'status-msg ok';
     statusEl.textContent = t().okGenerated(ids.length);
@@ -590,22 +625,38 @@ async function importCode() {
   resultEl.innerHTML = '';
 
   const raw = document.getElementById('importInput').value.trim();
-  const prefix = 'BLU1:';
-  if (!raw.startsWith(prefix)) {
-    statusEl.className = 'status-msg error';
-    statusEl.textContent = t().errPrefix;
-    return;
-  }
 
   try {
-    const bytes = base64ToBytes(raw.slice(prefix.length));
-    const json = await gzipDecompress(bytes);
-    const status = JSON.parse(json);
-    const learned = new Set((status.LearnedSpellIds || status.learnedSpellIds || []).map(Number));
+    let charName, learned;
 
-    const charName = status.CharacterName || status.characterName || t().unnamed;
+    if (raw.startsWith('BLU:')) {
+      const payload = base64UrlToBytes(raw.slice('BLU:'.length));
+      const decoded = decodeCompact(payload);
+      charName = decoded.name || t().unnamed;
+      learned = decoded.learned;
+    } else if (raw.startsWith('BLU1:')) {
+      // Altes Format (gzip+JSON), weiterhin lesbar für Übergangszeit.
+      const bytes = base64ToBytes(raw.slice('BLU1:'.length));
+      const json = await gzipDecompress(bytes);
+      const status = JSON.parse(json);
+      charName = status.CharacterName || status.characterName || t().unnamed;
+      learned = new Set((status.LearnedSpellIds || status.learnedSpellIds || []).map(Number));
+    } else {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().errPrefix;
+      return;
+    }
+
     statusEl.className = 'status-msg ok';
     statusEl.textContent = t().okImported(charName, learned.size, SPELLS.length);
+
+    // Auswahl oben (Export-Panel) auf den importierten Status übernehmen,
+    // damit direkt sichtbar ist, was der importierte Spieler schon kann.
+    document.getElementById('charName').value = charName;
+    document.querySelectorAll('#exportList input[type=checkbox]').forEach(cb => {
+      cb.checked = learned.has(parseInt(cb.dataset.id, 10));
+    });
+    updateExportCount();
 
     const missing = SPELLS.filter(sp => !learned.has(sp.id));
     const list = document.createElement('div');

@@ -33,12 +33,20 @@ public sealed class SpellDataService
     public IReadOnlyDictionary<uint, Location> Locations { get; private set; } = new Dictionary<uint, Location>();
     public IReadOnlyList<SpellSource> Sources { get; private set; } = new List<SpellSource>();
 
+    /// <summary>Alle bekannten Spell-Ids, AUFSTEIGEND nach Id sortiert (nicht SpellbookOrder) -
+    /// die kanonische Bit-Reihenfolge für das kompakte "BLU:"-Sync-Codeformat (Bit-Index 0 =
+    /// kleinste Id, siehe <see cref="ManualCodeSyncProvider"/>). Export UND Import müssen beide
+    /// über diese Property gehen, sonst laufen die Bitmasken zwischen beiden auseinander - und
+    /// sie muss byte-genau mit der Sortierung der Web-Companion-Implementierung übereinstimmen.</summary>
+    public IReadOnlyList<uint> OrderedSpellIds { get; private set; } = new List<uint>();
+
     public void Load(string dataDirectory)
     {
         this.Spells = this.LoadDictionary<Spell>(Path.Combine(dataDirectory, "spells.json"), s => s.Id);
         this.Monsters = this.LoadDictionary<Monster>(Path.Combine(dataDirectory, "monsters.json"), m => m.Id);
         this.Locations = this.LoadDictionary<Location>(Path.Combine(dataDirectory, "locations.json"), l => l.Id);
         this.Sources = this.LoadList<SpellSource>(Path.Combine(dataDirectory, "sources.json"));
+        this.OrderedSpellIds = this.Spells.Keys.OrderBy(id => id).ToList();
 
         // Bewusst als Information geloggt (nicht nur bei Fehlern): eine leere Zahl
         // hier ist der schnellste Hinweis darauf, dass z.B. der Comparison-Tab leer

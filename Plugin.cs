@@ -46,7 +46,7 @@ public sealed class Plugin : IDalamudPlugin
         this.spellDataService = new SpellDataService(log);
         this.comparisonService = new ComparisonService();
         this.localSpellUnlockService = new LocalSpellUnlockService(log, dataManager, unlockState, objectTable);
-        this.syncProvider = new ManualCodeSyncProvider();
+        this.syncProvider = new ManualCodeSyncProvider(this.spellDataService);
 
         // Statische Spell-/Monster-/Source-/Location-Daten liegen neben der Plugin-DLL.
         var dataDir = Path.Combine(this.pluginInterface.AssemblyLocation.DirectoryName!, "Data");

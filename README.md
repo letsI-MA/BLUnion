@@ -29,7 +29,7 @@ The plugin does **not** automate any gameplay – it only reads and compares inf
 
 ## Sync without a server
 
-Each player can export their own spell status as a compact text code (`BLU1:...`) and share it with others, e.g. via Discord. Others import the code in the plugin and immediately see the comparison – no central server, no registration required.
+Each player can export their own spell status as a compact text code (`BLU:...`) and share it with others, e.g. via Discord. Others import the code in the plugin and immediately see the comparison – no central server, no registration required. (Older `BLU1:...` codes from before this format change can still be imported during the transition period, but are no longer generated.)
 
 For players who don't want to (or can't) install a Dalamud plugin, there's a web companion at **[letsi-ma.github.io/BLUnion](https://letsi-ma.github.io/BLUnion/)**, which can generate and read the same code directly in the browser – without FFXIV even running.
 

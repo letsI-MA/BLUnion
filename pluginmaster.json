@@ -4,14 +4,14 @@
     "Name": "BLUnion",
     "Punchline": "Unite. Learn. Mimic.",
     "InternalName": "BLUnion",
-    "AssemblyVersion": "0.2.0.0",
+    "AssemblyVersion": "0.3.0.0",
     "Description": "Compares learned Blue Mage spells across a party, shows where to find missing ones, and helps plan what to learn next together - multilingual (DE/EN/FR/JA), syncs via export/import codes, no gameplay automation.",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/letsI-MA/BLUnion",
     "IconUrl": "https://raw.githubusercontent.com/letsI-MA/BLUnion/main/images/icon.png",
     "DalamudApiLevel": 15,
-    "DownloadLinkInstall": "https://github.com/letsI-MA/BLUnion/releases/download/v0.2.0.0/BLUnion-latest.zip",
-    "DownloadLinkUpdate": "https://github.com/letsI-MA/BLUnion/releases/download/v0.2.0.0/BLUnion-latest.zip",
-    "LastUpdate": "1787046859"
+    "DownloadLinkInstall": "https://github.com/letsI-MA/BLUnion/releases/download/v0.3.0.0/BLUnion-latest.zip",
+    "DownloadLinkUpdate": "https://github.com/letsI-MA/BLUnion/releases/download/v0.3.0.0/BLUnion-latest.zip",
+    "LastUpdate": "1787062423"
   }
 ]

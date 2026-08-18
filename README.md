@@ -2,7 +2,7 @@
 
 A [Dalamud](https://github.com/goatcorp/Dalamud) plugin for FINAL FANTASY XIV that helps Blue Mage parties plan together which spells to learn next – including source locations and a web companion for players without the plugin installed.
 
-> ⚠️ **Early development stage.** This project is being actively developed for a small test group. It is not (yet) listed in the official Dalamud plugin repository.
+> ⚠️ **Early development stage.** This project is being actively developed for a small test group.
 
 ## What does BLUnion do?
 
@@ -31,13 +31,26 @@ The plugin does **not** automate any gameplay – it only reads and compares inf
 
 Each player can export their own spell status as a compact text code (`BLU1:...`) and share it with others, e.g. via Discord. Others import the code in the plugin and immediately see the comparison – no central server, no registration required.
 
-For players who don't want to (or can't) install a Dalamud plugin, there's a **web companion**: [`docs/index.html`](docs/index.html), which can generate and read the same code directly in the browser – without FFXIV even running.
+For players who don't want to (or can't) install a Dalamud plugin, there's a web companion at **[letsi-ma.github.io/BLUnion](https://letsi-ma.github.io/BLUnion/)**, which can generate and read the same code directly in the browser – without FFXIV even running.
 
 ## Installation
 
-1. In XIVLauncher, under `/xlsettings` → *Experimental* → *Dev Plugin Locations*, add the path to the built `BLUnion.dll` (no official custom repository available yet).
-2. Enable the plugin via `/xlplugins`.
-3. Open the main window with `/blunion`.
+**Recommended: via custom plugin repository**
+
+1. In-game, open `/xlsettings` → *Experimental* → *Custom Plugin Repositories*.
+2. Paste this URL into an empty field and confirm:
+   ```
+   https://raw.githubusercontent.com/letsI-MA/BLUnion/main/pluginmaster.json
+   ```
+3. Save. BLUnion will now show up under *Available Plugins* in `/xlplugins` and can be installed like any other plugin, including future updates.
+
+**Alternative: building from source (dev plugin)**
+
+1. Build the project (see below).
+2. In `/xlsettings` → *Experimental* → *Dev Plugin Locations*, add the path to the built `BLUnion.dll`.
+3. Enable the plugin via `/xlplugins`.
+
+Either way, open the main window with `/blunion`.
 
 ## Build
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
@@ -22,6 +23,10 @@ public sealed class MainWindow : Window
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
     private readonly ITextureProvider textureProvider;
+
+    /// <summary>URL des Web Companion (siehe DrawWebCompanionTab) - dieselbe Adresse wie im
+    /// README-Abschnitt "Sync without a server" verlinkt.</summary>
+    private const string WebCompanionUrl = "https://letsi-ma.github.io/BLUnion/";
 
     private string importCodeBuffer = string.Empty;
     private string comparisonFilterText = string.Empty;
@@ -111,6 +116,12 @@ public sealed class MainWindow : Window
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage) + "###TabSync"))
             {
                 this.DrawSyncTab();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabWebCompanion, this.displayLanguage) + "###TabWebCompanion"))
+            {
+                this.DrawWebCompanionTab();
                 ImGui.EndTabItem();
             }
 
@@ -550,6 +561,47 @@ public sealed class MainWindow : Window
             this.syncProvider.PublishLocalStatus(fixture);
             this.lastError = UiStrings.Format(
                 UiStrings.Key.DevFixtureLoaded, this.displayLanguage, fixture.CharacterName, fixture.LearnedSpellIds.Count);
+        }
+    }
+
+    /// <summary>Verweis auf die Browser-Version des Sync-Codes (siehe README-Abschnitt "Sync
+    /// without a server") - erlaubt Freunden ohne installiertes Plugin, ihren Status trotzdem
+    /// als Code zu exportieren/importieren, ganz ohne laufendes FFXIV.</summary>
+    private void DrawWebCompanionTab()
+    {
+        if (this.lastError is not null)
+        {
+            ImGui.TextColored(new System.Numerics.Vector4(1, 0.4f, 0.4f, 1), this.lastError);
+            ImGui.Separator();
+        }
+
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.WebCompanionIntro, this.displayLanguage));
+        ImGui.Separator();
+
+        // Als reiner Text angezeigt (nicht nur über die Buttons erreichbar), damit man die URL
+        // notfalls auch von Hand abschreiben oder screenshotten kann - siehe Aufgabenstellung.
+        ImGui.TextUnformatted(WebCompanionUrl);
+        ImGui.Separator();
+
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.OpenInBrowserButton, this.displayLanguage)))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(WebCompanionUrl) { UseShellExecute = true });
+                this.lastError = UiStrings.Get(UiStrings.Key.BrowserOpenedMessage, this.displayLanguage);
+            }
+            catch (Exception ex)
+            {
+                this.lastError = UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message);
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.CopyLinkButton, this.displayLanguage)))
+        {
+            ImGui.SetClipboardText(WebCompanionUrl);
+            this.lastError = UiStrings.Get(UiStrings.Key.LinkCopiedMessage, this.displayLanguage);
         }
     }
 

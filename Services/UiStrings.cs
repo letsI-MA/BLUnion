@@ -32,6 +32,7 @@ public static class UiStrings
         TabSpellComparison,
         TabLearningPlan,
         TabSync,
+        TabWebCompanion,
         TabSettings,
         NoBlueMagesInParty,
         PartyMemberEntry,
@@ -73,6 +74,11 @@ public static class UiStrings
         DisplayLanguageHeader,
         DisplayLanguageHint,
         HideTotemsToggle,
+        WebCompanionIntro,
+        OpenInBrowserButton,
+        CopyLinkButton,
+        BrowserOpenedMessage,
+        LinkCopiedMessage,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -114,6 +120,13 @@ public static class UiStrings
             [DisplayLanguage.English] = "Sync",
             [DisplayLanguage.French] = "Synchro",
             [DisplayLanguage.Japanese] = "同期",
+        },
+        [Key.TabWebCompanion] = new()
+        {
+            [DisplayLanguage.German] = "Web Companion",
+            [DisplayLanguage.English] = "Web Companion",
+            [DisplayLanguage.French] = "Web Companion",
+            [DisplayLanguage.Japanese] = "Web Companion",
         },
         [Key.TabSettings] = new()
         {
@@ -436,6 +449,56 @@ public static class UiStrings
             [DisplayLanguage.English] = "Hide totems",
             [DisplayLanguage.French] = "Masquer les totems",
             [DisplayLanguage.Japanese] = "トーテムを非表示",
+        },
+        // Kürzere Zusammenfassung des README-Abschnitts "Sync without a server" - erklärt die
+        // Browser-Version des Sync-Codes (Punkt 1 & 3 der Aufgabenstellung: OHNE laufendes FFXIV
+        // nutzbar, gedacht für Freunde ohne installiertes Plugin).
+        [Key.WebCompanionIntro] = new()
+        {
+            [DisplayLanguage.German] =
+                "Es gibt auch eine Browser-Version, mit der du deinen Spellstatus als Code " +
+                "exportieren oder einen Code importieren kannst - ganz ohne dass FFXIV läuft. " +
+                "Praktisch, um Freunden ohne installiertes Plugin die Teilnahme zu ermöglichen.",
+            [DisplayLanguage.English] =
+                "There's also a browser version where you can export your spell status as a code " +
+                "or import one - without FFXIV even running. Handy for letting friends without the " +
+                "plugin installed join in.",
+            [DisplayLanguage.French] =
+                "Il existe aussi une version navigateur qui permet d'exporter ton statut de sorts " +
+                "sous forme de code ou d'en importer un - sans même que FFXIV soit lancé. Pratique " +
+                "pour permettre à des amis sans le plugin installé d'y participer.",
+            [DisplayLanguage.Japanese] =
+                "FFXIVを起動していなくても、自分のスペル状況をコードとしてエクスポートしたり、コード" +
+                "をインポートしたりできるブラウザ版もあります。プラグインをインストールしていない" +
+                "友達も参加しやすくなります。",
+        },
+        [Key.OpenInBrowserButton] = new()
+        {
+            [DisplayLanguage.German] = "Im Browser öffnen",
+            [DisplayLanguage.English] = "Open in browser",
+            [DisplayLanguage.French] = "Ouvrir dans le navigateur",
+            [DisplayLanguage.Japanese] = "ブラウザで開く",
+        },
+        [Key.CopyLinkButton] = new()
+        {
+            [DisplayLanguage.German] = "Link kopieren",
+            [DisplayLanguage.English] = "Copy link",
+            [DisplayLanguage.French] = "Copier le lien",
+            [DisplayLanguage.Japanese] = "リンクをコピー",
+        },
+        [Key.BrowserOpenedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Im Browser geöffnet.",
+            [DisplayLanguage.English] = "Opened in browser.",
+            [DisplayLanguage.French] = "Ouvert dans le navigateur.",
+            [DisplayLanguage.Japanese] = "ブラウザで開きました。",
+        },
+        [Key.LinkCopiedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Link in Zwischenablage kopiert.",
+            [DisplayLanguage.English] = "Link copied to clipboard.",
+            [DisplayLanguage.French] = "Lien copié dans le presse-papiers.",
+            [DisplayLanguage.Japanese] = "リンクをクリップボードにコピーしました。",
         },
     };
 

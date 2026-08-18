@@ -1,6 +1,7 @@
 using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
@@ -23,7 +24,16 @@ public sealed class MainWindow : Window
     private readonly ITextureProvider textureProvider;
 
     private string importCodeBuffer = string.Empty;
+    private string comparisonFilterText = string.Empty;
+    private string learningPlanFilterText = string.Empty;
     private string? lastError;
+
+    /// <summary>Sprache, in der aktuell die GESAMTE Oberfläche angezeigt wird (Spell-Namen über
+    /// <see cref="GetSpellName"/>, alle sonstigen Texte über <see cref="UiStrings"/>). Nur
+    /// In-Memory für die laufende Sitzung, wird bewusst nicht persistiert (siehe
+    /// Aufgabenstellung zur Mehrsprachigkeit) - beim nächsten Fensteröffnen greift wieder der
+    /// Default aus dem Konstruktor.</summary>
+    private DisplayLanguage displayLanguage;
 
     public MainWindow(
         PartyService partyService,
@@ -31,7 +41,8 @@ public sealed class MainWindow : Window
         ComparisonService comparisonService,
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
-        ITextureProvider textureProvider)
+        ITextureProvider textureProvider,
+        IClientState clientState)
         : base("BLUnion###BLUnion")
     {
         this.partyService = partyService;
@@ -40,6 +51,18 @@ public sealed class MainWindow : Window
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;
         this.textureProvider = textureProvider;
+
+        // Default anhand der Client-Sprache vorbelegen, falls eine der 4 unterstützten -
+        // ClientLanguage kennt aktuell ohnehin nur genau diese 4 Werte, der Fallback greift
+        // also nur defensiv, falls Dalamud das Enum jemals erweitert.
+        this.displayLanguage = clientState.ClientLanguage switch
+        {
+            ClientLanguage.German => DisplayLanguage.German,
+            ClientLanguage.English => DisplayLanguage.English,
+            ClientLanguage.French => DisplayLanguage.French,
+            ClientLanguage.Japanese => DisplayLanguage.Japanese,
+            _ => DisplayLanguage.English,
+        };
 
         this.SizeConstraints = new WindowSizeConstraints
         {
@@ -50,23 +73,45 @@ public sealed class MainWindow : Window
 
     public override void Draw()
     {
+        // WindowName trägt neben dem sichtbaren Titel (vor "###") auch die STABILE ImGui-Id
+        // (nach "###") - die muss über Sprachwechsel hinweg gleich bleiben (sonst verliert ImGui
+        // z.B. Fenstergröße/-position), nur der sichtbare Teil wird pro Frame neu übersetzt.
+        this.WindowName = UiStrings.Get(UiStrings.Key.WindowTitle, this.displayLanguage) + "###BLUnion";
+
         if (ImGui.BeginTabBar("BLUnionTabs"))
         {
-            if (ImGui.BeginTabItem("Party"))
+            // "###<stabile Id>"-Suffix an jedem Tab-Label ist hier Pflicht, nicht nur Stil: ImGui
+            // leitet die interne Tab-Identität standardmäßig aus dem sichtbaren Label-Text ab.
+            // Ohne den Suffix ändert sich bei jedem Sprachwechsel die ID ALLER Tabs gleichzeitig,
+            // ImGui erkennt den bisher aktiven Tab dadurch nicht wieder und springt auf den
+            // ersten zurück (siehe gemeldeter Bug: Sprung auf "Party" bei Sprachwechsel).
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabParty, this.displayLanguage) + "###TabParty"))
             {
                 this.DrawPartyTab();
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Spell Comparison"))
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellComparison, this.displayLanguage) + "###TabSpellComparison"))
             {
                 this.DrawComparisonTab();
                 ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem("Sync"))
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLearningPlan, this.displayLanguage) + "###TabLearningPlan"))
+            {
+                this.DrawLearningPlanTab();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage) + "###TabSync"))
             {
                 this.DrawSyncTab();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSettings, this.displayLanguage) + "###TabSettings"))
+            {
+                this.DrawSettingsTab();
                 ImGui.EndTabItem();
             }
 
@@ -80,12 +125,12 @@ public sealed class MainWindow : Window
 
         if (members.Count == 0)
         {
-            ImGui.TextWrapped("Keine Blue Mages in der aktuellen Party gefunden.");
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoBlueMagesInParty, this.displayLanguage));
             return;
         }
 
         foreach (var member in members)
-            ImGui.TextUnformatted($"{member.Name}  (Level {member.Level})");
+            ImGui.TextUnformatted(UiStrings.Format(UiStrings.Key.PartyMemberEntry, this.displayLanguage, member.Name, member.Level));
     }
 
     private void DrawComparisonTab()
@@ -101,9 +146,8 @@ public sealed class MainWindow : Window
 
         if (partyStatus.Count == 0)
         {
-            ImGui.TextWrapped(
-                "Noch keine Spielerdaten geladen. Gehe zum 'Sync'-Tab, um deinen eigenen " +
-                "Status zu ermitteln und Codes von Mitspielern zu importieren.");
+            ImGui.TextWrapped(UiStrings.Format(
+                UiStrings.Key.NoPlayerDataLoaded, this.displayLanguage, UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage)));
             return;
         }
 
@@ -117,54 +161,80 @@ public sealed class MainWindow : Window
             .ThenBy(m => this.spellDataService.Spells.TryGetValue(m.SpellId, out var s) ? s.SpellbookOrder : int.MaxValue)
             .ToList();
 
-        ImGui.TextUnformatted("Gemeinsam fehlend:");
+        ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.CommonlyMissingHeader, this.displayLanguage));
         ImGui.Separator();
 
         if (missing.Count == 0)
         {
-            ImGui.TextWrapped("Alle bekannten Spells sind bei allen geladenen Spielern vorhanden.");
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.AllSpellsKnownByAll, this.displayLanguage));
             return;
         }
+
+        // Auflösen der Spell-Metadaten passiert VOR dem Filtern, da SpellFilter sowohl Name
+        // als auch SpellbookOrder braucht. Der Filter selbst ändert nichts an obiger
+        // Vergleichsberechnung/Sortierung, er blendet nur Zeilen der bereits fertigen
+        // Ergebnisliste aus.
+        var rows = missing.Select(entry =>
+        {
+            var hasSpell = this.spellDataService.Spells.TryGetValue(entry.SpellId, out var spell);
+            return new
+            {
+                Entry = entry,
+                Name = hasSpell ? this.GetSpellName(spell!) : UiStrings.Format(UiStrings.Key.SpellFallback, this.displayLanguage, entry.SpellId),
+                SpellbookOrder = hasSpell ? spell!.SpellbookOrder : int.MaxValue,
+                IconId = hasSpell ? spell!.IconId : 0u,
+            };
+        }).ToList();
+
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint(
+            "##ComparisonFilter", UiStrings.Get(UiStrings.Key.SpellFilterHint, this.displayLanguage), ref this.comparisonFilterText, 128);
+        ImGui.Separator();
+
+        var filteredRows = rows
+            .Where(r => SpellFilter.Matches(r.Name, r.SpellbookOrder, this.comparisonFilterText))
+            .ToList();
 
         const ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
 
         if (ImGui.BeginTable("MissingSpellsTable", 5, tableFlags))
         {
             ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 28);
-            ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 40);
-            ImGui.TableSetupColumn("Spell");
-            ImGui.TableSetupColumn("Fehlt bei", ImGuiTableColumnFlags.WidthFixed, 80);
-            ImGui.TableSetupColumn("Quelle(n)");
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnNumber, this.displayLanguage), ImGuiTableColumnFlags.WidthFixed, 40);
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnSpell, this.displayLanguage));
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnMissingFor, this.displayLanguage), ImGuiTableColumnFlags.WidthFixed, 80);
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnSources, this.displayLanguage));
             ImGui.TableHeadersRow();
 
-            foreach (var entry in missing)
+            foreach (var row in filteredRows)
             {
-                var hasSpell = this.spellDataService.Spells.TryGetValue(entry.SpellId, out var spell);
-                var name = hasSpell ? spell!.Name : $"Spell #{entry.SpellId}";
-                var orderText = hasSpell ? $"#{spell!.SpellbookOrder:D3}" : "—";
-                var iconId = hasSpell ? spell!.IconId : 0u;
-
+                var entry = row.Entry;
+                var orderText = row.SpellbookOrder == int.MaxValue ? "—" : $"#{row.SpellbookOrder:D3}";
                 var sources = this.spellDataService.GetSourcesForSpell(entry.SpellId).ToList();
 
                 ImGui.TableNextRow();
                 this.HighlightRowByUrgency(entry.PlayersMissingIt.Count, partyStatus.Count);
 
                 ImGui.TableSetColumnIndex(0);
-                this.DrawSpellIcon(iconId);
+                this.DrawSpellIcon(row.IconId);
 
                 ImGui.TableSetColumnIndex(1);
                 ImGui.TextUnformatted(orderText);
 
                 ImGui.TableSetColumnIndex(2);
-                ImGui.Selectable(name, false, ImGuiSelectableFlags.SpanAllColumns);
+                ImGui.Selectable(row.Name, false, ImGuiSelectableFlags.SpanAllColumns);
 
                 if (ImGui.IsItemHovered())
                 {
                     ImGui.BeginTooltip();
-                    ImGui.TextUnformatted("Fehlt bei: " + string.Join(", ", entry.PlayersMissingIt));
+                    ImGui.TextUnformatted(UiStrings.Format(
+                        UiStrings.Key.TooltipMissingFor, this.displayLanguage, string.Join(", ", entry.PlayersMissingIt)));
 
                     foreach (var (monster, location, method) in sources)
-                        ImGui.TextUnformatted($"Quelle: {monster.Name} ({method}) — {FormatLocation(location)}");
+                    {
+                        ImGui.TextUnformatted(UiStrings.Format(
+                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, monster.Name, method, this.FormatLocation(location)));
+                    }
 
                     ImGui.EndTooltip();
                 }
@@ -173,10 +243,102 @@ public sealed class MainWindow : Window
                 ImGui.TextUnformatted(entry.PlayersMissingIt.Count.ToString());
 
                 ImGui.TableSetColumnIndex(4);
-                ImGui.TextUnformatted(FormatSourceSummary(sources));
+                ImGui.TextUnformatted(this.FormatSourceSummary(sources));
             }
 
             ImGui.EndTable();
+        }
+    }
+
+    /// <summary>Lernplan-Tab (Konzept-Punkt "ein Monster besuchen, mehrere Spells gleichzeitig
+    /// lernen"): gruppiert die bereits berechneten fehlenden Spells nach Monster, über die
+    /// bisher ungenutzte <see cref="ComparisonService.GroupMissingSpellsByMonster"/>. Zeigt nur
+    /// Monster mit mindestens 2 abgedeckten fehlenden Spells - bei nur 1 Spell bringt die
+    /// Gruppierung keinen Mehrwert gegenüber der normalen Comparison-Tabelle. Der Service
+    /// selbst liefert bewusst alle Gruppen; die ≥2-Schwelle wird hier in der UI gefiltert.</summary>
+    private void DrawLearningPlanTab()
+    {
+        var allSpellIds = this.spellDataService.Spells.Keys;
+        var partyStatus = this.syncProvider.GetKnownPartyStatus();
+
+        if (partyStatus.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Format(
+                UiStrings.Key.NoPlayerDataLoaded, this.displayLanguage, UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage)));
+            return;
+        }
+
+        var missing = this.comparisonService.GetCommonlyMissingSpells(allSpellIds, partyStatus);
+
+        if (missing.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.AllSpellsKnownByAll, this.displayLanguage));
+            return;
+        }
+
+        var groups = this.comparisonService.GroupMissingSpellsByMonster(missing, this.spellDataService)
+            .Where(g => g.CoveredMissingSpellIds.Count >= 2)
+            .ToList();
+
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.LearnableAtMonstersHeader, this.displayLanguage));
+        ImGui.Separator();
+
+        if (groups.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoMonsterCoversTwoMissing, this.displayLanguage));
+            return;
+        }
+
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint(
+            "##LearningPlanFilter",
+            UiStrings.Get(UiStrings.Key.SpellFilterHint, this.displayLanguage),
+            ref this.learningPlanFilterText,
+            128);
+        ImGui.Separator();
+
+        foreach (var group in groups)
+        {
+            this.spellDataService.Monsters.TryGetValue(group.MonsterId, out var monster);
+            var monsterName = monster?.Name ?? UiStrings.Format(UiStrings.Key.MonsterFallback, this.displayLanguage, group.MonsterId);
+
+            Location? location = null;
+            if (monster is not null)
+                this.spellDataService.Locations.TryGetValue(monster.LocationId, out location);
+
+            var spellRows = group.CoveredMissingSpellIds
+                .Select(spellId =>
+                {
+                    var hasSpell = this.spellDataService.Spells.TryGetValue(spellId, out var spell);
+                    return new
+                    {
+                        Name = hasSpell ? this.GetSpellName(spell!) : UiStrings.Format(UiStrings.Key.SpellFallback, this.displayLanguage, spellId),
+                        SpellbookOrder = hasSpell ? spell!.SpellbookOrder : int.MaxValue,
+                        IconId = hasSpell ? spell!.IconId : 0u,
+                    };
+                })
+                .Where(r => SpellFilter.Matches(r.Name, r.SpellbookOrder, this.learningPlanFilterText))
+                .OrderBy(r => r.SpellbookOrder)
+                .ToList();
+
+            // Aktiver Filter kann eine Gruppe komplett leer ziehen - dann die ganze
+            // Monster-Zeile ausblenden statt eine leere Liste anzuzeigen.
+            if (spellRows.Count == 0)
+                continue;
+
+            ImGui.TextUnformatted($"{monsterName} — {this.FormatLocation(location)}");
+            ImGui.TextWrapped(UiStrings.Format(UiStrings.Key.LearnableAtMonsterCount, this.displayLanguage, spellRows.Count));
+
+            foreach (var row in spellRows)
+            {
+                var orderText = row.SpellbookOrder == int.MaxValue ? "—" : $"#{row.SpellbookOrder:D3}";
+
+                this.DrawSpellIcon(row.IconId);
+                ImGui.SameLine();
+                ImGui.TextUnformatted($"{orderText}  {row.Name}");
+            }
+
+            ImGui.Separator();
         }
     }
 
@@ -230,10 +392,10 @@ public sealed class MainWindow : Window
 
     /// <summary>Kurzer Anzeigetext für einen Fundort: Zone + Koordinaten (falls vorhanden),
     /// sonst Dungeon/Trial-Name (falls vorhanden), sonst nur die Zone.</summary>
-    private static string FormatLocation(Location? location)
+    private string FormatLocation(Location? location)
     {
         if (location is null)
-            return "unbekannt";
+            return UiStrings.Get(UiStrings.Key.UnknownLocation, this.displayLanguage);
 
         if (location.Coordinates is not null)
             return $"{location.ZoneName} ({location.Coordinates})";
@@ -245,52 +407,50 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>Kurze Quellen-Zusammenfassung für die Tabellenspalte; Details gibt's im Zeilen-Tooltip.</summary>
-    private static string FormatSourceSummary(IReadOnlyList<(Monster Monster, Location? Location, string Method)> sources)
+    private string FormatSourceSummary(IReadOnlyList<(Monster Monster, Location? Location, string Method)> sources)
     {
         if (sources.Count == 0)
-            return "unbekannt";
+            return UiStrings.Get(UiStrings.Key.UnknownLocation, this.displayLanguage);
 
         if (sources.Count == 1)
         {
             var (monster, location, _) = sources[0];
-            return $"{monster.Name} ({FormatLocation(location)})";
+            return $"{monster.Name} ({this.FormatLocation(location)})";
         }
 
-        return $"{sources.Count} Quellen";
+        return UiStrings.Format(UiStrings.Key.SourceCountSummary, this.displayLanguage, sources.Count);
     }
 
     private void DrawSyncTab()
     {
-        ImGui.TextWrapped(
-            "Sync-Option A (MVP): Exportiere deinen eigenen Status als Code und teile ihn " +
-            "z.B. über Discord. Mitspieler importieren ihn hier.");
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.SyncIntro, this.displayLanguage));
 
         ImGui.Separator();
 
-        if (ImGui.Button("Eigenen Status ermitteln + exportieren"))
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.DetermineAndExportButton, this.displayLanguage)))
         {
             try
             {
                 this.lastError = null;
                 var localPlayerName = this.partyService.GetPartyMembers()
-                    .FirstOrDefault(m => m.IsBlueMage)?.Name ?? "Du";
+                    .FirstOrDefault(m => m.IsBlueMage)?.Name ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
 
                 var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
                 this.syncProvider.PublishLocalStatus(status);
                 var code = this.syncProvider.ExportToCode(status);
                 ImGui.SetClipboardText(code);
-                this.lastError = "Code in Zwischenablage kopiert.";
+                this.lastError = UiStrings.Get(UiStrings.Key.ClipboardCopiedMessage, this.displayLanguage);
             }
             catch (Exception ex)
             {
-                this.lastError = $"Fehler: {ex.Message}";
+                this.lastError = UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message);
             }
         }
 
         ImGui.Separator();
-        ImGui.InputText("Code eines Mitspielers", ref this.importCodeBuffer, 4096);
+        ImGui.InputText(UiStrings.Get(UiStrings.Key.ImportCodeLabel, this.displayLanguage), ref this.importCodeBuffer, 4096);
 
-        if (ImGui.Button("Importieren"))
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.ImportButton, this.displayLanguage)))
         {
             try
             {
@@ -300,18 +460,18 @@ public sealed class MainWindow : Window
             }
             catch (Exception ex)
             {
-                this.lastError = $"Import fehlgeschlagen: {ex.Message}";
+                this.lastError = UiStrings.Format(UiStrings.Key.ImportFailed, this.displayLanguage, ex.Message);
             }
         }
 
         ImGui.Separator();
-        ImGui.TextUnformatted("Aktuell geladene Spieler:");
+        ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.CurrentlyLoadedPlayersHeader, this.displayLanguage));
 
         var knownStatus = this.syncProvider.GetKnownPartyStatus();
 
         if (knownStatus.Count == 0)
         {
-            ImGui.TextWrapped("Noch keine Spielerdaten geladen.");
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoPlayerDataLoadedShort, this.displayLanguage));
         }
         else
         {
@@ -319,13 +479,17 @@ public sealed class MainWindow : Window
 
             foreach (var status in knownStatus)
             {
-                ImGui.TextUnformatted(
-                    $"{status.CharacterName} ({status.LearnedSpellIds.Count} Spells)" +
-                    (status.IsLocalPlayer ? " — Du" : string.Empty));
+                var line = UiStrings.Format(
+                    UiStrings.Key.PlayerSpellCount, this.displayLanguage, status.CharacterName, status.LearnedSpellIds.Count);
+
+                if (status.IsLocalPlayer)
+                    line += UiStrings.Get(UiStrings.Key.YouSuffix, this.displayLanguage);
+
+                ImGui.TextUnformatted(line);
 
                 ImGui.SameLine();
 
-                if (ImGui.Button($"Entfernen##{status.CharacterName}"))
+                if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.RemoveButton, this.displayLanguage)}##{status.CharacterName}"))
                     playerToRemove = status.CharacterName;
             }
 
@@ -339,13 +503,13 @@ public sealed class MainWindow : Window
         ImGui.Separator();
         ImGui.TextColored(
             new System.Numerics.Vector4(0.3f, 0.75f, 1f, 1),
-            "Dev-Tool (keine echte Party-Funktion):");
+            UiStrings.Get(UiStrings.Key.DevToolHeader, this.displayLanguage));
 
-        this.DrawDevFixtureButton("Dev: Alice laden", DevTestFixtures.CreateAlice);
+        this.DrawDevFixtureButton(UiStrings.Get(UiStrings.Key.DevLoadAliceButton, this.displayLanguage), DevTestFixtures.CreateAlice);
         ImGui.SameLine();
-        this.DrawDevFixtureButton("Dev: Bob laden", DevTestFixtures.CreateBob);
+        this.DrawDevFixtureButton(UiStrings.Get(UiStrings.Key.DevLoadBobButton, this.displayLanguage), DevTestFixtures.CreateBob);
         ImGui.SameLine();
-        this.DrawDevFixtureButton("Dev: Charles laden", DevTestFixtures.CreateCharles);
+        this.DrawDevFixtureButton(UiStrings.Get(UiStrings.Key.DevLoadCharlesButton, this.displayLanguage), DevTestFixtures.CreateCharles);
     }
 
     /// <summary>Lädt einen der Dev-Test-Charaktere aus <see cref="DevTestFixtures"/> und
@@ -358,7 +522,44 @@ public sealed class MainWindow : Window
         {
             var fixture = createFixture(this.spellDataService);
             this.syncProvider.PublishLocalStatus(fixture);
-            this.lastError = $"Dev-Tool: '{fixture.CharacterName}' mit {fixture.LearnedSpellIds.Count} Spells geladen.";
+            this.lastError = UiStrings.Format(
+                UiStrings.Key.DevFixtureLoaded, this.displayLanguage, fixture.CharacterName, fixture.LearnedSpellIds.Count);
         }
     }
+
+    private void DrawSettingsTab()
+    {
+        ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.DisplayLanguageHeader, this.displayLanguage));
+        ImGui.Separator();
+
+        foreach (var language in Enum.GetValues<DisplayLanguage>())
+        {
+            if (ImGui.RadioButton(GetNativeLanguageName(language), this.displayLanguage == language))
+                this.displayLanguage = language;
+        }
+
+        ImGui.Separator();
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.DisplayLanguageHint, this.displayLanguage));
+    }
+
+    /// <summary>Name EINER Sprache, immer in ihrer eigenen Schrift ("Deutsch", "English",
+    /// "Français", "日本語") - bewusst NICHT über <see cref="UiStrings"/> in die jeweils
+    /// AKTUELL gewählte Sprache übersetzt. Das ist das aus praktisch jedem Sprachauswahlmenü
+    /// bekannte Muster (Wikipedia, Discord, ...): so findet man seine eigene Sprache in der
+    /// Liste auch dann noch, wenn die UI gerade auf eine Sprache eingestellt ist, die man nicht
+    /// versteht - und die Radio-Button-Beschriftungen ändern sich dadurch beim Sprachwechsel
+    /// bewusst NICHT.</summary>
+    private static string GetNativeLanguageName(DisplayLanguage language) => language switch
+    {
+        DisplayLanguage.German => "Deutsch",
+        DisplayLanguage.English => "English",
+        DisplayLanguage.French => "Français",
+        DisplayLanguage.Japanese => "日本語",
+        _ => language.ToString(),
+    };
+
+    /// <summary>Zentrale Stelle, über die überall in der UI (Comparison-Tab, Lernplan-Tab,
+    /// Tooltips) auf den Spell-Namen in der aktuell gewählten <see cref="displayLanguage"/>
+    /// zugegriffen wird, statt direkt eines der NameDe/NameEn/NameFr/NameJa-Felder zu lesen.</summary>
+    private string GetSpellName(Spell spell) => spell.GetName(this.displayLanguage);
 }

@@ -1,994 +1,1366 @@
 [
   {
     "Id": 11383,
-    "Name": "Nieser",
+    "NameDe": "Nieser",
+    "NameEn": "Snort",
+    "NameFr": "Souffle nasal",
+    "NameJa": "鼻息",
     "Stars": 4,
+    "Description": "Typhons Spezialwaffe.\r\nEin kräftiger Nieser, der fächerförmig vor dem Wirkenden alle Gegner erfasst. Neben dem starken Windstoß zieht auch der Ekel die Getroffenen nicht unerheblich in Leidenschaft.",
     "IconId": 3251,
-    "SpellbookOrder": 25,
-    "Description": "Typhons Spezialwaffe.\r\nEin kr\u00E4ftiger Nieser, der f\u00E4cherf\u00F6rmig vor dem Wirkenden alle Gegner erfasst. Neben dem starken Windsto\u00DF zieht auch der Ekel die Getroffenen nicht unerheblich in Leidenschaft."
+    "SpellbookOrder": 25
   },
   {
     "Id": 11384,
-    "Name": "4-Tonzen-Gewicht",
+    "NameDe": "4-Tonzen-Gewicht",
+    "NameEn": "4-tonze Weight",
+    "NameFr": "Poids de 4 tonz",
+    "NameJa": "4トンズ",
     "Stars": 4,
+    "Description": "Ultros' Spezialattacke.\r\nEin wahrlich niederschmetternder Angriff, dessen Wirkung von seinen Opfern als „erdrückend“ beschrieben wird.",
     "IconId": 3252,
-    "SpellbookOrder": 26,
-    "Description": "Ultros\u0027 Spezialattacke.\r\nEin wahrlich niederschmetternder Angriff, dessen Wirkung von seinen Opfern als \u201Eerdr\u00FCckend\u201C beschrieben wird."
+    "SpellbookOrder": 26
   },
   {
     "Id": 11385,
-    "Name": "Wasserkanone",
+    "NameDe": "Wasserkanone",
+    "NameEn": "Water Cannon",
+    "NameFr": "Tir d'eau",
+    "NameJa": "水鉄砲",
     "Stars": 1,
+    "Description": "Angriffszauber der Kraken.\r\nSchießt mit Hochdruck einen harten Wasserstrahl auf den Gegner. Sammelt den in der Luft enthaltenen wasserbasierten Äther und kann deshalb auch an trockenen Orten eingesetzt werden.",
     "IconId": 3253,
-    "SpellbookOrder": 1,
-    "Description": "Angriffszauber der Kraken.\r\nSchie\u00DFt mit Hochdruck einen harten Wasserstrahl auf den Gegner. Sammelt den in der Luft enthaltenen wasserbasierten \u00C4ther und kann deshalb auch an trockenen Orten eingesetzt werden."
+    "SpellbookOrder": 1
   },
   {
     "Id": 11386,
-    "Name": "Gesang der Gemarterten",
+    "NameDe": "Gesang der Gemarterten",
+    "NameEn": "Song of Torment",
+    "NameFr": "Chant de l'agonie",
+    "NameJa": "苦悶の歌",
     "Stars": 2,
+    "Description": "Natürliches Talent der Sirenen.\r\nEin betörender Gesang, der sich unweigerlich in das Innere seiner Opfer bohrt und so starke - wenn auch eingebildete - Schmerzen hervorruft, dass sie körperliche Schäden hinterlassen.",
     "IconId": 3254,
-    "SpellbookOrder": 9,
-    "Description": "Nat\u00FCrliches Talent der Sirenen.\r\nEin bet\u00F6render Gesang, der sich unweigerlich in das Innere seiner Opfer bohrt und so starke - wenn auch eingebildete - Schmerzen hervorruft, dass sie k\u00F6rperliche Sch\u00E4den hinterlassen."
+    "SpellbookOrder": 9
   },
   {
     "Id": 11387,
-    "Name": "Hochstrom",
+    "NameDe": "Hochstrom",
+    "NameEn": "High Voltage",
+    "NameFr": "Haute tension",
+    "NameJa": "高圧電流",
     "Stars": 4,
+    "Description": "Ein technologiebasierter Zauber der Allager.\r\nDer Stromschlag mit Flächenwirkung wird durch eine Ansammlung von Blitzäther erzeugt, kann aber aufgrund einer komplizierten Verstrickungsmagie auch von unbeseelten Maschinen ausgeführt werden.",
     "IconId": 3255,
-    "SpellbookOrder": 6,
-    "Description": "Ein technologiebasierter Zauber der Allager.\r\nDer Stromschlag mit Fl\u00E4chenwirkung wird durch eine Ansammlung von Blitz\u00E4ther erzeugt, kann aber aufgrund einer komplizierten Verstrickungsmagie auch von unbeseelten Maschinen ausgef\u00FChrt werden."
+    "SpellbookOrder": 6
   },
   {
     "Id": 11388,
-    "Name": "Schlechter Atem",
+    "NameDe": "Schlechter Atem",
+    "NameEn": "Bad Breath",
+    "NameFr": "Mauvaise haleine",
+    "NameJa": "臭い息",
     "Stars": 3,
+    "Description": "Hinterhältiger Angriff der Morbol.\r\nWind oder Erde sollen einen großen Anteil an dieser müffeligen Flächenattacke haben, aber auch die anderen Elemente, in ihrer verdorbensten Form, müssen eine Rolle spielen. Kein Element alleine kann so stinken.",
     "IconId": 3256,
-    "SpellbookOrder": 28,
-    "Description": "Hinterh\u00E4ltiger Angriff der Morbol.\r\nWind oder Erde sollen einen gro\u00DFen Anteil an dieser m\u00FCffeligen Fl\u00E4chenattacke haben, aber auch die anderen Elemente, in ihrer verdorbensten Form, m\u00FCssen eine Rolle spielen. Kein Element alleine kann so stinken."
+    "SpellbookOrder": 28
   },
   {
     "Id": 11389,
-    "Name": "Rasender Sturz",
+    "NameDe": "Rasender Sturz",
+    "NameEn": "Flying Frenzy",
+    "NameFr": "Démence",
+    "NameJa": "狂乱",
     "Stars": 3,
+    "Description": "Aggressivverhalten der Anzu.\r\nUm ihre Jungtiere zu schützen, haben die Anzu eine Attacke entwickelt, mit der sie ihren ganzen Zorn in einem angsterfüllenden Angriff bündeln, der beim Opfer bleibende Schäden hinterlässt.",
     "IconId": 3257,
-    "SpellbookOrder": 4,
-    "Description": "Aggressivverhalten der Anzu.\r\nUm ihre Jungtiere zu sch\u00FCtzen, haben die Anzu eine Attacke entwickelt, mit der sie ihren ganzen Zorn in einem angsterf\u00FCllenden Angriff b\u00FCndeln, der beim Opfer bleibende Sch\u00E4den hinterl\u00E4sst."
+    "SpellbookOrder": 4
   },
   {
     "Id": 11390,
-    "Name": "Aqua-Atem",
+    "NameDe": "Aqua-Atem",
+    "NameEn": "Aqua Breath",
+    "NameFr": "Aquasouffle",
+    "NameJa": "アクアブレス",
     "Stars": 4,
+    "Description": "Zum Standardrepertoire gehörender Wasserzauber.\r\nUmfasst Gegner mit einer gewaltigen Wasserfontäne, die zu allem Übel auch noch mit Giftstoffen versetzt ist. Wohl bekomms.",
     "IconId": 3258,
-    "SpellbookOrder": 3,
-    "Description": "Zum Standardrepertoire geh\u00F6render Wasserzauber.\r\nUmfasst Gegner mit einer gewaltigen Wasserfont\u00E4ne, die zu allem \u00DCbel auch noch mit Giftstoffen versetzt ist. Wohl bekomms."
+    "SpellbookOrder": 3
   },
   {
     "Id": 11391,
-    "Name": "Plattensprenger",
+    "NameDe": "Plattensprenger",
+    "NameEn": "Plaincracker",
+    "NameFr": "Brise-plaine",
+    "NameJa": "プレーンクラッカー",
     "Stars": 2,
+    "Description": "Gabe erdbasierter Magiewesen.\r\nLässt durch Manipulation des Umgebungsäthers örtliche Erdbeben entstehen, die teils gewaltige Ausmaße annehmen können.",
     "IconId": 3259,
-    "SpellbookOrder": 11,
-    "Description": "Gabe erdbasierter Magiewesen.\r\nL\u00E4sst durch Manipulation des Umgebungs\u00E4thers \u00F6rtliche Erdbeben entstehen, die teils gewaltige Ausma\u00DFe annehmen k\u00F6nnen."
+    "SpellbookOrder": 11
   },
   {
     "Id": 11392,
-    "Name": "Eichelbombe",
+    "NameDe": "Eichelbombe",
+    "NameEn": "Acorn Bomb",
+    "NameFr": "Gland explosif",
+    "NameJa": "どんぐり爆弾",
     "Stars": 1,
+    "Description": "Abwehrmechanismus von Baumschraten und anderen Waldwesen.\r\nStreut magische Eicheln, die in einer Kettenexplosion detonieren und dabei einen schläfrig machenden Wirkstoff freisetzen. Eigentlich zur Abwehr von Fressfeinden und Parasiten entwickelt.",
     "IconId": 3260,
-    "SpellbookOrder": 18,
-    "Description": "Abwehrmechanismus von Baumschraten und anderen Waldwesen.\r\nStreut magische Eicheln, die in einer Kettenexplosion detonieren und dabei einen schl\u00E4frig machenden Wirkstoff freisetzen. Eigentlich zur Abwehr von Fressfeinden und Parasiten entwickelt."
+    "SpellbookOrder": 18
   },
   {
     "Id": 11393,
-    "Name": "Borstigkeit",
+    "NameDe": "Borstigkeit",
+    "NameEn": "Bristle",
+    "NameFr": "Hérissement",
+    "NameJa": "怒髪天",
     "Stars": 2,
+    "Description": "Kampfinstinkt wilder Kreaturen.\r\nEntfesselt den angeborenen Tötungsinstinkt von jagdtreibenden Bestien und steigert, wenn von Magiern gewirkt, die Angriffskraft von anderen Blauzaubern.",
     "IconId": 3261,
-    "SpellbookOrder": 12,
-    "Description": "Kampfinstinkt wilder Kreaturen.\r\nEntfesselt den angeborenen T\u00F6tungsinstinkt von jagdtreibenden Bestien und steigert, wenn von Magiern gewirkt, die Angriffskraft von anderen Blauzaubern."
+    "SpellbookOrder": 12
   },
   {
     "Id": 11394,
-    "Name": "Geiststo\u00DF",
+    "NameDe": "Geiststoß",
+    "NameEn": "Mind Blast",
+    "NameFr": "Explosion mentale",
+    "NameJa": "マインドブラスト",
     "Stars": 1,
+    "Description": "Mentale Attacke der Seelenschinder.\r\nLähmt Geist wie Körper - eine Angewohnheit, die sich auch ein gewisses brutales Konstrukt der Indigohand zu Nutze gemacht hat.",
     "IconId": 3262,
-    "SpellbookOrder": 41,
-    "Description": "Mentale Attacke der Seelenschinder.\r\nL\u00E4hmt Geist wie K\u00F6rper\u00A0- eine Angewohnheit, die sich auch ein gewisses brutales Konstrukt der Indigohand zu Nutze gemacht hat."
+    "SpellbookOrder": 41
   },
   {
     "Id": 11395,
-    "Name": "Blutsauger",
+    "NameDe": "Blutsauger",
+    "NameEn": "Blood Drain",
+    "NameFr": "Suceur de sang",
+    "NameJa": "吸血",
     "Stars": 1,
+    "Description": "Fressmethode von Fledermäusen und Stechmücken.\r\nDurch die Entziehung von Blut wird dem Opfer Körperäther entnommen und das eigene magische Potenzial aufgebaut. Wilde Tiere haben diese Fähigkeit aus ihrer täglichen Nahrungsaufnahme entwickelt.",
     "IconId": 3263,
-    "SpellbookOrder": 17,
-    "Description": "Fressmethode von Flederm\u00E4usen und Stechm\u00FCcken.\r\nDurch die Entziehung von Blut wird dem Opfer K\u00F6rper\u00E4ther entnommen und das eigene magische Potenzial aufgebaut. Wilde Tiere haben diese F\u00E4higkeit aus ihrer t\u00E4glichen Nahrungsaufnahme entwickelt."
+    "SpellbookOrder": 17
   },
   {
     "Id": 11396,
-    "Name": "Bombenwurf",
+    "NameDe": "Bombenwurf",
+    "NameEn": "Bomb Toss",
+    "NameFr": "Lancer de bombe",
+    "NameJa": "爆弾投げ",
     "Stars": 2,
+    "Description": "Imitation goblinscher Bombenattacken.\r\nEin Blauzauber, der die mit magischen Elementen verstärkten Bombenwürfe der Goblins imitiert.",
     "IconId": 3264,
-    "SpellbookOrder": 19,
-    "Description": "Imitation goblinscher Bombenattacken.\r\nEin Blauzauber, der die mit magischen Elementen verst\u00E4rkten Bombenw\u00FCrfe der Goblins imitiert."
+    "SpellbookOrder": 19
   },
   {
     "Id": 11397,
-    "Name": "1000 Nadeln",
+    "NameDe": "1000 Nadeln",
+    "NameEn": "1000 Needles",
+    "NameFr": "1000 aiguilles",
+    "NameJa": "針千本",
     "Stars": 4,
+    "Description": "Natürlicher Abwehrmechanismus der Sabotender.\r\nDie winzigen Nadeln sind magische Imitate, aber die von ihnen verursachten Schmerzen und Wunden sind sehr real.",
     "IconId": 3265,
-    "SpellbookOrder": 36,
-    "Description": "Nat\u00FCrlicher Abwehrmechanismus der Sabotender.\r\nDie winzigen Nadeln sind magische Imitate, aber die von ihnen verursachten Schmerzen und Wunden sind sehr real."
+    "SpellbookOrder": 36
   },
   {
     "Id": 11398,
-    "Name": "Bohrkanone",
+    "NameDe": "Bohrkanone",
+    "NameEn": "Drill Cannons",
+    "NameFr": "Canon-foreur",
+    "NameJa": "ドリルキャノン",
     "Stars": 2,
+    "Description": "Magitek-basierte Werktechnik.\r\nDie hochdrehzahlige Rotation erzeugt eine erschreckende Durchschlagskraft, die besonders bei versteinerten Gegnern fürchterliche Schäden anrichtet.",
     "IconId": 3266,
-    "SpellbookOrder": 5,
-    "Description": "Magitek-basierte Werktechnik.\r\nDie hochdrehzahlige Rotation erzeugt eine erschreckende Durchschlagskraft, die besonders bei versteinerten Gegnern f\u00FCrchterliche Sch\u00E4den anrichtet."
+    "SpellbookOrder": 5
   },
   {
     "Id": 11399,
-    "Name": "Schiefer Blick",
+    "NameDe": "Schiefer Blick",
+    "NameEn": "the Look",
+    "NameFr": "Regard intense",
+    "NameJa": "怪視線",
     "Stars": 2,
+    "Description": "Kampftechnik der Dahak und anderer Nichtsgesandter.\r\nMagische Konzentration böser Absichten, die über dem Schlachtfeld ausgestrahlt wird und die Feindseligkeit gegnerischer Truppen auf den Wirkenden zieht.",
     "IconId": 3267,
-    "SpellbookOrder": 27,
-    "Description": "Kampftechnik der Dahak und anderer Nichtsgesandter.\r\nMagische Konzentration b\u00F6ser Absichten, die \u00FCber dem Schlachtfeld ausgestrahlt wird und die Feindseligkeit gegnerischer Truppen auf den Wirkenden zieht."
+    "SpellbookOrder": 27
   },
   {
     "Id": 11400,
-    "Name": "Blankes Messer",
+    "NameDe": "Blankes Messer",
+    "NameEn": "Sharpened Knife",
+    "NameFr": "Couteau aiguisé",
+    "NameJa": "とぎたて",
     "Stars": 4,
+    "Description": "Lieblingswaffe der Tomberrys.\r\nEin gefürchteter Angriff. Die mit einem hasserfüllten Grinsen geführte Waffe vermag das Opfer zu verkrüppeln und zu lähmen.",
     "IconId": 3268,
-    "SpellbookOrder": 15,
-    "Description": "Lieblingswaffe der Tomberrys.\r\nEin gef\u00FCrchteter Angriff. Die mit einem hasserf\u00FCllten Grinsen gef\u00FChrte Waffe vermag das Opfer zu verkr\u00FCppeln und zu l\u00E4hmen."
+    "SpellbookOrder": 15
   },
   {
     "Id": 11401,
-    "Name": "B\u00F6se Ahnung",
+    "NameDe": "Böse Ahnung",
+    "NameEn": "Loom",
+    "NameFr": "Approche masquée",
+    "NameJa": "ルーム",
     "Stars": 1,
+    "Description": "Niederer Transportzauber.\r\nLöst den Körper in seine ätherischen Bestandteile auf, wodurch er über eine kurze Distanz durch den Ätherstrom gleiten und an anderer Stelle materialisiert werden kann. Gut geeignet für Fluchtmanöver.",
     "IconId": 3269,
-    "SpellbookOrder": 7,
-    "Description": "Niederer Transportzauber.\r\nL\u00F6st den K\u00F6rper in seine \u00E4therischen Bestandteile auf, wodurch er \u00FCber eine kurze Distanz durch den \u00C4therstrom gleiten und an anderer Stelle materialisiert werden kann. Gut geeignet f\u00FCr Fluchtman\u00F6ver."
+    "SpellbookOrder": 7
   },
   {
     "Id": 11402,
-    "Name": "Flammensturm",
+    "NameDe": "Flammensturm",
+    "NameEn": "Flame Thrower",
+    "NameFr": "Crache-flammes",
+    "NameJa": "火炎放射",
     "Stars": 4,
+    "Description": "Strahlförmige Feuerattacke.\r\nDie nach vorne gerichtete Konzentration von Feueräther verhält sich wie eine hochentzündliche Flüssigkeit, die sich an das bemitleidenswerte Opfer heftet.",
     "IconId": 3270,
-    "SpellbookOrder": 2,
-    "Description": "Strahlf\u00F6rmige Feuerattacke.\r\nDie nach vorne gerichtete Konzentration von Feuer\u00E4ther verh\u00E4lt sich wie eine hochentz\u00FCndliche Fl\u00FCssigkeit, die sich an das bemitleidenswerte Opfer heftet."
+    "SpellbookOrder": 2
   },
   {
     "Id": 11403,
-    "Name": "Verwirrung",
+    "NameDe": "Verwirrung",
+    "NameEn": "Faze",
+    "NameFr": "Désorientation",
+    "NameJa": "猫だまし",
     "Stars": 3,
+    "Description": "List der Qiqirn.\r\nDie fleischfressenden Qiqirn verängstigen ihre Opfer mit einer magischen Schockwelle aus der hohlen Hand, bevor sie sich geifernd daran machen, sie zu verzehren.",
     "IconId": 3271,
-    "SpellbookOrder": 23,
-    "Description": "List der Qiqirn.\r\nDie fleischfressenden Qiqirn ver\u00E4ngstigen ihre Opfer mit einer magischen Schockwelle aus der hohlen Hand, bevor sie sich geifernd daran machen, sie zu verzehren."
+    "SpellbookOrder": 23
   },
   {
     "Id": 11404,
-    "Name": "Finsterer Blick",
+    "NameDe": "Finsterer Blick",
+    "NameEn": "Glower",
+    "NameFr": "Regard noir",
+    "NameJa": "グラワー",
     "Stars": 4,
+    "Description": "Kraft des Zyklopen.\r\nEntfesselt einen stark gebündelten Lichtstrahl, der wie ein Blitz niedergeht und den Gegner betäubt.",
     "IconId": 3272,
-    "SpellbookOrder": 10,
-    "Description": "Kraft des Zyklopen.\r\nEntfesselt einen stark geb\u00FCndelten Lichtstrahl, der wie ein Blitz niedergeht und den Gegner bet\u00E4ubt."
+    "SpellbookOrder": 10
   },
   {
     "Id": 11405,
-    "Name": "Rakete",
+    "NameDe": "Rakete",
+    "NameEn": "Missile",
+    "NameFr": "Missile",
+    "NameJa": "ミサイル",
     "Stars": 4,
+    "Description": "Blaumagische Technologienachbildung.\r\nEine ätherisch gelenkte Waffe, deren Detonation beim Aufschlag auch gut gepanzerten Gegnern großen Schaden zufügt.",
     "IconId": 3273,
-    "SpellbookOrder": 35,
-    "Description": "Blaumagische Technologienachbildung.\r\nEine \u00E4therisch gelenkte Waffe, deren Detonation beim Aufschlag auch gut gepanzerten Gegnern gro\u00DFen Schaden zuf\u00FCgt."
+    "SpellbookOrder": 35
   },
   {
     "Id": 11406,
-    "Name": "Wei\u00DFer Wind",
+    "NameDe": "Weißer Wind",
+    "NameEn": "White Wind",
+    "NameFr": "Vent blanc",
+    "NameJa": "ホワイトウィンド",
     "Stars": 3,
+    "Description": "Archaischer Heilzauber.\r\nWarme Winde tragen heilende Ätherkraft über einen begrenzten Bereich. Die große Heilwirkung verlangt dem Wirkenden einiges an Kräften ab.",
     "IconId": 3274,
-    "SpellbookOrder": 13,
-    "Description": "Archaischer Heilzauber.\r\nWarme Winde tragen heilende \u00C4therkraft \u00FCber einen begrenzten Bereich. Die gro\u00DFe Heilwirkung verlangt dem Wirkenden einiges an Kr\u00E4ften ab."
+    "SpellbookOrder": 13
   },
   {
     "Id": 11407,
-    "Name": "Schlussstich",
+    "NameDe": "Schlussstich",
+    "NameEn": "Final Sting",
+    "NameFr": "Dard final",
+    "NameJa": "ファイナルスピア",
     "Stars": 2,
+    "Description": "Attacke der Vespula.\r\nDie tödlich verletzte Vespula verwandelt den letzten Rest ihrer Lebenskraft in einen hochgiftigen Stachelstich, mit dem sie ihren Bezwinger mit in den Tod reißt.",
     "IconId": 3275,
-    "SpellbookOrder": 8,
-    "Description": "Attacke der Vespula.\r\nDie t\u00F6dlich verletzte Vespula verwandelt den letzten Rest ihrer Lebenskraft in einen hochgiftigen Stachelstich, mit dem sie ihren Bezwinger mit in den Tod rei\u00DFt."
+    "SpellbookOrder": 8
   },
   {
     "Id": 11408,
-    "Name": "Selbstzerst\u00F6rung",
+    "NameDe": "Selbstzerstörung",
+    "NameEn": "Self-destruct",
+    "NameFr": "Auto-destruction",
+    "NameJa": "自爆",
     "Stars": 1,
+    "Description": "Typische Attacke der Bomber.\r\nVerwandelt den gesamten Äther urplötzlich in feuerbasierten und löst so eine Explosion aus. Besonders gefährlich in ölverschmierten Umgebungen.",
     "IconId": 3276,
-    "SpellbookOrder": 21,
-    "Description": "Typische Attacke der Bomber.\r\nVerwandelt den gesamten \u00C4ther urpl\u00F6tzlich in feuerbasierten und l\u00F6st so eine Explosion aus. Besonders gef\u00E4hrlich in \u00F6lverschmierten Umgebungen."
+    "SpellbookOrder": 21
   },
   {
     "Id": 11409,
-    "Name": "Assimilation",
+    "NameDe": "Assimilation",
+    "NameEn": "Transfusion",
+    "NameFr": "Fusion",
+    "NameJa": "融合",
     "Stars": 2,
+    "Description": "Blaumagie aus der Geisterwelt der Neuen Welt.\r\nOpfert die eigene Lebensenergie, um das Leiden eines anderen zu lindern und ihn vollständig zu heilen.",
     "IconId": 3277,
-    "SpellbookOrder": 22,
-    "Description": "Blaumagie aus der Geisterwelt der Neuen Welt.\r\nOpfert die eigene Lebensenergie, um das Leiden eines anderen zu lindern und ihn vollst\u00E4ndig zu heilen."
+    "SpellbookOrder": 22
   },
   {
     "Id": 11410,
-    "Name": "Schleimiges Sekret",
+    "NameDe": "Schleimiges Sekret",
+    "NameEn": "Toad Oil",
+    "NameFr": "Huile de crapaud",
+    "NameJa": "ガマの脂",
     "Stars": 3,
+    "Description": "Von der Karpfenkröte erworbener Blauzauber.\r\nDieser Ausweichzauber ist der eigentliche Grund für die sagenhafte Schlüpfrigkeit der Karpfenkröte und streicht den Blaumagier mit glitschigem Öl ein. Manche stehen drauf, andere finden's widerlich.",
     "IconId": 3278,
-    "SpellbookOrder": 32,
-    "Description": "Von der Karpfenkr\u00F6te erworbener Blauzauber.\r\nDieser Ausweichzauber ist der eigentliche Grund f\u00FCr die sagenhafte Schl\u00FCpfrigkeit der Karpfenkr\u00F6te und streicht den Blaumagier mit glitschigem \u00D6l ein. Manche stehen drauf, andere finden\u0027s widerlich."
+    "SpellbookOrder": 32
   },
   {
     "Id": 11411,
-    "Name": "Einsch\u00FCchtern",
+    "NameDe": "Einschüchtern",
+    "NameEn": "Off-guard",
+    "NameFr": "Sans défense",
+    "NameJa": "ガードオファ",
     "Stars": 2,
+    "Description": "Blauzauber des Stammes der Riesen.\r\nEin uralter Fluch aus der Neuen Welt, der den Geist des Gegners zerfrisst und schwächt. Folgeangriffe können das wehrlos gewordene Opfer empfindlich treffen.",
     "IconId": 3279,
-    "SpellbookOrder": 20,
-    "Description": "Blauzauber des Stammes der Riesen.\r\nEin uralter Fluch aus der Neuen Welt, der den Geist des Gegners zerfrisst und schw\u00E4cht. Folgeangriffe k\u00F6nnen das wehrlos gewordene Opfer empfindlich treffen."
+    "SpellbookOrder": 20
   },
   {
     "Id": 11412,
-    "Name": "Spitze Zunge",
+    "NameDe": "Spitze Zunge",
+    "NameEn": "Sticky Tongue",
+    "NameFr": "Langue poisseuse",
+    "NameJa": "スティッキータン",
     "Stars": 4,
+    "Description": "Von der Karpfenkröte erworbener Blauzauber.\r\nDie Klebrigkeit der Zunge der Karpfenkröte ist legendär und ermöglicht ihr, Fressbeute von weit her heranzuziehen. Der Zauber imitiert diese Fähigkeit.",
     "IconId": 3280,
-    "SpellbookOrder": 31,
-    "Description": "Von der Karpfenkr\u00F6te erworbener Blauzauber.\r\nDie Klebrigkeit der Zunge der Karpfenkr\u00F6te ist legend\u00E4r und erm\u00F6glicht ihr, Fressbeute von weit her heranzuziehen. Der Zauber imitiert diese F\u00E4higkeit."
+    "SpellbookOrder": 31
   },
   {
     "Id": 11413,
-    "Name": "Schweifschraube",
+    "NameDe": "Schweifschraube",
+    "NameEn": "Tail Screw",
+    "NameFr": "Queue forante",
+    "NameJa": "テールスクリュー",
     "Stars": 4,
+    "Description": "Attacke des Karlabos.\r\nWirbelt den in der Schwanzspitze konzentrierten Äther auf den Feind, um ihm Lebensenergie zu entziehen. Erfordert eine hohe Kontrolle über den Äther und ist nicht leicht zu erlernen.",
     "IconId": 3281,
-    "SpellbookOrder": 40,
-    "Description": "Attacke des Karlabos.\r\nWirbelt den in der Schwanzspitze konzentrierten \u00C4ther auf den Feind, um ihm Lebensenergie zu entziehen. Erfordert eine hohe Kontrolle \u00FCber den \u00C4ther und ist nicht leicht zu erlernen."
+    "SpellbookOrder": 40
   },
   {
     "Id": 11414,
-    "Name": "Petrifikation Stufe 5",
+    "NameDe": "Petrifikation Stufe 5",
+    "NameEn": "Level 5 Petrify",
+    "NameFr": "Pétrification niveau 5",
+    "NameJa": "レベル5石化",
     "Stars": 2,
+    "Description": "Fluch der Ahriman und anderer Nichtsgesandten.\r\nSetzt sich in den kleinen Rissen der Seele fest, die im Laufe des Lebens entstehen. Die Verderbnis, die sich ausbreitet, verhärtet nicht nur Herz und Gewissen.",
     "IconId": 3282,
-    "SpellbookOrder": 14,
-    "Description": "Fluch der Ahriman und anderer Nichtsgesandten.\r\nSetzt sich in den kleinen Rissen der Seele fest, die im Laufe des Lebens entstehen. Die Verderbnis, die sich ausbreitet, verh\u00E4rtet nicht nur Herz und Gewissen."
+    "SpellbookOrder": 14
   },
   {
     "Id": 11415,
-    "Name": "Mondfl\u00F6te",
+    "NameDe": "Mondflöte",
+    "NameEn": "Moon Flute",
+    "NameFr": "Flûte lunaire",
+    "NameJa": "月の笛",
     "Stars": 1,
+    "Description": "Zauber der Nichtsgesandten.\r\nNichtsgesandte der Neuen Welt versetzen mit diesem Zauber die Angehörigen eines Stammes Mondanbeter in Ekstase, um sich von ihnen verehren zu lassen.",
     "IconId": 3283,
-    "SpellbookOrder": 39,
-    "Description": "Zauber der Nichtsgesandten.\r\nNichtsgesandte der Neuen Welt versetzen mit diesem Zauber die Angeh\u00F6rigen eines Stammes Mondanbeter in Ekstase, um sich von ihnen verehren zu lassen."
+    "SpellbookOrder": 39
   },
   {
     "Id": 11416,
-    "Name": "Verh\u00E4ngnis",
+    "NameDe": "Verhängnis",
+    "NameEn": "Doom",
+    "NameFr": "Glas",
+    "NameJa": "死の宣告",
     "Stars": 4,
+    "Description": "Zauber der Nichtsgesandten.\r\nEin enorm starker Fluch aus der Neuen Welt, der dem Opfer jeglichen Lebenswillen entzieht. Wirkt allerdings nicht zuverlässig.",
     "IconId": 3284,
-    "SpellbookOrder": 42,
-    "Description": "Zauber der Nichtsgesandten.\r\nEin enorm starker Fluch aus der Neuen Welt, der dem Opfer jeglichen Lebenswillen entzieht. Wirkt allerdings nicht zuverl\u00E4ssig."
+    "SpellbookOrder": 42
   },
   {
     "Id": 11417,
-    "Name": "Totalabwehr",
+    "NameDe": "Totalabwehr",
+    "NameEn": "Mighty Guard",
+    "NameFr": "Garde puissante",
+    "NameJa": "マイティガード",
     "Stars": 4,
+    "Description": "Blauzauber aus den Meeren der Neuen Welt.\r\nSchutzzauber eines dünnhäutigen Meeresbewohners, mit dem er eine magische Mauer um sich errichtet und Fressfeinde abhält.",
     "IconId": 3285,
-    "SpellbookOrder": 30,
-    "Description": "Blauzauber aus den Meeren der Neuen Welt.\r\nSchutzzauber eines d\u00FCnnh\u00E4utigen Meeresbewohners, mit dem er eine magische Mauer um sich errichtet und Fressfeinde abh\u00E4lt."
+    "SpellbookOrder": 30
   },
   {
     "Id": 11418,
-    "Name": "Eisstachel",
+    "NameDe": "Eisstachel",
+    "NameEn": "Ice Spikes",
+    "NameFr": "Pointes de glace",
+    "NameJa": "アイススパイク",
     "Stars": 1,
+    "Description": "Zauber der Nichtsgesandten.\r\nBündelt die Feindseligkeit eines Angreifers in eine eisbasierte Ätherspitze, die auf den Aggressor zurückgeschleudert werden kann.",
     "IconId": 3286,
-    "SpellbookOrder": 16,
-    "Description": "Zauber der Nichtsgesandten.\r\nB\u00FCndelt die Feindseligkeit eines Angreifers in eine eisbasierte \u00C4therspitze, die auf den Aggressor zur\u00FCckgeschleudert werden kann."
+    "SpellbookOrder": 16
   },
   {
     "Id": 11419,
-    "Name": "Stimme des Widders",
+    "NameDe": "Stimme des Widders",
+    "NameEn": "the Ram's Voice",
+    "NameFr": "Voix du bélier",
+    "NameJa": "氷結の咆哮",
     "Stars": 2,
+    "Description": "Angriffstalent der Chimära.\r\nAus dem Ziegenteil der Chimära stammende und zur Waffe gemachte Fähigkeit, mit dem Bergziegen der nördlichen Polarregionen den eisigen Umgebungsäther kontrollieren.",
     "IconId": 3287,
-    "SpellbookOrder": 33,
-    "Description": "Angriffstalent der Chim\u00E4ra.\r\nAus dem Ziegenteil der Chim\u00E4ra stammende und zur Waffe gemachte F\u00E4higkeit, mit dem Bergziegen der n\u00F6rdlichen Polarregionen den eisigen Umgebungs\u00E4ther kontrollieren."
+    "SpellbookOrder": 33
   },
   {
     "Id": 11420,
-    "Name": "Stimme des Drachen",
+    "NameDe": "Stimme des Drachen",
+    "NameEn": "the Dragon's Voice",
+    "NameFr": "Voix du dragon",
+    "NameJa": "雷電の咆哮",
     "Stars": 2,
+    "Description": "Angriffstalent der Chimära.\r\nEine blaumagische Version der Gabe, Blitze auf die Umgebung niederfahren zu lassen, welche die Chimära von ihrem Drachenteil geerbt hat. ",
     "IconId": 3288,
-    "SpellbookOrder": 34,
-    "Description": "Angriffstalent der Chim\u00E4ra.\r\nEine blaumagische Version der Gabe, Blitze auf die Umgebung niederfahren zu lassen, welche die Chim\u00E4ra von ihrem Drachenteil geerbt hat. "
+    "SpellbookOrder": 34
   },
   {
     "Id": 11421,
-    "Name": "Unheimliche Aura",
+    "NameDe": "Unheimliche Aura",
+    "NameEn": "Peculiar Light",
+    "NameFr": "Lumière sinistre",
+    "NameJa": "不思議な光",
     "Stars": 2,
+    "Description": "Von Salamandern absorbierter Blauzauber.\r\nBlendet Angreifer mit einem hellen Lichtblitz und steigert ihre Verwundbarkeit.",
     "IconId": 3289,
-    "SpellbookOrder": 43,
-    "Description": "Von Salamandern absorbierter Blauzauber.\r\nBlendet Angreifer mit einem hellen Lichtblitz und steigert ihre Verwundbarkeit."
+    "SpellbookOrder": 43
   },
   {
     "Id": 11422,
-    "Name": "Tintenstrahl",
+    "NameDe": "Tintenstrahl",
+    "NameEn": "Ink Jet",
+    "NameFr": "Tir d'encre",
+    "NameJa": "インクジェット",
     "Stars": 3,
+    "Description": "Von Kraken stammender Blauzauber.\r\nEine Weiterentwicklung der Wasserkanone, mit der Angreifer durch einen Strahl dickflüssiger Tinte geblendet werden.",
     "IconId": 3290,
-    "SpellbookOrder": 37,
-    "Description": "Von Kraken stammender Blauzauber.\r\nEine Weiterentwicklung der Wasserkanone, mit der Angreifer durch einen Strahl dickfl\u00FCssiger Tinte geblendet werden."
+    "SpellbookOrder": 37
   },
   {
     "Id": 11423,
-    "Name": "Spucksardine",
+    "NameDe": "Spucksardine",
+    "NameEn": "Flying Sardine",
+    "NameFr": "Sardine volante",
+    "NameJa": "フライングサーディン",
     "Stars": 1,
+    "Description": "Blaumagisches Imitat einer Apkallu-Attacke.\r\nDieser Zauber ahmt die unappetitliche Angewohnheit der Apkallu nach, ihren Gegnern verschluckte Fische ins Gesicht zu spucken. Verschlägt dem Opfer nicht selten die Sprache.",
     "IconId": 3291,
-    "SpellbookOrder": 24,
-    "Description": "Blaumagisches Imitat einer Apkallu-Attacke.\r\nDieser Zauber ahmt die unappetitliche Angewohnheit der Apkallu nach, ihren Gegnern verschluckte Fische ins Gesicht zu spucken. Verschl\u00E4gt dem Opfer nicht selten die Sprache."
+    "SpellbookOrder": 24
   },
   {
     "Id": 11424,
-    "Name": "Diamantr\u00FCcken",
+    "NameDe": "Diamantrücken",
+    "NameEn": "Diamondback",
+    "NameFr": "Blindage",
+    "NameJa": "超硬化",
     "Stars": 4,
+    "Description": "Schutzzauber eines Panzerdrachen.\r\nEine Anhäufung von Erdäther errichtet eine magische Barriere, die Kleidung und Rüstung härtet und jegliche Bewegung unmöglich macht.",
     "IconId": 3292,
-    "SpellbookOrder": 29,
-    "Description": "Schutzzauber eines Panzerdrachen.\r\nEine Anh\u00E4ufung von Erd\u00E4ther errichtet eine magische Barriere, die Kleidung und R\u00FCstung h\u00E4rtet und jegliche Bewegung unm\u00F6glich macht."
+    "SpellbookOrder": 29
   },
   {
     "Id": 11425,
-    "Name": "Feuer-Ango",
+    "NameDe": "Feuer-Ango",
+    "NameEn": "Fire Angon",
+    "NameFr": "Angon enflammé",
+    "NameJa": "ファイアアンゴン",
     "Stars": 3,
+    "Description": "Traditionelle Attacke der Mamool Ja.\r\nEin Ango genannter, mit einer Prise Feueräther versehener Wurfspeer. Der Speer ist eine blaumagische Illusion, der Schmerz ist echt.",
     "IconId": 3293,
-    "SpellbookOrder": 38,
-    "Description": "Traditionelle Attacke der Mamool Ja.\r\nEin Ango genannter, mit einer Prise Feuer\u00E4ther versehener Wurfspeer. Der Speer ist eine blaumagische Illusion, der Schmerz ist echt."
+    "SpellbookOrder": 38
   },
   {
     "Id": 11426,
-    "Name": "Federregen",
+    "NameDe": "Federregen",
+    "NameEn": "Feather Rain",
+    "NameFr": "Pluie de plumes",
+    "NameJa": "フェザーレイン",
     "Stars": 5,
+    "Description": "Garudas Gabe.\r\nUnbarmherzig bohren sich die Federn der Windgöttin in ihre Opfer und lassen sie sich schmerzvoll winden.",
     "IconId": 3294,
-    "SpellbookOrder": 44,
-    "Description": "Garudas Gabe.\r\nUnbarmherzig bohren sich die Federn der Windg\u00F6ttin in ihre Opfer und lassen sie sich schmerzvoll winden."
+    "SpellbookOrder": 44
   },
   {
     "Id": 11427,
-    "Name": "Eruption",
+    "NameDe": "Eruption",
+    "NameEn": "Eruption",
+    "NameFr": "Éruption",
+    "NameJa": "エラプション",
     "Stars": 5,
+    "Description": "Ifrits Verheißung.\r\nUnerträglich heißes Magma schießt in flammenden Säulen aus der Erde, zu Ehren des Primae des Feuers.",
     "IconId": 3295,
-    "SpellbookOrder": 45,
-    "Description": "Ifrits Verhei\u00DFung.\r\nUnertr\u00E4glich hei\u00DFes Magma schie\u00DFt in flammenden S\u00E4ulen aus der Erde, zu Ehren des Primae des Feuers."
+    "SpellbookOrder": 45
   },
   {
     "Id": 11428,
-    "Name": "Bergsprenger",
+    "NameDe": "Bergsprenger",
+    "NameEn": "Mountain Buster",
+    "NameFr": "Casse-montagnes",
+    "NameJa": "マウンテンバスター",
     "Stars": 5,
+    "Description": "Terror des Titan.\r\nAls würden die höchsten Gipfel der Welt zerbrechen und auf den Planeten niederregnen, so begräbt der erdbasierte Äther die Opfer dieses Zaubers.",
     "IconId": 3296,
-    "SpellbookOrder": 46,
-    "Description": "Terror des Titan.\r\nAls w\u00FCrden die h\u00F6chsten Gipfel der Welt zerbrechen und auf den Planeten niederregnen, so begr\u00E4bt der erdbasierte \u00C4ther die Opfer dieses Zaubers."
+    "SpellbookOrder": 46
   },
   {
     "Id": 11429,
-    "Name": "Schockschlag",
+    "NameDe": "Schockschlag",
+    "NameEn": "Shock Strike",
+    "NameFr": "Frappe de choc",
+    "NameJa": "ショックストライク",
     "Stars": 5,
+    "Description": "Ramuhs Raserei.\r\nWenn Blitze zucken und der Donner grollt, spielt Ramuh sein zerstörerisches Spiel. Geeignet, ganze Areale zu erschüttern.",
     "IconId": 3297,
-    "SpellbookOrder": 47,
-    "Description": "Ramuhs Raserei.\r\nWenn Blitze zucken und der Donner grollt, spielt Ramuh sein zerst\u00F6rerisches Spiel. Geeignet, ganze Areale zu ersch\u00FCttern."
+    "SpellbookOrder": 47
   },
   {
     "Id": 11430,
-    "Name": "Gl\u00E4serner Tanz",
+    "NameDe": "Gläserner Tanz",
+    "NameEn": "Glass Dance",
+    "NameFr": "Danse de glace",
+    "NameJa": "氷雪乱舞",
     "Stars": 5,
+    "Description": "Shivas Stärke.\r\nKein Blaumagier spannte je den magischen Bogen und verschoss die eisigen Pfeile, ohne das Heulen auf den frostigen Ebenen von Ishgard zu hören.",
     "IconId": 3298,
-    "SpellbookOrder": 48,
-    "Description": "Shivas St\u00E4rke.\r\nKein Blaumagier spannte je den magischen Bogen und verschoss die eisigen Pfeile, ohne das Heulen auf den frostigen Ebenen von Ishgard zu h\u00F6ren."
+    "SpellbookOrder": 48
   },
   {
     "Id": 11431,
-    "Name": "Wogenschleier",
+    "NameDe": "Wogenschleier",
+    "NameEn": "Veil of the Whorl",
+    "NameFr": "Voile du Déchaîneur",
+    "NameJa": "水神のヴェール",
     "Stars": 5,
+    "Description": "Leviathans Barriere.\r\nEin Schleier, genährt aus dem wasserbasierten Umgebungsäther, spannt sich auf, um jeden schädlichen Einfluss von dem Magier wegzuwaschen.",
     "IconId": 3299,
-    "SpellbookOrder": 49,
-    "Description": "Leviathans Barriere.\r\nEin Schleier, gen\u00E4hrt aus dem wasserbasierten Umgebungs\u00E4ther, spannt sich auf, um jeden sch\u00E4dlichen Einfluss von dem Magier wegzuwaschen."
+    "SpellbookOrder": 49
   },
   {
     "Id": 18295,
-    "Name": "Gletscherluft",
+    "NameDe": "Gletscherluft",
+    "NameEn": "Alpine Draft",
+    "NameFr": "Vent alpin",
+    "NameJa": "アルペンドラフト",
     "Stars": 2,
+    "Description": "Sturmwind eines Greifen.\r\nDer orkanartige Wind dieses Zaubers wird von wilden Greifen eingesetzt, um unliebsame Besucher aus ihrem Territorium zu vertreiben.",
     "IconId": 3300,
-    "SpellbookOrder": 50,
-    "Description": "Sturmwind eines Greifen.\r\nDer orkanartige Wind dieses Zaubers wird von wilden Greifen eingesetzt, um unliebsame Besucher aus ihrem Territorium zu vertreiben."
+    "SpellbookOrder": 50
   },
   {
     "Id": 18296,
-    "Name": "Proteische Welle",
+    "NameDe": "Proteische Welle",
+    "NameEn": "Protean Wave",
+    "NameFr": "Vague inconstante",
+    "NameJa": "プロティアンウェイブ",
     "Stars": 3,
+    "Description": "Flut des belebten Wassers.\r\nBei dieser Technik manipuliert das belebte Wasser seine eigene Flüssigkeit, um eine verheerende Flut auszulösen, die selbst bullige Feinde wegspült.",
     "IconId": 3301,
-    "SpellbookOrder": 51,
-    "Description": "Flut des belebten Wassers.\r\nBei dieser Technik manipuliert das belebte Wasser seine eigene Fl\u00FCssigkeit, um eine verheerende Flut auszul\u00F6sen, die selbst bullige Feinde wegsp\u00FClt."
+    "SpellbookOrder": 51
   },
   {
     "Id": 18297,
-    "Name": "Schneesturm",
+    "NameDe": "Schneesturm",
+    "NameEn": "Northerlies",
+    "NameFr": "Aquilons",
+    "NameJa": "猛吹雪",
     "Stars": 4,
+    "Description": "Eisiger Atem des Yetis.\r\nDer Yeti kann seinen eigenen Atem so stark abkühlen, dass er wasseraspektierten Äther gefrieren lässt. Diese Magie ist besonders effektiv gegen Gegner, die an Wassersucht leiden.",
     "IconId": 3302,
-    "SpellbookOrder": 52,
-    "Description": "Eisiger Atem des Yetis.\r\nDer Yeti kann seinen eigenen Atem so stark abk\u00FChlen, dass er wasseraspektierten \u00C4ther gefrieren l\u00E4sst. Diese Magie ist besonders effektiv gegen Gegner, die an Wassersucht leiden."
+    "SpellbookOrder": 52
   },
   {
     "Id": 18298,
-    "Name": "Elektrogenese",
+    "NameDe": "Elektrogenese",
+    "NameEn": "Electrogenesis",
+    "NameFr": "Électrogenèse",
+    "NameJa": "エレクトロジェネシス",
     "Stars": 2,
+    "Description": "Schockende Seeschlangenspucke.\r\nBei dieser Technik wird eine elektrisch geladene Wasserblase verspeit, die der Beute beim Einschlag einen ordentlichen Schlag versetzt.",
     "IconId": 3303,
-    "SpellbookOrder": 53,
-    "Description": "Schockende Seeschlangenspucke.\r\nBei dieser Technik wird eine elektrisch geladene Wasserblase verspeit, die der Beute beim Einschlag einen ordentlichen Schlag versetzt."
+    "SpellbookOrder": 53
   },
   {
     "Id": 18299,
-    "Name": "Kaltstrahl",
+    "NameDe": "Kaltstrahl",
+    "NameEn": "Kaltstrahl",
+    "NameFr": "Kaltstrahl",
+    "NameJa": "カルトシュトラール",
     "Stars": 2,
+    "Description": "Speer der Panzerpuppe.\r\nDer furchteinflößende Speer der Panzerpuppe wird repliziert und dann sichelförmig geschwungen, um Gegner schneller umzumähen als sie blinzeln können.",
     "IconId": 3304,
-    "SpellbookOrder": 54,
-    "Description": "Speer der Panzerpuppe.\r\nDer furchteinfl\u00F6\u00DFende Speer der Panzerpuppe wird repliziert und dann sichelf\u00F6rmig geschwungen, um Gegner schneller umzum\u00E4hen als sie blinzeln k\u00F6nnen."
+    "SpellbookOrder": 54
   },
   {
     "Id": 18300,
-    "Name": "Abyssal-Transfixion",
+    "NameDe": "Abyssal-Transfixion",
+    "NameEn": "Abyssal Transfixion",
+    "NameFr": "Transfixion abyssale",
+    "NameJa": "アビサルトランスフィクション",
     "Stars": 4,
+    "Description": "Schwerter des Erzdämons.\r\nDer Äther wird zu einer Kugel aus Schwertern geformt, die dann auf das Ziel in ihrer Mitte einstechen. Dies hat für gewöhnlich den Effekt, den Feind zu paralysieren.",
     "IconId": 3305,
-    "SpellbookOrder": 55,
-    "Description": "Schwerter des Erzd\u00E4mons.\r\nDer \u00C4ther wird zu einer Kugel aus Schwertern geformt, die dann auf das Ziel in ihrer Mitte einstechen. Dies hat f\u00FCr gew\u00F6hnlich den Effekt, den Feind zu paralysieren."
+    "SpellbookOrder": 55
   },
   {
     "Id": 18301,
-    "Name": "Fiepsen",
+    "NameDe": "Fiepsen",
+    "NameEn": "Chirp",
+    "NameFr": "Gazouillement",
+    "NameJa": "チャープ",
     "Stars": 1,
+    "Description": "Urschrei eines Paissas.\r\nDieser Zauber imitiert den schrillen Schrei eines Paissas, der den Geist des Opfers so vereinnahmt, dass dieses in einen tiefen Schlummer fällt.",
     "IconId": 3306,
-    "SpellbookOrder": 56,
-    "Description": "Urschrei eines Paissas.\r\nDieser Zauber imitiert den schrillen Schrei eines Paissas, der den Geist des Opfers so vereinnahmt, dass dieses in einen tiefen Schlummer f\u00E4llt."
+    "SpellbookOrder": 56
   },
   {
     "Id": 18302,
-    "Name": "Ekplexie",
+    "NameDe": "Ekplexie",
+    "NameEn": "Eerie Soundwave",
+    "NameFr": "Onde lugubre",
+    "NameJa": "怪音波",
     "Stars": 2,
+    "Description": "Schaurige Schallwelle einer Empusa.\r\nDie Empusa generiert ihre schaurige Schallwelle, indem sie Teile ihres Körpers schnell vibrieren lässt. Der resultierende Ton stört bestimmte ätherische Frequenzen, wodurch deren positive Effekte erlöschen.",
     "IconId": 3307,
-    "SpellbookOrder": 57,
-    "Description": "Schaurige Schallwelle einer Empusa.\r\nDie Empusa generiert ihre schaurige Schallwelle, indem sie Teile ihres K\u00F6rpers schnell vibrieren l\u00E4sst. Der resultierende Ton st\u00F6rt bestimmte \u00E4therische Frequenzen, wodurch deren positive Effekte erl\u00F6schen."
+    "SpellbookOrder": 57
   },
   {
     "Id": 18303,
-    "Name": "Vitakupo",
+    "NameDe": "Vitakupo",
+    "NameEn": "Pom Cure",
+    "NameFr": "Pompon soignant",
+    "NameJa": "ポンポンケアル",
     "Stars": 3,
+    "Description": "Heilmagie der Mogrys.\r\nDieser Zauber scheint sich kaum von jenen der Druiden zu unterscheiden, doch die Mogrys haben ihre eigene Philosophie dazu: „Um dich selbst zu heilen, musst du einfach nur viel Magie in deinem Bommel ansammeln und alles auf einmal loslassen, kupo!“",
     "IconId": 3308,
-    "SpellbookOrder": 58,
-    "Description": "Heilmagie der Mogrys.\r\nDieser Zauber scheint sich kaum von jenen der Druiden zu unterscheiden, doch die Mogrys haben ihre eigene Philosophie dazu: \u201EUm dich selbst zu heilen, musst du einfach nur viel Magie in deinem Bommel ansammeln und alles auf einmal loslassen, kupo!\u201C"
+    "SpellbookOrder": 58
   },
   {
     "Id": 18304,
-    "Name": "Gobhaut",
+    "NameDe": "Gobhaut",
+    "NameEn": "Gobskin",
+    "NameFr": "Gobépiderme",
+    "NameJa": "ゴブスキン",
     "Stars": 4,
+    "Description": "Verteidigungsmagie der Goblins.\r\nNur ausgewählte Goblins können diese Technik einsetzen, die durch skrupellose Experimente der Indigohand entwickelt wurde. Dabei weben sie einen dünnen, hautengen Ätherschleier um ihren Körper, um ihre Verteidigung zu verstärken.",
     "IconId": 3309,
-    "SpellbookOrder": 59,
-    "Description": "Verteidigungsmagie der Goblins.\r\nNur ausgew\u00E4hlte Goblins k\u00F6nnen diese Technik einsetzen, die durch skrupellose Experimente der Indigohand entwickelt wurde. Dabei weben sie einen d\u00FCnnen, hautengen \u00C4therschleier um ihren K\u00F6rper, um ihre Verteidigung zu verst\u00E4rken."
+    "SpellbookOrder": 59
   },
   {
     "Id": 18305,
-    "Name": "Zauberhammer",
+    "NameDe": "Zauberhammer",
+    "NameEn": "Magic Hammer",
+    "NameFr": "Marteau magique",
+    "NameJa": "マジックハンマー",
     "Stars": 2,
+    "Description": "Byblos-Hammer.\r\nBei dieser Technik geht ein massiver ätherischer Hammer mit gewaltiger Wucht auf einen Gegner nieder. Dessen Sinnesschärfe ist dadurch naturgemäß in der Regel etwas reduziert.",
     "IconId": 3310,
-    "SpellbookOrder": 60,
-    "Description": "Byblos-Hammer.\r\nBei dieser Technik geht ein massiver \u00E4therischer Hammer mit gewaltiger Wucht auf einen Gegner nieder. Dessen Sinnessch\u00E4rfe ist dadurch naturgem\u00E4\u00DF in der Regel etwas reduziert."
+    "SpellbookOrder": 60
   },
   {
     "Id": 18306,
-    "Name": "Absichern",
+    "NameDe": "Absichern",
+    "NameEn": "Avail",
+    "NameFr": "Ordre défensif",
+    "NameJa": "防御指示",
     "Stars": 1,
+    "Description": "Pheromon der Falkenkönigin.\r\nWenn die Falkenkönigin Gefahr wittert, setzt sie ein bestimmtes Pheromon frei, das ihren Schwarm herbeilockt, um sie zu schützen. Ein geübter Magier kann einen ähnlichen magischen Effekt nutzen, um sich einen derartigen Schutzschild zuzulegen.",
     "IconId": 3311,
-    "SpellbookOrder": 61,
-    "Description": "Pheromon der Falkenk\u00F6nigin.\r\nWenn die Falkenk\u00F6nigin Gefahr wittert, setzt sie ein bestimmtes Pheromon frei, das ihren Schwarm herbeilockt, um sie zu sch\u00FCtzen. Ein ge\u00FCbter Magier kann einen \u00E4hnlichen magischen Effekt nutzen, um sich einen derartigen Schutzschild zuzulegen."
+    "SpellbookOrder": 61
   },
   {
     "Id": 18307,
-    "Name": "Froschkonzert",
+    "NameDe": "Froschkonzert",
+    "NameEn": "Frog Legs",
+    "NameFr": "Ritournelle batracienne",
+    "NameJa": "フロッグレッグ",
     "Stars": 1,
+    "Description": "Poroggo-Gesang.\r\nDieser Gesang regt Poroggos zum Mittanzen an. Für alle anderen Kreaturen klingt er eher so, als würde ein Frosch von einem Karren überfahren. Die lautstarke Wiedergabe eignet sich daher hervorragend, um sich den Zorn anderer zuzuziehen.",
     "IconId": 3312,
-    "SpellbookOrder": 62,
-    "Description": "Poroggo-Gesang.\r\nDieser Gesang regt Poroggos zum Mittanzen an. F\u00FCr alle anderen Kreaturen klingt er eher so, als w\u00FCrde ein Frosch von einem Karren \u00FCberfahren. Die lautstarke Wiedergabe eignet sich daher hervorragend, um sich den Zorn anderer zuzuziehen."
+    "SpellbookOrder": 62
   },
   {
     "Id": 18308,
-    "Name": "Schallwelle",
+    "NameDe": "Schallwelle",
+    "NameEn": "Sonic Boom",
+    "NameFr": "Bang supersonique",
+    "NameJa": "ソニックブーム",
     "Stars": 4,
+    "Description": "Windstoß des Zu.\r\nEine bevorzugte Technik der Zu, die einen besonders kräftigen Flügelschlag ausführen, um eine Böe aus windaspektiertem Äther zu erzeugen, der so stark komprimiert ist, dass er tödlich wie eine scharfe Klinge ist.",
     "IconId": 3313,
-    "SpellbookOrder": 63,
-    "Description": "Windsto\u00DF des Zu.\r\nEine bevorzugte Technik der Zu, die einen besonders kr\u00E4ftigen Fl\u00FCgelschlag ausf\u00FChren, um eine B\u00F6e aus windaspektiertem \u00C4ther zu erzeugen, der so stark komprimiert ist, dass er t\u00F6dlich wie eine scharfe Klinge ist."
+    "SpellbookOrder": 63
   },
   {
     "Id": 18309,
-    "Name": "Pfeife",
+    "NameDe": "Pfeife",
+    "NameEn": "Whistle",
+    "NameFr": "Sifflement",
+    "NameJa": "ホイッスル",
     "Stars": 3,
+    "Description": "Brunftschrei eines Dhalmels.\r\nBei der richtigen Tonhöhe reagiert der eigene Körper mit einer erhöhten Produktion von Adrenalin, das einem im Kampf einen Vorteil verschafft - oder einen Partner anlockt, falls man ein Dhalmel ist.",
     "IconId": 3314,
-    "SpellbookOrder": 64,
-    "Description": "Brunftschrei eines Dhalmels.\r\nBei der richtigen Tonh\u00F6he reagiert der eigene K\u00F6rper mit einer erh\u00F6hten Produktion von Adrenalin, das einem im Kampf einen Vorteil verschafft\u00A0- oder einen Partner anlockt, falls man ein Dhalmel ist."
+    "SpellbookOrder": 64
   },
   {
     "Id": 18310,
-    "Name": "Wei\u00DFer R\u00F6sselsprung",
+    "NameDe": "Weißer Rösselsprung",
+    "NameEn": "White Knight's Tour",
+    "NameFr": "Tour de cavalier blanc",
+    "NameJa": "ホワイトナイトツアー",
     "Stars": 2,
+    "Description": "Ätherwelle eines Rosses.\r\nDieser Zauber wurde entwickelt, um Häretiker zu unterwerfen und entfesselt eine konzentrierte Ätherwelle, die das Fleisch verbrennt und verzerrt, wodurch das Opfer ins Straucheln gerät - besonders dann, wenn es bereits seelische Qualen erleidet.",
     "IconId": 3315,
-    "SpellbookOrder": 65,
-    "Description": "\u00C4therwelle eines Rosses.\r\nDieser Zauber wurde entwickelt, um H\u00E4retiker zu unterwerfen und entfesselt eine konzentrierte \u00C4therwelle, die das Fleisch verbrennt und verzerrt, wodurch das Opfer ins Straucheln ger\u00E4t\u00A0- besonders dann, wenn es bereits seelische Qualen erleidet."
+    "SpellbookOrder": 65
   },
   {
     "Id": 18311,
-    "Name": "Schwarzer R\u00F6sselsprung",
+    "NameDe": "Schwarzer Rösselsprung",
+    "NameEn": "Black Knight's Tour",
+    "NameFr": "Tour de cavalier noir",
+    "NameJa": "ブラックナイトツアー",
     "Stars": 2,
+    "Description": "Ätherstrahl eines Rosses.\r\nDieser Zauber soll den Geist von Häretikern mit einem destabilisierenden Ätherstrahl brechen. Umso effektiver, wenn das Ziel bereits an physischen Gebrechen leidet.",
     "IconId": 3316,
-    "SpellbookOrder": 66,
-    "Description": "\u00C4therstrahl eines Rosses.\r\nDieser Zauber soll den Geist von H\u00E4retikern mit einem destabilisierenden \u00C4therstrahl brechen. Umso effektiver, wenn das Ziel bereits an physischen Gebrechen leidet."
+    "SpellbookOrder": 66
   },
   {
     "Id": 18312,
-    "Name": "Todesstufe 5",
+    "NameDe": "Todesstufe 5",
+    "NameEn": "Level 5 Death",
+    "NameFr": "Mort niveau 5",
+    "NameJa": "レベル5デス",
     "Stars": 4,
+    "Description": "Zauber der Nichtsgesandten.\r\nDieser Fluch der Nichtsgesandten verdreht den Verstand seines Opfers derart, dass die akuten Qualen zum Organversagen führen.",
     "IconId": 3317,
-    "SpellbookOrder": 67,
-    "Description": "Zauber der Nichtsgesandten.\r\nDieser Fluch der Nichtsgesandten verdreht den Verstand seines Opfers derart, dass die akuten Qualen zum Organversagen f\u00FChren."
+    "SpellbookOrder": 67
   },
   {
     "Id": 18313,
-    "Name": "Raketenwerfer",
+    "NameDe": "Raketenwerfer",
+    "NameEn": "Launcher",
+    "NameFr": "Lance-roquettes",
+    "NameJa": "ランチャー",
     "Stars": 2,
+    "Description": "Magitek-basierte Werktechnik.\r\nDieser Zauber beschwört einen Hagel aus illusorischen Raketen, die bei Opfern das Gefühl auslösen, von einer garleischen Magitek-Waffe angegriffen zu werden, worauf ihre Körper entsprechend reagieren.",
     "IconId": 3318,
-    "SpellbookOrder": 68,
-    "Description": "Magitek-basierte Werktechnik.\r\nDieser Zauber beschw\u00F6rt einen Hagel aus illusorischen Raketen, die bei Opfern das Gef\u00FChl ausl\u00F6sen, von einer garleischen Magitek-Waffe angegriffen zu werden, worauf ihre K\u00F6rper entsprechend reagieren."
+    "SpellbookOrder": 68
   },
   {
     "Id": 18314,
-    "Name": "Perpetueller Strahl",
+    "NameDe": "Perpetueller Strahl",
+    "NameEn": "Perpetual Ray",
+    "NameFr": "Rayon perpétuel",
+    "NameJa": "パーペチュアルレイ",
     "Stars": 4,
+    "Description": "Inspiriert von einer gottgleichen Maschine.\r\nDie konzentrierte Hitze dieses Strahls vermag Nervenenden abzutöten und Verbindungen zwischen Hirn und Muskeln zu trennen. Durch gezielten Einsatz kann der geübte Magier sein Opfer so bewegungsunfähig machen.",
     "IconId": 3319,
-    "SpellbookOrder": 69,
-    "Description": "Inspiriert von einer gottgleichen Maschine.\r\nDie konzentrierte Hitze dieses Strahls vermag Nervenenden abzut\u00F6ten und Verbindungen zwischen Hirn und Muskeln zu trennen. Durch gezielten Einsatz kann der ge\u00FCbte Magier sein Opfer so bewegungsunf\u00E4hig machen."
+    "SpellbookOrder": 69
   },
   {
     "Id": 18315,
-    "Name": "Sukkulentenschild",
+    "NameDe": "Sukkulentenschild",
+    "NameEn": "Cactguard",
+    "NameFr": "Cactugarde",
+    "NameJa": "カクトガード",
     "Stars": 1,
+    "Description": "Ätherfokus der Sabotender.\r\nWilde Sabotender sollen diese Fähigkeit entwickelt haben, um ihren Äther zu kanalisieren, damit sie besonders fruchtbare Vertreter ihrer Art schützen können.",
     "IconId": 3320,
-    "SpellbookOrder": 70,
-    "Description": "\u00C4therfokus der Sabotender.\r\nWilde Sabotender sollen diese F\u00E4higkeit entwickelt haben, um ihren \u00C4ther zu kanalisieren, damit sie besonders fruchtbare Vertreter ihrer Art sch\u00FCtzen k\u00F6nnen."
+    "SpellbookOrder": 70
   },
   {
     "Id": 18316,
-    "Name": "Rachesto\u00DF",
+    "NameDe": "Rachestoß",
+    "NameEn": "Revenge Blast",
+    "NameFr": "Éclat vengeur",
+    "NameJa": "リベンジブラスト",
     "Stars": 2,
+    "Description": "Verzweiflung der Whalaqee.\r\nDiese Nahkampftechnik erlaubt es dem Zaubernden, seine eigenen Gefühle der Verzweiflung ob eines nahenden Todes zu nutzen, um eine letzte Offensive zu starten. Der Name der Kreatur, die sie ursprünglich besaß, bleibt ein Geheimnis.",
     "IconId": 3321,
-    "SpellbookOrder": 71,
-    "Description": "Verzweiflung der Whalaqee.\r\nDiese Nahkampftechnik erlaubt es dem Zaubernden, seine eigenen Gef\u00FChle der Verzweiflung ob eines nahenden Todes zu nutzen, um eine letzte Offensive zu starten. Der Name der Kreatur, die sie urspr\u00FCnglich besa\u00DF, bleibt ein Geheimnis."
+    "SpellbookOrder": 71
   },
   {
     "Id": 18317,
-    "Name": "Engelsfl\u00FCstern",
+    "NameDe": "Engelsflüstern",
+    "NameEn": "Angel Whisper",
+    "NameFr": "Grâce angélique",
+    "NameJa": "天使のささやき",
     "Stars": 4,
+    "Description": "Revitalisierung der Whalaqee.\r\nBei diesem Zauber wird heilender Äther durch ein Familiar verstärkt, das ein Bote des Himmels zu sein scheint - ein Konzept, das im Widerspruch zu den religiösen Vorstellungen der Whalaqee steht.",
     "IconId": 3322,
-    "SpellbookOrder": 72,
-    "Description": "Revitalisierung der Whalaqee.\r\nBei diesem Zauber wird heilender \u00C4ther durch ein Familiar verst\u00E4rkt, das ein Bote des Himmels zu sein scheint\u00A0- ein Konzept, das im Widerspruch zu den religi\u00F6sen Vorstellungen der Whalaqee steht."
+    "SpellbookOrder": 72
   },
   {
     "Id": 18318,
-    "Name": "Exuviation",
+    "NameDe": "Exuviation",
+    "NameEn": "Exuviation",
+    "NameFr": "Exuviation",
+    "NameJa": "イグジュビエーション",
     "Stars": 2,
+    "Description": "Die Larvenhäutung der Wamoura.\r\nDie Wamoura stoßen Schadstoffe und Gifte wie eine zweite Haut einfach ab - übrig bleibt ein funkelnder Schauer winziger Schuppen und ein wohliges Gefühl der Frische.",
     "IconId": 3323,
-    "SpellbookOrder": 73,
-    "Description": "Die Larvenh\u00E4utung der Wamoura.\r\nDie Wamoura sto\u00DFen Schadstoffe und Gifte wie eine zweite Haut einfach ab\u00A0- \u00FCbrig bleibt ein funkelnder Schauer winziger Schuppen und ein wohliges Gef\u00FChl der Frische."
+    "SpellbookOrder": 73
   },
   {
     "Id": 18319,
-    "Name": "Reflux",
+    "NameDe": "Reflux",
+    "NameEn": "Reflux",
+    "NameFr": "Reflux",
+    "NameJa": "リフラックス",
     "Stars": 3,
+    "Description": "Donnerschwinge eines höheren Wyvern.\r\nMit kraftvollen Stößen fliegen die höheren Wyvern so schnell durch die Wolken, dass sich Blitze bilden. Diese entladen sich dann in einem kraftvollen Schlag und bringen die Muskeln des unglücklichen Opfers zum Erstarren.",
     "IconId": 3324,
-    "SpellbookOrder": 74,
-    "Description": "Donnerschwinge eines h\u00F6heren Wyvern.\r\nMit kraftvollen St\u00F6\u00DFen fliegen die h\u00F6heren Wyvern so schnell durch die Wolken, dass sich Blitze bilden. Diese entladen sich dann in einem kraftvollen Schlag und bringen die Muskeln des ungl\u00FCcklichen Opfers zum Erstarren."
+    "SpellbookOrder": 74
   },
   {
     "Id": 18320,
-    "Name": "Verschlingen",
+    "NameDe": "Verschlingen",
+    "NameEn": "Devour",
+    "NameFr": "Dévoration",
+    "NameJa": "捕食",
     "Stars": 1,
+    "Description": "Das Jagdverhalten fleischfressender Pflanzen.\r\nIn der Blauzauber-Version bleibt der Körper des Opfers zwar intakt, aber sein Äther wird verspeist. Den Zaubernden segnet dieses zweifelhafte Mahl mit physischer Stärke und Regeneration.",
     "IconId": 3325,
-    "SpellbookOrder": 75,
-    "Description": "Das Jagdverhalten fleischfressender Pflanzen.\r\nIn der Blauzauber-Version bleibt der K\u00F6rper des Opfers zwar intakt, aber sein \u00C4ther wird verspeist. Den Zaubernden segnet dieses zweifelhafte Mahl mit physischer St\u00E4rke und Regeneration."
+    "SpellbookOrder": 75
   },
   {
     "Id": 18321,
-    "Name": "Kurzanalyse",
+    "NameDe": "Kurzanalyse",
+    "NameEn": "Condensed Libra",
+    "NameFr": "Acuité concentrée",
+    "NameJa": "プチライブラ",
     "Stars": 3,
+    "Description": "Das scharfe Auge des Mechanoscholars.\r\nEin gemeiner Zauber, der die Schwächen einer Kreatur analysiert und verstärkt. Geschaffen wurde er durch Zufall, als ein eifersüchtiger Puppenspieler eine Marionette erschuf, um die angebliche Untreue seines Liebchens aufzudecken.",
     "IconId": 3326,
-    "SpellbookOrder": 76,
-    "Description": "Das scharfe Auge des Mechanoscholars.\r\nEin gemeiner Zauber, der die Schw\u00E4chen einer Kreatur analysiert und verst\u00E4rkt. Geschaffen wurde er durch Zufall, als ein eifers\u00FCchtiger Puppenspieler eine Marionette erschuf, um die angebliche Untreue seines Liebchens aufzudecken."
+    "SpellbookOrder": 76
   },
   {
     "Id": 18322,
-    "Name": "\u00C4ther-Mimikry",
+    "NameDe": "Äther-Mimikry",
+    "NameEn": "Aetheric Mimicry",
+    "NameFr": "Imitation éthéréenne",
+    "NameJa": "エーテルコピー",
     "Stars": 4,
+    "Description": "Blaue Imitationskünste der Ghrah.\r\nDie Ghrah besitzen ein ausgesprochen feines Gespür für die Zusammensetzung des Äthers in einem Wesen. So fein, dass sie diese sogar kopieren und die Stärken ihres Kontrahenten imitieren können.",
     "IconId": 3327,
-    "SpellbookOrder": 77,
-    "Description": "Blaue Imitationsk\u00FCnste der Ghrah.\r\nDie Ghrah besitzen ein ausgesprochen feines Gesp\u00FCr f\u00FCr die Zusammensetzung des \u00C4thers in einem Wesen. So fein, dass sie diese sogar kopieren und die St\u00E4rken ihres Kontrahenten imitieren k\u00F6nnen."
+    "SpellbookOrder": 77
   },
   {
     "Id": 18323,
-    "Name": "Surpanakha",
+    "NameDe": "Surpanakha",
+    "NameEn": "Surpanakha",
+    "NameFr": "Surpanakha",
+    "NameJa": "徹甲散弾",
     "Stars": 5,
+    "Description": "Ravanas Kampfeslust.\r\nDie unbändige Raserei Ravanas bündelt unzählige winzige Metallsplitter aus dem Erdäther der Umgebung. Diesen tödlichen Geschossen fällt alles zum Opfer, was nicht rechtzeitig in Deckung zu gehen vermag.",
     "IconId": 3328,
-    "SpellbookOrder": 78,
-    "Description": "Ravanas Kampfeslust.\r\nDie unb\u00E4ndige Raserei Ravanas b\u00FCndelt unz\u00E4hlige winzige Metallsplitter aus dem Erd\u00E4ther der Umgebung. Diesen t\u00F6dlichen Geschossen f\u00E4llt alles zum Opfer, was nicht rechtzeitig in Deckung zu gehen vermag."
+    "SpellbookOrder": 78
   },
   {
     "Id": 18324,
-    "Name": "Quasar",
+    "NameDe": "Quasar",
+    "NameEn": "Quasar",
+    "NameFr": "Quasar",
+    "NameJa": "クエーサー",
     "Stars": 5,
+    "Description": "Sophias Strafe.\r\nDie Ikone Sophia duldet keine Störenfriede, die die Balance aller Dinge aus dem Gleichgewicht werfen. Wo Harmonie fehlt, herrscht Zerstörung - und im Zweifelsfall sorgt Sophia selbst dafür.",
     "IconId": 3329,
-    "SpellbookOrder": 79,
-    "Description": "Sophias Strafe.\r\nDie Ikone Sophia duldet keine St\u00F6renfriede, die die Balance aller Dinge aus dem Gleichgewicht werfen. Wo Harmonie fehlt, herrscht Zerst\u00F6rung\u00A0- und im Zweifelsfall sorgt Sophia selbst daf\u00FCr."
+    "SpellbookOrder": 79
   },
   {
     "Id": 18325,
-    "Name": "Gewissenstritt",
+    "NameDe": "Gewissenstritt",
+    "NameEn": "J Kick",
+    "NameFr": "Pied justicier",
+    "NameJa": "ジャスティスキック",
     "Stars": 5,
+    "Description": "Brutalus' Superattacke.\r\nSchwingen der Gerechtigkeit, tragt uns hoch hinauf! Liebe, Freundschaft und Hoffnung besiegen selbst den stärksten Feind! Hier ... kommt ... der ... GEWISSENSTRITT!",
     "IconId": 3330,
-    "SpellbookOrder": 80,
-    "Description": "Brutalus\u0027 Superattacke.\r\nSchwingen der Gerechtigkeit, tragt uns hoch hinauf! Liebe, Freundschaft und Hoffnung besiegen selbst den st\u00E4rksten Feind! Hier\u00A0... kommt\u00A0... der\u00A0... GEWISSENSTRITT!"
+    "SpellbookOrder": 80
   },
   {
     "Id": 23264,
-    "Name": "Dreizack",
+    "NameDe": "Dreizack",
+    "NameEn": "Triple Trident",
+    "NameFr": "Triple trident",
+    "NameJa": "銛三段",
     "Stars": 1,
+    "Description": "Speerfischtechnik der Namazuo.\r\nDieser schnelle, dreifache Angriff hat sich als äußerst effektiv gegen Kreaturen erwiesen, die den Fischer verspeisen wollten.",
     "IconId": 3331,
-    "SpellbookOrder": 81,
-    "Description": "Speerfischtechnik der Namazuo.\r\nDieser schnelle, dreifache Angriff hat sich als \u00E4u\u00DFerst effektiv gegen Kreaturen erwiesen, die den Fischer verspeisen wollten."
+    "SpellbookOrder": 81
   },
   {
     "Id": 23265,
-    "Name": "Kribbeln",
+    "NameDe": "Kribbeln",
+    "NameEn": "Tingle",
+    "NameFr": "Fourmillement",
+    "NameJa": "ビリビリ",
     "Stars": 2,
+    "Description": "Blitzschläge der Namazuo.\r\nVermutlich eher nach dem wohligen Gefühl, das den Ausführenden überkommt, benannt als nach der blitzartigen Zerstörung des fernen Ziels. Von Jägern ersonnen, die es sich am Fluss gemütlich machen und einfach angreifen, was gerade anschwimmt.",
     "IconId": 3332,
-    "SpellbookOrder": 82,
-    "Description": "Blitzschl\u00E4ge der Namazuo.\r\nVermutlich eher nach dem wohligen Gef\u00FChl, das den Ausf\u00FChrenden \u00FCberkommt, benannt als nach der blitzartigen Zerst\u00F6rung des fernen Ziels. Von J\u00E4gern ersonnen, die es sich am Fluss gem\u00FCtlich machen und einfach angreifen, was gerade anschwimmt."
+    "SpellbookOrder": 82
   },
   {
     "Id": 23266,
-    "Name": "Tatami-gaeshi",
+    "NameDe": "Tatami-gaeshi",
+    "NameEn": "Tatami-gaeshi",
+    "NameFr": "Tatami-gaeshi",
+    "NameJa": "畳返しの術",
     "Stars": 3,
+    "Description": "Sabotage der Dojun-Maru.\r\nDie Dojun-Maru setzen diese Technik ein, um eine Reihe von Phantom-Tatami-Matten zu weben, die sie dem Gegner dann mit voller Wucht entgegenschleudern. Ein wahrer Meister kann die Matten gar mit dem leichten Duft von Tatami-Stroh versetzen.",
     "IconId": 3333,
-    "SpellbookOrder": 83,
-    "Description": "Sabotage der Dojun-Maru.\r\nDie Dojun-Maru setzen diese Technik ein, um eine Reihe von Phantom-Tatami-Matten zu weben, die sie dem Gegner dann mit voller Wucht entgegenschleudern. Ein wahrer Meister kann die Matten gar mit dem leichten Duft von Tatami-Stroh versetzen."
+    "SpellbookOrder": 83
   },
   {
     "Id": 23267,
-    "Name": "Eisiger Nebel",
+    "NameDe": "Eisiger Nebel",
+    "NameEn": "Cold Fog",
+    "NameFr": "Brume glaciale",
+    "NameJa": "冷たい霧",
     "Stars": 4,
+    "Description": "Verteidigungsinstinkt der Nebeldrachen.\r\nEin Nebeldrache hüllt sich instinktiv in einen eisigen Nebel, der Angreifer einfriert, die ihm zu nahe kommen. Anwender dieses Zaubers haben entdeckt, dass man das eigene Einfrieren verhindern kann, indem man den Körper mit warmer Luft umhüllt.",
     "IconId": 3334,
-    "SpellbookOrder": 84,
-    "Description": "Verteidigungsinstinkt der Nebeldrachen.\r\nEin Nebeldrache h\u00FCllt sich instinktiv in einen eisigen Nebel, der Angreifer einfriert, die ihm zu nahe kommen. Anwender dieses Zaubers haben entdeckt, dass man das eigene Einfrieren verhindern kann, indem man den K\u00F6rper mit warmer Luft umh\u00FCllt."
+    "SpellbookOrder": 84
   },
   {
     "Id": 23269,
-    "Name": "Stotram",
+    "NameDe": "Stotram",
+    "NameEn": "Stotram",
+    "NameFr": "Stotram",
+    "NameJa": "ストトラム",
     "Stars": 2,
+    "Description": "Lakshmis Spezialtechnik.\r\nEin Lobgesang der Liebe, der eine Lichtexplosion erzeugt, dessen Wirkung von dem Geist des Zauberers abhängt. Ein Herz, das von Wut erfüllt ist, wird Feinde verbrennen, während ein gütiges Herz die Wunden der Lieben heilen wird.",
     "IconId": 3336,
-    "SpellbookOrder": 85,
-    "Description": "Lakshmis Spezialtechnik.\r\nEin Lobgesang der Liebe, der eine Lichtexplosion erzeugt, dessen Wirkung von dem Geist des Zauberers abh\u00E4ngt. Ein Herz, das von Wut erf\u00FCllt ist, wird Feinde verbrennen, w\u00E4hrend ein g\u00FCtiges Herz die Wunden der Lieben heilen wird."
+    "SpellbookOrder": 85
   },
   {
     "Id": 23270,
-    "Name": "Heiligenstrahl",
+    "NameDe": "Heiligenstrahl",
+    "NameEn": "Saintly Beam",
+    "NameFr": "Faisceaux sacrés",
+    "NameJa": "セイントビーム",
     "Stars": 2,
+    "Description": "Reinigendes Licht des Phantomzugs.\r\nDieses heilige Licht verbrennt ruhelose Geister und verzehrt verdorbene Seelen. In Garlemald, wo das Reisen mit Maschinen üblich ist, erzählt man sich die Geschichte von einer gespenstischen Lokomotive, deren Passagiere die Geister der Toten sind ...",
     "IconId": 3337,
-    "SpellbookOrder": 86,
-    "Description": "Reinigendes Licht des Phantomzugs.\r\nDieses heilige Licht verbrennt ruhelose Geister und verzehrt verdorbene Seelen. In Garlemald, wo das Reisen mit Maschinen \u00FCblich ist, erz\u00E4hlt man sich die Geschichte von einer gespenstischen Lokomotive, deren Passagiere die Geister der Toten sind\u00A0..."
+    "SpellbookOrder": 86
   },
   {
     "Id": 23271,
-    "Name": "Modrige Flut",
+    "NameDe": "Modrige Flut",
+    "NameEn": "Feculent Flood",
+    "NameFr": "Sukuinage-gadoue",
+    "NameJa": "ドロドロ掬い投げ",
     "Stars": 1,
+    "Description": "Tokkapchis Markenzeichen.\r\nDiese Fähigkeit nutzt Erdäther, um einen stechenden Geysir aus Schlamm zu erzeugen. Es wird weithin angenommen, dass dieser bei in Weiß gekleideten Gegnern zusätzlichen psychologischen Schaden anrichtet.",
     "IconId": 3338,
-    "SpellbookOrder": 87,
-    "Description": "Tokkapchis Markenzeichen.\r\nDiese F\u00E4higkeit nutzt Erd\u00E4ther, um einen stechenden Geysir aus Schlamm zu erzeugen. Es wird weithin angenommen, dass dieser bei in Wei\u00DF gekleideten Gegnern zus\u00E4tzlichen psychologischen Schaden anrichtet."
+    "SpellbookOrder": 87
   },
   {
     "Id": 23272,
-    "Name": "Engelspeise",
+    "NameDe": "Engelspeise",
+    "NameEn": "Angel's Snack",
+    "NameFr": "Angélique",
+    "NameJa": "天使のおやつ",
     "Stars": 3,
+    "Description": "Blaumagie der Wächterstatuen.\r\nEin Zauber, der den Wächerstatuen der Neuen Welt innewohnt und allerlei Heilmittel aus dem Äther zieht. Das Ziel des Zaubers erfährt eine schnelle Wundheilung - ein Effekt, der mitunter nachwirkt, wenn der Zauber von einem erfahrenen Heiler gesprochen wurde.",
     "IconId": 3339,
-    "SpellbookOrder": 88,
-    "Description": "Blaumagie der W\u00E4chterstatuen.\r\nEin Zauber, der den W\u00E4cherstatuen der Neuen Welt innewohnt und allerlei Heilmittel aus dem \u00C4ther zieht. Das Ziel des Zaubers erf\u00E4hrt eine schnelle Wundheilung\u00A0- ein Effekt, der mitunter nachwirkt, wenn der Zauber von einem erfahrenen Heiler gesprochen wurde."
+    "SpellbookOrder": 88
   },
   {
     "Id": 23273,
-    "Name": "Barriere",
+    "NameDe": "Barriere",
+    "NameEn": "Chelonian Gate",
+    "NameFr": "Barrière mystique",
+    "NameJa": "玄結界",
     "Stars": 4,
+    "Description": "Genbus Spezialtechnik.\r\nDiese magische Barriere ist aus Wasseräther geformt. Sie schwächt eingehende Schläge und speichert deren Energie, die später in einer explosiven Sturzflut entladen werden kann.",
     "IconId": 3340,
-    "SpellbookOrder": 89,
-    "Description": "Genbus Spezialtechnik.\r\nDiese magische Barriere ist aus Wasser\u00E4ther geformt. Sie schw\u00E4cht eingehende Schl\u00E4ge und speichert deren Energie, die sp\u00E4ter in einer explosiven Sturzflut entladen werden kann."
+    "SpellbookOrder": 89
   },
   {
     "Id": 23275,
-    "Name": "Zermalmender Geist",
+    "NameDe": "Zermalmender Geist",
+    "NameEn": "The Rose of Destruction",
+    "NameFr": "Rose de la destruction",
+    "NameJa": "闘霊弾",
     "Stars": 2,
+    "Description": "Ivon Coeurlfausts Spezialtechnik.\r\nDieser Zauber imitiert die Blaster-Attacke von wilden Coeurl. Beim Ausführen wird eine Kugel konzentrierten Äthers mit einer Wucht nach vorne geschleudert, die selbst die standhaftesten Gegner umhaut.",
     "IconId": 3342,
-    "SpellbookOrder": 90,
-    "Description": "Ivon Coeurlfausts Spezialtechnik.\r\nDieser Zauber imitiert die Blaster-Attacke von wilden Coeurl. Beim Ausf\u00FChren wird eine Kugel konzentrierten \u00C4thers mit einer Wucht nach vorne geschleudert, die selbst die standhaftesten Gegner umhaut."
+    "SpellbookOrder": 90
   },
   {
     "Id": 23276,
-    "Name": "Kampfinstinkt",
+    "NameDe": "Kampfinstinkt",
+    "NameEn": "Basic Instinct",
+    "NameFr": "Instinct profond",
+    "NameJa": "闘争本能",
     "Stars": 2,
+    "Description": "Coeurl-Spezialtechnik.\r\nEin Verhalten, das von bestimmten Arten von Coeurl erlernt wird. Der Magier reagiert auf gefallene Kameraden, indem er seinen animalischen Überlebensinstinkt weckt. Wenn alles verloren scheint, ist ungezähmte Wildheit das einzige Mittel zum Sieg.",
     "IconId": 3343,
-    "SpellbookOrder": 91,
-    "Description": "Coeurl-Spezialtechnik.\r\nEin Verhalten, das von bestimmten Arten von Coeurl erlernt wird. Der Magier reagiert auf gefallene Kameraden, indem er seinen animalischen \u00DCberlebensinstinkt weckt. Wenn alles verloren scheint, ist ungez\u00E4hmte Wildheit das einzige Mittel zum Sieg."
+    "SpellbookOrder": 91
   },
   {
     "Id": 23277,
-    "Name": "Ultravibration",
+    "NameDe": "Ultravibration",
+    "NameEn": "Ultravibration",
+    "NameFr": "Ultravibration",
+    "NameJa": "超振動",
     "Stars": 1,
+    "Description": "Flügelschlag der Kongamato.\r\nDieser Zauber imitiert die Flügelschläge eines Kongamato und erzeugt eine Ultraschallwelle, die sich sichtbar in der Luft ausbreitet. Die Vibrationen sind für gefrorene oder versteinerte Ziele tödlich und lassen diese zersplittern.",
     "IconId": 3344,
-    "SpellbookOrder": 92,
-    "Description": "Fl\u00FCgelschlag der Kongamato.\r\nDieser Zauber imitiert die Fl\u00FCgelschl\u00E4ge eines Kongamato und erzeugt eine Ultraschallwelle, die sich sichtbar in der Luft ausbreitet. Die Vibrationen sind f\u00FCr gefrorene oder versteinerte Ziele t\u00F6dlich und lassen diese zersplittern."
+    "SpellbookOrder": 92
   },
   {
     "Id": 23278,
-    "Name": "Frost",
+    "NameDe": "Frost",
+    "NameEn": "Blaze",
+    "NameFr": "Givre",
+    "NameJa": "ブレイズ",
     "Stars": 2,
+    "Description": "Der eisige Griff von Alte Roite.\r\nDieser Angriff manifestiert einen Wirbelsturm aus Eis. Der frostige Wind fügt seinen Opfern schlimme Erfrierungen zu.",
     "IconId": 3345,
-    "SpellbookOrder": 93,
-    "Description": "Der eisige Griff von Alte Roite.\r\nDieser Angriff manifestiert einen Wirbelsturm aus Eis. Der frostige Wind f\u00FCgt seinen Opfern schlimme Erfrierungen zu."
+    "SpellbookOrder": 93
   },
   {
     "Id": 23279,
-    "Name": "Senfbombe",
+    "NameDe": "Senfbombe",
+    "NameEn": "Mustard Bomb",
+    "NameFr": "Obus d'ypérite",
+    "NameJa": "マスタードボム",
     "Stars": 4,
+    "Description": "Omegas chemische Waffen.\r\nEine Imitation der furchtbaren chemischen Explosionen, die Omega verursacht. Dieser Zauber feuert eine Bombe in einem Bogen ab, die beim Treffen des Ziels detoniert. Der Angriff hinterlässt einen beißenden Geruch, der Senf ähnelt.",
     "IconId": 3346,
-    "SpellbookOrder": 94,
-    "Description": "Omegas chemische Waffen.\r\nEine Imitation der furchtbaren chemischen Explosionen, die Omega verursacht. Dieser Zauber feuert eine Bombe in einem Bogen ab, die beim Treffen des Ziels detoniert. Der Angriff hinterl\u00E4sst einen bei\u00DFenden Geruch, der Senf \u00E4hnelt."
+    "SpellbookOrder": 94
   },
   {
     "Id": 23280,
-    "Name": "Drachenkraft",
+    "NameDe": "Drachenkraft",
+    "NameEn": "Dragon Force",
+    "NameFr": "Dracoforce",
+    "NameJa": "ドラゴンフォース",
     "Stars": 3,
+    "Description": "Spezialtechnik der Drachen der Neuen Welt.\r\nDiese Fähigkeit hüllt den Magier in eine Sphäre ätherischer Kraft, die eingehende Angriffe schwächt. Es gibt eine Debatte darüber, ob es sich bei diesen „Drachen“ tatsächlich um Drachen oder lediglich um eine artverwandte Spezies handelt.",
     "IconId": 3347,
-    "SpellbookOrder": 95,
-    "Description": "Spezialtechnik der Drachen der Neuen Welt.\r\nDiese F\u00E4higkeit h\u00FCllt den Magier in eine Sph\u00E4re \u00E4therischer Kraft, die eingehende Angriffe schw\u00E4cht. Es gibt eine Debatte dar\u00FCber, ob es sich bei diesen \u201EDrachen\u201C tats\u00E4chlich um Drachen oder lediglich um eine artverwandte Spezies handelt."
+    "SpellbookOrder": 95
   },
   {
     "Id": 23281,
-    "Name": "\u00C4therfunken",
+    "NameDe": "Ätherfunken",
+    "NameEn": "Aetherial Spark",
+    "NameFr": "Étincelle éthérée",
+    "NameJa": "エーテリックスパーク",
     "Stars": 1,
+    "Description": "Nadelspitzen der Salz-Dhruva.\r\nDieser Zauber beschwört eine Reihe leuchtender Projektile, die allem in ihrem Weg nadelstichartige Wunden zufügen. Die Wunden verursachen starke Blutungen, wodurch das Ziel geschwächt wird und erhebliche Schmerzen erleidet.",
     "IconId": 3348,
-    "SpellbookOrder": 96,
-    "Description": "Nadelspitzen der Salz-Dhruva.\r\nDieser Zauber beschw\u00F6rt eine Reihe leuchtender Projektile, die allem in ihrem Weg nadelstichartige Wunden zuf\u00FCgen. Die Wunden verursachen starke Blutungen, wodurch das Ziel geschw\u00E4cht wird und erhebliche Schmerzen erleidet."
+    "SpellbookOrder": 96
   },
   {
     "Id": 23282,
-    "Name": "Hydrosog",
+    "NameDe": "Hydrosog",
+    "NameEn": "Hydro Pull",
+    "NameFr": "Hydrotraction",
+    "NameJa": "ハイドロプル",
     "Stars": 4,
+    "Description": "Sog der Kelpie.\r\nDieser Zauber verursacht eine gewaltige Sturzflut, die Ziele in der Nähe anzieht. Selbst tieffliegende Wolkenmeerkreaturen können sich diesem Sog nicht entziehen.",
     "IconId": 3349,
-    "SpellbookOrder": 97,
-    "Description": "Sog der Kelpie.\r\nDieser Zauber verursacht eine gewaltige Sturzflut, die Ziele in der N\u00E4he anzieht. Selbst tieffliegende Wolkenmeerkreaturen k\u00F6nnen sich diesem Sog nicht entziehen."
+    "SpellbookOrder": 97
   },
   {
     "Id": 23283,
-    "Name": "Verfluchung des Wassers",
+    "NameDe": "Verfluchung des Wassers",
+    "NameEn": "Malediction of Water",
+    "NameFr": "Malédiction de l'eau",
+    "NameJa": "水脈の呪詛",
     "Stars": 2,
+    "Description": "Das Tosen der Sai Taisui.\r\nDiese Form der Geomantie beschwört einen Wasserschwall, der alles in seinem Weg hinfortschwemmt, egal ob Freund oder Feind. Mit derartigen Verwünschungen kann man nie vorsichtig genug umgehen.",
     "IconId": 3350,
-    "SpellbookOrder": 98,
-    "Description": "Das Tosen der Sai Taisui.\r\nDiese Form der Geomantie beschw\u00F6rt einen Wasserschwall, der alles in seinem Weg hinfortschwemmt, egal ob Freund oder Feind. Mit derartigen Verw\u00FCnschungen kann man nie vorsichtig genug umgehen."
+    "SpellbookOrder": 98
   },
   {
     "Id": 23284,
-    "Name": "Choco-Meteo",
+    "NameDe": "Choco-Meteo",
+    "NameEn": "Choco Meteor",
+    "NameFr": "Choco-météore",
+    "NameJa": "チョコメテオ",
     "Stars": 1,
+    "Description": "Post vom Kurier-Chocobo.\r\nEine zerstörerische Fähigkeit, die Staub und Schmutz zu einer soliden Masse verdichtet, die dann erhitzt und von oben auf das Ziel abgeworfen wird. Daher ist es kein Wunder, dass diese gefiederten Feinde überall, wo sie auftauchen, Schrecken verursachen.",
     "IconId": 3351,
-    "SpellbookOrder": 99,
-    "Description": "Post vom Kurier-Chocobo.\r\nEine zerst\u00F6rerische F\u00E4higkeit, die Staub und Schmutz zu einer soliden Masse verdichtet, die dann erhitzt und von oben auf das Ziel abgeworfen wird. Daher ist es kein Wunder, dass diese gefiederten Feinde \u00FCberall, wo sie auftauchen, Schrecken verursachen."
+    "SpellbookOrder": 99
   },
   {
     "Id": 23285,
-    "Name": "Matra-Magie",
+    "NameDe": "Matra-Magie",
+    "NameEn": "Matra Magic",
+    "NameFr": "Magie Matra",
+    "NameJa": "マトラマジック",
     "Stars": 3,
+    "Description": "Schrecken der Nichtsgesandten der Neuen Welt.\r\nDieser Zauber setzt dem Ziel mit einem Sperrfeuer aus glühenden Kugeln zu. Sein Name soll einst die Flüche der Whalaqee sowie die Konvertierung von Lebenskraft zu Mana umfasst haben.",
     "IconId": 3352,
-    "SpellbookOrder": 100,
-    "Description": "Schrecken der Nichtsgesandten der Neuen Welt.\r\nDieser Zauber setzt dem Ziel mit einem Sperrfeuer aus gl\u00FChenden Kugeln zu. Sein Name soll einst die Fl\u00FCche der Whalaqee sowie die Konvertierung von Lebenskraft zu Mana umfasst haben."
+    "SpellbookOrder": 100
   },
   {
     "Id": 23286,
-    "Name": "Replikator",
+    "NameDe": "Replikator",
+    "NameEn": "Peripheral Synthesis",
+    "NameFr": "Impression",
+    "NameJa": "プリントアウト",
     "Stars": 4,
+    "Description": "Omega-Technologie.\r\nOmega hatte freie Hand im Interdimensionalen Riss, wodurch es auf eine große Sammlung von Daten zugreifen und allerlei Arten von Objekten synthetisieren konnte\r\n- einschließlich riesiger Fäuste aus unnachgiebigem Metall.",
     "IconId": 3353,
-    "SpellbookOrder": 101,
-    "Description": "Omega-Technologie.\r\nOmega hatte freie Hand im Interdimensionalen Riss, wodurch es auf eine gro\u00DFe Sammlung von Daten zugreifen und allerlei Arten von Objekten synthetisieren konnte\r\n- einschlie\u00DFlich riesiger F\u00E4uste aus unnachgiebigem Metall."
+    "SpellbookOrder": 101
   },
   {
     "Id": 23287,
-    "Name": "Beide Enden",
+    "NameDe": "Beide Enden",
+    "NameEn": "Both Ends",
+    "NameFr": "Coup de bâton tournicotant",
+    "NameJa": "如意大旋風",
     "Stars": 5,
+    "Description": "Die Macht von Qitian Dasheng.\r\nDiese Zauberformel versucht, die übernatürliche Macht von Qitian Dasheng zu imitieren. Der Magier springt in die Luft und wirbelt einen langen Stab aus purem Äther mit brutaler Kraft umher.",
     "IconId": 3354,
-    "SpellbookOrder": 102,
-    "Description": "Die Macht von Qitian Dasheng.\r\nDiese Zauberformel versucht, die \u00FCbernat\u00FCrliche Macht von Qitian Dasheng zu imitieren. Der Magier springt in die Luft und wirbelt einen langen Stab aus purem \u00C4ther mit brutaler Kraft umher."
+    "SpellbookOrder": 102
   },
   {
     "Id": 23288,
-    "Name": "Phantomhast",
+    "NameDe": "Phantomhast",
+    "NameEn": "Phantom Flurry",
+    "NameFr": "Frénésie spectrale",
+    "NameJa": "鬼宿脚",
     "Stars": 5,
+    "Description": "Suzakus Hast.\r\nEntfesselt eine schnelle Serie aus unscharfen Tritten. Das „Phantom“ im Namen ist eine Referenz an eine astrologische Konstellation im Fernen Osten - ein Zeichen, das Glück für alle Bereiche des Lebens bringen soll ... bis auf den Ewigen Bund.",
     "IconId": 3355,
-    "SpellbookOrder": 103,
-    "Description": "Suzakus Hast.\r\nEntfesselt eine schnelle Serie aus unscharfen Tritten. Das \u201EPhantom\u201C im Namen ist eine Referenz an eine astrologische Konstellation im Fernen Osten\u00A0- ein Zeichen, das Gl\u00FCck f\u00FCr alle Bereiche des Lebens bringen soll\u00A0... bis auf den Ewigen Bund."
+    "SpellbookOrder": 103
   },
   {
     "Id": 23290,
-    "Name": "Mondd\u00E4mmerung",
+    "NameDe": "Monddämmerung",
+    "NameEn": "Nightbloom",
+    "NameFr": "Lis araignée",
+    "NameJa": "月下彼岸花",
     "Stars": 5,
+    "Description": "Tsukuyomis Zorn.\r\nDer bösartige Zorn der Herrscherin der Nacht und des Mondes manifestiert sich in einem Blumenfeld, das dann in einem Hagel aus tödlichen Blüten explodiert. Akzeptiere die Unausweichlichkeit deines Todes und die Macht der Monddämmerung soll dein sein.",
     "IconId": 3357,
-    "SpellbookOrder": 104,
-    "Description": "Tsukuyomis Zorn.\r\nDer b\u00F6sartige Zorn der Herrscherin der Nacht und des Mondes manifestiert sich in einem Blumenfeld, das dann in einem Hagel aus t\u00F6dlichen Bl\u00FCten explodiert. Akzeptiere die Unausweichlichkeit deines Todes und die Macht der Mondd\u00E4mmerung soll dein sein."
+    "SpellbookOrder": 104
   },
   {
     "Id": 34563,
-    "Name": "Goblingru\u00DF",
+    "NameDe": "Goblingruß",
+    "NameEn": "Goblin Punch",
+    "NameFr": "Coup de poing gobelin",
+    "NameJa": "ゴブリンパンチ",
     "Stars": 1,
+    "Description": "Rage des Hobgoblins.\r\nDer Anwender greift das Ziel mit einer wilden Barrage an Schlägen an. In der Blaumagie werden Hiebe und Schläge zwar üblicherweise mit Magie verstärkt, denen, die sich ihren Feinden ohne List und Hinterhalt stellen, wird aber eine weitaus größere Kraft zuteil.",
     "IconId": 3358,
-    "SpellbookOrder": 105,
-    "Description": "Rage des Hobgoblins.\r\nDer Anwender greift das Ziel mit einer wilden Barrage an Schl\u00E4gen an. In der Blaumagie werden Hiebe und Schl\u00E4ge zwar \u00FCblicherweise mit Magie verst\u00E4rkt, denen, die sich ihren Feinden ohne List und Hinterhalt stellen, wird aber eine weitaus gr\u00F6\u00DFere Kraft zuteil."
+    "SpellbookOrder": 105
   },
   {
     "Id": 34564,
-    "Name": "Rotation",
+    "NameDe": "Rotation",
+    "NameEn": "Right Round",
+    "NameFr": "Grande culbute",
+    "NameJa": "大回転",
     "Stars": 2,
+    "Description": "Schwung des Riesengürteltiers.\r\nImitiert das Hin- und Herschwingen des mit einem großen Felsbrocken bespickten Schwanzes. Wenn der Felsbrocken einmal in Fahrt kommt, nähert sich so schnell keiner mehr.",
     "IconId": 3359,
-    "SpellbookOrder": 106,
-    "Description": "Schwung des Rieseng\u00FCrteltiers.\r\nImitiert das Hin- und Herschwingen des mit einem gro\u00DFen Felsbrocken bespickten Schwanzes. Wenn der Felsbrocken einmal in Fahrt kommt, n\u00E4hert sich so schnell keiner mehr."
+    "SpellbookOrder": 106
   },
   {
     "Id": 34565,
-    "Name": "Skiltron",
+    "NameDe": "Skiltron",
+    "NameEn": "Schiltron",
+    "NameFr": "Sheltron",
+    "NameJa": "スキルトロン",
     "Stars": 1,
+    "Description": "Des Gürteltiers Hautknochenpanzer.\r\nDie Haut verhärtet sich um ein Vielfaches durch Magie. Zwar wird der Aufprall von physischen Angriffen gelindert, Schmerzen verspürt man aber immer noch.",
     "IconId": 3360,
-    "SpellbookOrder": 107,
-    "Description": "Des G\u00FCrteltiers Hautknochenpanzer.\r\nDie Haut verh\u00E4rtet sich um ein Vielfaches durch Magie. Zwar wird der Aufprall von physischen Angriffen gelindert, Schmerzen versp\u00FCrt man aber immer noch."
+    "SpellbookOrder": 107
   },
   {
     "Id": 34566,
-    "Name": "Immense Infusion",
+    "NameDe": "Immense Infusion",
+    "NameEn": "Rehydration",
+    "NameFr": "Réhydratation",
+    "NameJa": "補水",
     "Stars": 1,
+    "Description": "Des Gürteltiers Feuchtigkeit.\r\nEs sammelt Wasserpartikel aus der Luft und gibt seinem Körper so die nötige Feuchtigkeit, um sich zu regenerieren. Trockenheit und Stress sind der größte Feind von gesunder Haut!",
     "IconId": 3361,
-    "SpellbookOrder": 108,
-    "Description": "Des G\u00FCrteltiers Feuchtigkeit.\r\nEs sammelt Wasserpartikel aus der Luft und gibt seinem K\u00F6rper so die n\u00F6tige Feuchtigkeit, um sich zu regenerieren. Trockenheit und Stress sind der gr\u00F6\u00DFte Feind von gesunder Haut!"
+    "SpellbookOrder": 108
   },
   {
     "Id": 34567,
-    "Name": "Zauberatem",
+    "NameDe": "Zauberatem",
+    "NameEn": "Breath of Magic",
+    "NameFr": "Souffle magique",
+    "NameJa": "マジカルブレス",
     "Stars": 3,
+    "Description": "Blaumagie der Schalentiere der neuen Welt.\r\nFeuer, Eis und Blitz. Das Anstauen und Ausatmen des Äthers ganzer drei Elemente ist Teil dieses Angriffs. Durch das Anstauen im Körper kann das Gleichgewicht des Äthers gestört werden, und zu häufiges Anwenden hat fatale Folgen.",
     "IconId": 3362,
-    "SpellbookOrder": 109,
-    "Description": "Blaumagie der Schalentiere der neuen Welt.\r\nFeuer, Eis und Blitz. Das Anstauen und Ausatmen des \u00C4thers ganzer drei Elemente ist Teil dieses Angriffs. Durch das Anstauen im K\u00F6rper kann das Gleichgewicht des \u00C4thers gest\u00F6rt werden, und zu h\u00E4ufiges Anwenden hat fatale Folgen."
+    "SpellbookOrder": 109
   },
   {
     "Id": 34568,
-    "Name": "Bestialischer Zorn",
+    "NameDe": "Bestialischer Zorn",
+    "NameEn": "Wild Rage",
+    "NameFr": "Colère bestiale",
+    "NameJa": "獣魂の怒り",
     "Stars": 4,
+    "Description": "Der Zorn des Phantom-Berserkers.\r\nVon Hass und Wut übermannt entfesselt der Anwender eine Welle der Zerstörung. Ein äußerst effektiver Angriff, der jedoch auch einiges an Energie und Kraft des Anwenders verbraucht. ",
     "IconId": 3363,
-    "SpellbookOrder": 110,
-    "Description": "Der Zorn des Phantom-Berserkers.\r\nVon Hass und Wut \u00FCbermannt entfesselt der Anwender eine Welle der Zerst\u00F6rung. Ein \u00E4u\u00DFerst effektiver Angriff, der jedoch auch einiges an Energie und Kraft des Anwenders verbraucht. "
+    "SpellbookOrder": 110
   },
   {
     "Id": 34569,
-    "Name": "Mjam Mjam Matschkuchen",
+    "NameDe": "Mjam Mjam Matschkuchen",
+    "NameEn": "Peat Pelt",
+    "NameFr": "Lancer de boue",
+    "NameJa": "泥団子遊び",
     "Stars": 2,
+    "Description": "Der Dreck des Matschmannes.\r\nErzeugt mit der Hilfe von Äther des Elements Erde eine riesige Kugel aus Schlamm und Dreck, nur um sie dann dem Gegner an den Kopf zu werfen. Das schlimmste hierbei ist der seelische Schaden, den das Ziel durch den hartnäckig anhaftenden Dreck erleidet. ",
     "IconId": 3364,
-    "SpellbookOrder": 111,
-    "Description": "Der Dreck des Matschmannes.\r\nErzeugt mit der Hilfe von \u00C4ther des Elements Erde eine riesige Kugel aus Schlamm und Dreck, nur um sie dann dem Gegner an den Kopf zu werfen. Das schlimmste hierbei ist der seelische Schaden, den das Ziel durch den hartn\u00E4ckig anhaftenden Dreck erleidet. "
+    "SpellbookOrder": 111
   },
   {
     "Id": 34570,
-    "Name": "Gro\u00DFes Reinemachen",
+    "NameDe": "Großes Reinemachen",
+    "NameEn": "Deep Clean",
+    "NameFr": "Grand nettoyage",
+    "NameJa": "大掃除",
     "Stars": 3,
+    "Description": "Das Fegegeschick des Einsiedlers.\r\nBeschwört Besen zum Saubermachen herbei. Je mehr Dreck ein auf diese Weise beschworener Besen zu fegen bekommt, desto glücklicher wird er.",
     "IconId": 3365,
-    "SpellbookOrder": 112,
-    "Description": "Das Fegegeschick des Einsiedlers.\r\nBeschw\u00F6rt Besen zum Saubermachen herbei. Je mehr Dreck ein auf diese Weise beschworener Besen zu fegen bekommt, desto gl\u00FCcklicher wird er."
+    "SpellbookOrder": 112
   },
   {
     "Id": 34571,
-    "Name": "Rubin-Dynamo",
+    "NameDe": "Rubin-Dynamo",
+    "NameEn": "Ruby Dynamics",
+    "NameFr": "Générateur rubis",
+    "NameJa": "ルビーダイナモ",
     "Stars": 4,
+    "Description": "Von der Rubin-Waffe inspirierte Blaumagie.\r\nIn dem Original wird die durch den eingebauten Dynamo erzeugte Energie genutzt, um Gegner niederzumähen. Diese Magie erlaubt es dem Anwender, den Mechanismus durch den Einsatz von Äther zu imitieren.",
     "IconId": 3366,
-    "SpellbookOrder": 113,
-    "Description": "Von der Rubin-Waffe inspirierte Blaumagie.\r\nIn dem Original wird die durch den eingebauten Dynamo erzeugte Energie genutzt, um Gegner niederzum\u00E4hen. Diese Magie erlaubt es dem Anwender, den Mechanismus durch den Einsatz von \u00C4ther zu imitieren."
+    "SpellbookOrder": 113
   },
   {
     "Id": 34572,
-    "Name": "Prophezeiungsrune",
+    "NameDe": "Prophezeiungsrune",
+    "NameEn": "Divination Rune",
+    "NameFr": "Rune de malice",
+    "NameJa": "魔のルーン",
     "Stars": 4,
+    "Description": "Titanias Lieblingsrune.\r\nBasierend auf Runen, jener magischen Feensprache, wird Äther als Welle freigesetzt. Außerdem kann ein Phänomen beobachtet werden, welches dafür sorgt, dass ausgestoßener Äther des Zieles absorbiert wird.",
     "IconId": 3367,
-    "SpellbookOrder": 114,
-    "Description": "Titanias Lieblingsrune.\r\nBasierend auf Runen, jener magischen Feensprache, wird \u00C4ther als Welle freigesetzt. Au\u00DFerdem kann ein Ph\u00E4nomen beobachtet werden, welches daf\u00FCr sorgt, dass ausgesto\u00DFener \u00C4ther des Zieles absorbiert wird."
+    "SpellbookOrder": 114
   },
   {
     "Id": 34573,
-    "Name": "Dimensionsverschiebung",
+    "NameDe": "Dimensionsverschiebung",
+    "NameEn": "Dimensional Shift",
+    "NameFr": "Translation dimensionnelle",
+    "NameJa": "ディメンションシフト",
     "Stars": 4,
+    "Description": "Das Vermächtnis des Prim-Eden.\r\nVerzerrt die Dimension und sorgt für die Freigabe einer riesigen Menge Äther. Der Schaden ist gigantisch, aber um Verletzungen an sich selber zu vermeiden, muss der Anwender einen Schutzwall erschaffen, was die Ausführung des Zaubers verzögern kann.",
     "IconId": 3368,
-    "SpellbookOrder": 115,
-    "Description": "Das Verm\u00E4chtnis des Prim-Eden.\r\nVerzerrt die Dimension und sorgt f\u00FCr die Freigabe einer riesigen Menge \u00C4ther. Der Schaden ist gigantisch, aber um Verletzungen an sich selber zu vermeiden, muss der Anwender einen Schutzwall erschaffen, was die Ausf\u00FChrung des Zaubers verz\u00F6gern kann."
+    "SpellbookOrder": 115
   },
   {
     "Id": 34574,
-    "Name": "Mette marcato",
+    "NameDe": "Mette marcato",
+    "NameEn": "Conviction Marcato",
+    "NameFr": "Conviction - marcato",
+    "NameJa": "コンヴィクション・マルカート",
     "Stars": 3,
+    "Description": "Strafe der geläuterten Unzucht.\r\nEin Angriff mit gebündeltem Licht. Da dies nur eine Nachahmung des Originals ist, besteht kein Grund zur Sorge, dass das Ziel sich in einen Sündenvertilger verwandelt.",
     "IconId": 3369,
-    "SpellbookOrder": 116,
-    "Description": "Strafe der gel\u00E4uterten Unzucht.\r\nEin Angriff mit geb\u00FCndeltem Licht. Da dies nur eine Nachahmung des Originals ist, besteht kein Grund zur Sorge, dass das Ziel sich in einen S\u00FCndenvertilger verwandelt."
+    "SpellbookOrder": 116
   },
   {
     "Id": 34575,
-    "Name": "Kraftfeld",
+    "NameDe": "Kraftfeld",
+    "NameEn": "Force Field",
+    "NameFr": "Champ de force",
+    "NameJa": "フォースフィールド",
     "Stars": 3,
+    "Description": "Die Kraft des Sephirot.\r\nWas im Original als Angriffsmagie verwendet wird, wurde hier in das Gegenteil umgekehrt und dient als schützendes Kraftfeld. Leider ist das Feld nicht besonders stabil, weswegen es entweder nur physische oder nur magische Angriffe abhalten kann. ",
     "IconId": 3370,
-    "SpellbookOrder": 117,
-    "Description": "Die Kraft des Sephirot.\r\nWas im Original als Angriffsmagie verwendet wird, wurde hier in das Gegenteil umgekehrt und dient als sch\u00FCtzendes Kraftfeld. Leider ist das Feld nicht besonders stabil, weswegen es entweder nur physische oder nur magische Angriffe abhalten kann. "
+    "SpellbookOrder": 117
   },
   {
     "Id": 34576,
-    "Name": "Schwinge des Urteils",
+    "NameDe": "Schwinge des Urteils",
+    "NameEn": "Winged Reprobation",
+    "NameFr": "Réprobation ailée",
+    "NameJa": "断罪の飛翔",
     "Stars": 3,
+    "Description": "Die Schwere der Innozenz.\r\nEine Barrage aus herabfallenden Lanzen gleißenden Lichtes. Es wird gesagt, dass Lord Vauthry mit dieser Technik Sündenvertilger zu Meol verarbeitete. Je öfter sie verwendet wird, desto näher kommt der Anwender der Allmächtigkeit. ",
     "IconId": 3371,
-    "SpellbookOrder": 118,
-    "Description": "Die Schwere der Innozenz.\r\nEine Barrage aus herabfallenden Lanzen glei\u00DFenden Lichtes. Es wird gesagt, dass Lord Vauthry mit dieser Technik S\u00FCndenvertilger zu Meol verarbeitete. Je \u00F6fter sie verwendet wird, desto n\u00E4her kommt der Anwender der Allm\u00E4chtigkeit. "
+    "SpellbookOrder": 118
   },
   {
     "Id": 34577,
-    "Name": "Laserauge",
+    "NameDe": "Laserauge",
+    "NameEn": "Laser Eye",
+    "NameFr": "Faisceau maser",
+    "NameJa": "メーザーアイ",
     "Stars": 3,
+    "Description": "Der Blick von Edens Verheißung.\r\nDer Anwender nutzt seine Augen als Äthergramme und sammelt solch riesige Mengen an Äther an, dass der Aufprall des Strahls für eine Druckwelle sorgt. Leider bekommt man durch die Benutzung des Zaubers sehr schnell trockene Augen.",
     "IconId": 3372,
-    "SpellbookOrder": 119,
-    "Description": "Der Blick von Edens Verhei\u00DFung.\r\nDer Anwender nutzt seine Augen als \u00C4thergramme und sammelt solch riesige Mengen an \u00C4ther an, dass der Aufprall des Strahls f\u00FCr eine Druckwelle sorgt. Leider bekommt man durch die Benutzung des Zaubers sehr schnell trockene Augen."
+    "SpellbookOrder": 119
   },
   {
     "Id": 34578,
-    "Name": "Zuckerstange",
+    "NameDe": "Zuckerstange",
+    "NameEn": "Candy Cane",
+    "NameFr": "Canne en sucre d'orge",
+    "NameJa": "キャンディケーン",
     "Stars": 2,
+    "Description": "Aenc Thons süßes Geheimnis.\r\nDiese Magie lässt Süßigkeiten vom Himmel regnen, die ebenso süßen Schmerz verursachen. Allerdings besteht der Schauer nicht ausschließlich aus Zuckerstangen.",
     "IconId": 3373,
-    "SpellbookOrder": 120,
-    "Description": "Aenc Thons s\u00FC\u00DFes Geheimnis.\r\nDiese Magie l\u00E4sst S\u00FC\u00DFigkeiten vom Himmel regnen, die ebenso s\u00FC\u00DFen Schmerz verursachen. Allerdings besteht der Schauer nicht ausschlie\u00DFlich aus Zuckerstangen."
+    "SpellbookOrder": 120
   },
   {
     "Id": 34579,
-    "Name": "Ewige Flammen",
+    "NameDe": "Ewige Flammen",
+    "NameEn": "Mortal Flame",
+    "NameFr": "Flamme mortelle",
+    "NameJa": "必滅の炎",
     "Stars": 3,
+    "Description": "Der ewige Schmerz des Lugus.\r\nDiese Flammen gehen erst aus, wenn nichts mehr von dem Ziel übrig ist. Bei der Entwicklung dieser Blaumagie wurde etwas an der Stärke der Flammen gedreht, um Stadtbrände zu vermeiden. Für ein kleines Lagerfeuer reicht es aber immer noch.",
     "IconId": 3374,
-    "SpellbookOrder": 121,
-    "Description": "Der ewige Schmerz des Lugus.\r\nDiese Flammen gehen erst aus, wenn nichts mehr von dem Ziel \u00FCbrig ist. Bei der Entwicklung dieser Blaumagie wurde etwas an der St\u00E4rke der Flammen gedreht, um Stadtbr\u00E4nde zu vermeiden. F\u00FCr ein kleines Lagerfeuer reicht es aber immer noch."
+    "SpellbookOrder": 121
   },
   {
     "Id": 34580,
-    "Name": "Pitsche, patsche",
+    "NameDe": "Pitsche, patsche",
+    "NameEn": "Sea Shanty",
+    "NameFr": "Explosion tournicoton",
+    "NameJa": "グルグルザパーン",
     "Stars": 5,
+    "Description": "Freude des Nixchens.\r\nEine riesige Menge Wasser wird zu einem Strudel verrührt und dann freigelassen. Was für Nixchen nur als kleines Planschbecken für ihren Nachwuchs fungiert, richtet unsereins fatalen Schaden an.",
     "IconId": 3375,
-    "SpellbookOrder": 122,
-    "Description": "Freude des Nixchens.\r\nEine riesige Menge Wasser wird zu einem Strudel verr\u00FChrt und dann freigelassen. Was f\u00FCr Nixchen nur als kleines Planschbecken f\u00FCr ihren Nachwuchs fungiert, richtet unsereins fatalen Schaden an."
+    "SpellbookOrder": 122
   },
   {
     "Id": 34581,
-    "Name": "Apokalypsis",
+    "NameDe": "Apokalypsis",
+    "NameEn": "Apokalypsis",
+    "NameFr": "Apokalypsis",
+    "NameJa": "アポカリュプシス",
     "Stars": 5,
+    "Description": "Therions Gedanken.\r\nDiese Magie wird weder durch das Sprechen eines Spruches noch durch Runen beschworen, sondern allein mit der Kraft der Gedanken. Falls der Anwender das Ende herbeisehnen sollte, kann der Effekt auf unbestimmt lange Zeit anhalten.",
     "IconId": 3376,
-    "SpellbookOrder": 123,
-    "Description": "Therions Gedanken.\r\nDiese Magie wird weder durch das Sprechen eines Spruches noch durch Runen beschworen, sondern allein mit der Kraft der Gedanken. Falls der Anwender das Ende herbeisehnen sollte, kann der Effekt auf unbestimmt lange Zeit anhalten."
+    "SpellbookOrder": 123
   },
   {
     "Id": 34582,
-    "Name": "Sterblichkeit",
+    "NameDe": "Sterblichkeit",
+    "NameEn": "Being Mortal",
+    "NameFr": "Deuil des vivants",
+    "NameJa": "死すべき定め",
     "Stars": 5,
+    "Description": "Titanias Fluch und Segen.\r\nDie Verflechtung von mehreren Ebenen an Runen sorgt für einen Wirbel aus Magie. In der Feensprache wird „Sterblichkeit“ zwar hauptsächlich herabschauend verwendet, Mitleid und Mitgefühl für unsereins schwingen aber auch mit.",
     "IconId": 3377,
-    "SpellbookOrder": 124,
-    "Description": "Titanias Fluch und Segen.\r\nDie Verflechtung von mehreren Ebenen an Runen sorgt f\u00FCr einen Wirbel aus Magie. In der Feensprache wird \u201ESterblichkeit\u201C zwar haupts\u00E4chlich herabschauend verwendet, Mitleid und Mitgef\u00FChl f\u00FCr unsereins schwingen aber auch mit."
+    "SpellbookOrder": 124
   }
 ]

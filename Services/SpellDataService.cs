@@ -77,7 +77,26 @@ public sealed class SpellDataService
         }
 
         var json = File.ReadAllText(path);
-        var result = JsonSerializer.Deserialize<List<T>>(json, JsonOptions);
+
+        List<T>? result;
+        try
+        {
+            result = JsonSerializer.Deserialize<List<T>>(json, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            // Passiert derzeit übergangsweise für spells.json: Models/Spell.cs wurde schon auf
+            // NameDe/NameEn/NameFr/NameJa umgestellt, die ausgelieferte spells.json hat aber noch
+            // das alte "Name"-Feld, bis sie manuell (siehe TEMP-Export-Command) aktualisiert wird.
+            // Bewusst NICHT das ganze Plugin daran abstürzen lassen (JsonException aus
+            // Deserialize würde sonst ungefangen bis in den Plugin-Konstruktor durchschlagen) -
+            // stattdessen hier klar loggen und mit leerer Liste weitermachen.
+            this.log.Error(
+                ex,
+                $"SpellDataService: \"{path}\" passt nicht zum aktuellen {typeof(T).Name}-Modell " +
+                "(JSON-Struktur veraltet?). Liefere leere Liste, statt das Plugin abstürzen zu lassen.");
+            return [];
+        }
 
         if (result is null)
         {

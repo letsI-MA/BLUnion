@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BLUnion – Spell-Status Companion</title>
+<title id="pageTitle">BLUnion – Spell-Status Companion</title>
 <style>
   :root {
     --bg: #0f1115;
@@ -26,8 +26,17 @@
     padding: 24px 16px 64px;
   }
   .wrap { max-width: 780px; margin: 0 auto; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
   h1 { font-size: 1.5rem; margin-bottom: 4px; }
   .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 24px; }
+  select#langSwitch {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
   .panel {
     background: var(--bg-panel);
     border: 1px solid var(--border);
@@ -100,56 +109,333 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>BLUnion – Spell-Status Companion</h1>
-  <div class="subtitle">
-    Erzeugt und liest denselben Sync-Code wie das Dalamud-Plugin (Präfix <code class="inline">BLU1:</code>).
-    Läuft komplett im Browser, es wird nichts an einen Server geschickt.
+  <div class="top-row">
+    <div>
+      <h1 id="txt_h1">BLUnion – Spell-Status Companion</h1>
+      <div class="subtitle" id="txt_subtitle"></div>
+    </div>
+    <select id="langSwitch">
+      <option value="de">Deutsch</option>
+      <option value="en">English</option>
+      <option value="fr">Français</option>
+      <option value="ja">日本語</option>
+    </select>
   </div>
 
   <div class="panel">
-    <h2>1. Eigenen Status exportieren</h2>
-    <label for="charName">Charaktername</label>
-    <input type="text" id="charName" placeholder="z.B. Alice Beispiel">
+    <h2 id="txt_h2_export">1. Eigenen Status exportieren</h2>
+    <label id="txt_label_charname" for="charName">Charaktername</label>
+    <input type="text" id="charName">
 
     <div class="toolbar" style="margin-top:14px;">
-      <input type="text" id="filterExport" placeholder="Name oder Nr. (z.B. 58, #058, a)...">
-      <span class="count-badge" id="exportCount">0 / 124 gelernt</span>
+      <input type="text" id="filterExport">
+      <span class="count-badge" id="exportCount"></span>
     </div>
     <div class="spell-list" id="exportList"></div>
 
     <div class="row">
-      <button onclick="generateCode()">Code generieren</button>
-      <button class="secondary" onclick="checkAll(true)">Alle markieren</button>
-      <button class="secondary" onclick="checkAll(false)">Alle leeren</button>
+      <button id="btn_generate" onclick="generateCode()"></button>
+      <button class="secondary" id="btn_checkall" onclick="checkAll(true)"></button>
+      <button class="secondary" id="btn_uncheckall" onclick="checkAll(false)"></button>
     </div>
-    <textarea id="exportOutput" readonly placeholder="Generierter Code erscheint hier..." style="margin-top:10px;"></textarea>
+    <textarea id="exportOutput" readonly style="margin-top:10px;"></textarea>
     <div class="row">
-      <button class="secondary" onclick="copyOutput()">In Zwischenablage kopieren</button>
+      <button class="secondary" id="btn_copy" onclick="copyOutput()"></button>
       <span class="status-msg" id="exportStatus"></span>
     </div>
   </div>
 
   <div class="panel">
-    <h2>2. Code eines Mitspielers importieren</h2>
-    <label for="importInput">Code (beginnt mit BLU1:)</label>
+    <h2 id="txt_h2_import">2. Code eines Mitspielers importieren</h2>
+    <label id="txt_label_code" for="importInput">Code (beginnt mit BLU1:)</label>
     <textarea id="importInput" placeholder="BLU1:..."></textarea>
     <div class="row">
-      <button onclick="importCode()">Importieren &amp; anzeigen</button>
+      <button id="btn_import" onclick="importCode()"></button>
     </div>
     <div class="status-msg" id="importStatus"></div>
     <div id="importResult" style="margin-top:10px;"></div>
   </div>
 
-  <div class="hint">
-    Kompatibilitätshinweis: nutzt die native <code class="inline">CompressionStream</code>/<code class="inline">DecompressionStream</code>-API
-    des Browsers (gzip). Funktioniert in aktuellen Versionen von Chrome, Edge, Firefox und Safari.
-    Falls dein Browser das nicht unterstützt, meldet die Seite das direkt.
-    Spell-Icons werden per Hotlink von xivapi.com geladen, nicht selbst gehostet.
-  </div>
+  <div class="hint" id="txt_hint"></div>
 </div>
 
 <script>
-const SPELLS = [{"id":11385,"name":"Wasserkanone","stars":1,"iconId":3253,"order":1},{"id":11402,"name":"Flammensturm","stars":4,"iconId":3270,"order":2},{"id":11390,"name":"Aqua-Atem","stars":4,"iconId":3258,"order":3},{"id":11389,"name":"Rasender Sturz","stars":3,"iconId":3257,"order":4},{"id":11398,"name":"Bohrkanone","stars":2,"iconId":3266,"order":5},{"id":11387,"name":"Hochstrom","stars":4,"iconId":3255,"order":6},{"id":11401,"name":"Böse Ahnung","stars":1,"iconId":3269,"order":7},{"id":11407,"name":"Schlussstich","stars":2,"iconId":3275,"order":8},{"id":11386,"name":"Gesang der Gemarterten","stars":2,"iconId":3254,"order":9},{"id":11404,"name":"Finsterer Blick","stars":4,"iconId":3272,"order":10},{"id":11391,"name":"Plattensprenger","stars":2,"iconId":3259,"order":11},{"id":11393,"name":"Borstigkeit","stars":2,"iconId":3261,"order":12},{"id":11406,"name":"Weißer Wind","stars":3,"iconId":3274,"order":13},{"id":11414,"name":"Petrifikation Stufe 5","stars":2,"iconId":3282,"order":14},{"id":11400,"name":"Blankes Messer","stars":4,"iconId":3268,"order":15},{"id":11418,"name":"Eisstachel","stars":1,"iconId":3286,"order":16},{"id":11395,"name":"Blutsauger","stars":1,"iconId":3263,"order":17},{"id":11392,"name":"Eichelbombe","stars":1,"iconId":3260,"order":18},{"id":11396,"name":"Bombenwurf","stars":2,"iconId":3264,"order":19},{"id":11411,"name":"Einschüchtern","stars":2,"iconId":3279,"order":20},{"id":11408,"name":"Selbstzerstörung","stars":1,"iconId":3276,"order":21},{"id":11409,"name":"Assimilation","stars":2,"iconId":3277,"order":22},{"id":11403,"name":"Verwirrung","stars":3,"iconId":3271,"order":23},{"id":11423,"name":"Spucksardine","stars":1,"iconId":3291,"order":24},{"id":11383,"name":"Nieser","stars":4,"iconId":3251,"order":25},{"id":11384,"name":"4-Tonzen-Gewicht","stars":4,"iconId":3252,"order":26},{"id":11399,"name":"Schiefer Blick","stars":2,"iconId":3267,"order":27},{"id":11388,"name":"Schlechter Atem","stars":3,"iconId":3256,"order":28},{"id":11424,"name":"Diamantrücken","stars":4,"iconId":3292,"order":29},{"id":11417,"name":"Totalabwehr","stars":4,"iconId":3285,"order":30},{"id":11412,"name":"Spitze Zunge","stars":4,"iconId":3280,"order":31},{"id":11410,"name":"Schleimiges Sekret","stars":3,"iconId":3278,"order":32},{"id":11419,"name":"Stimme des Widders","stars":2,"iconId":3287,"order":33},{"id":11420,"name":"Stimme des Drachen","stars":2,"iconId":3288,"order":34},{"id":11405,"name":"Rakete","stars":4,"iconId":3273,"order":35},{"id":11397,"name":"1000 Nadeln","stars":4,"iconId":3265,"order":36},{"id":11422,"name":"Tintenstrahl","stars":3,"iconId":3290,"order":37},{"id":11425,"name":"Feuer-Ango","stars":3,"iconId":3293,"order":38},{"id":11415,"name":"Mondflöte","stars":1,"iconId":3283,"order":39},{"id":11413,"name":"Schweifschraube","stars":4,"iconId":3281,"order":40},{"id":11394,"name":"Geiststoß","stars":1,"iconId":3262,"order":41},{"id":11416,"name":"Verhängnis","stars":4,"iconId":3284,"order":42},{"id":11421,"name":"Unheimliche Aura","stars":2,"iconId":3289,"order":43},{"id":11426,"name":"Federregen","stars":5,"iconId":3294,"order":44},{"id":11427,"name":"Eruption","stars":5,"iconId":3295,"order":45},{"id":11428,"name":"Bergsprenger","stars":5,"iconId":3296,"order":46},{"id":11429,"name":"Schockschlag","stars":5,"iconId":3297,"order":47},{"id":11430,"name":"Gläserner Tanz","stars":5,"iconId":3298,"order":48},{"id":11431,"name":"Wogenschleier","stars":5,"iconId":3299,"order":49},{"id":18295,"name":"Gletscherluft","stars":2,"iconId":3300,"order":50},{"id":18296,"name":"Proteische Welle","stars":3,"iconId":3301,"order":51},{"id":18297,"name":"Schneesturm","stars":4,"iconId":3302,"order":52},{"id":18298,"name":"Elektrogenese","stars":2,"iconId":3303,"order":53},{"id":18299,"name":"Kaltstrahl","stars":2,"iconId":3304,"order":54},{"id":18300,"name":"Abyssal-Transfixion","stars":4,"iconId":3305,"order":55},{"id":18301,"name":"Fiepsen","stars":1,"iconId":3306,"order":56},{"id":18302,"name":"Ekplexie","stars":2,"iconId":3307,"order":57},{"id":18303,"name":"Vitakupo","stars":3,"iconId":3308,"order":58},{"id":18304,"name":"Gobhaut","stars":4,"iconId":3309,"order":59},{"id":18305,"name":"Zauberhammer","stars":2,"iconId":3310,"order":60},{"id":18306,"name":"Absichern","stars":1,"iconId":3311,"order":61},{"id":18307,"name":"Froschkonzert","stars":1,"iconId":3312,"order":62},{"id":18308,"name":"Schallwelle","stars":4,"iconId":3313,"order":63},{"id":18309,"name":"Pfeife","stars":3,"iconId":3314,"order":64},{"id":18310,"name":"Weißer Rösselsprung","stars":2,"iconId":3315,"order":65},{"id":18311,"name":"Schwarzer Rösselsprung","stars":2,"iconId":3316,"order":66},{"id":18312,"name":"Todesstufe 5","stars":4,"iconId":3317,"order":67},{"id":18313,"name":"Raketenwerfer","stars":2,"iconId":3318,"order":68},{"id":18314,"name":"Perpetueller Strahl","stars":4,"iconId":3319,"order":69},{"id":18315,"name":"Sukkulentenschild","stars":1,"iconId":3320,"order":70},{"id":18316,"name":"Rachestoß","stars":2,"iconId":3321,"order":71},{"id":18317,"name":"Engelsflüstern","stars":4,"iconId":3322,"order":72},{"id":18318,"name":"Exuviation","stars":2,"iconId":3323,"order":73},{"id":18319,"name":"Reflux","stars":3,"iconId":3324,"order":74},{"id":18320,"name":"Verschlingen","stars":1,"iconId":3325,"order":75},{"id":18321,"name":"Kurzanalyse","stars":3,"iconId":3326,"order":76},{"id":18322,"name":"Äther-Mimikry","stars":4,"iconId":3327,"order":77},{"id":18323,"name":"Surpanakha","stars":5,"iconId":3328,"order":78},{"id":18324,"name":"Quasar","stars":5,"iconId":3329,"order":79},{"id":18325,"name":"Gewissenstritt","stars":5,"iconId":3330,"order":80},{"id":23264,"name":"Dreizack","stars":1,"iconId":3331,"order":81},{"id":23265,"name":"Kribbeln","stars":2,"iconId":3332,"order":82},{"id":23266,"name":"Tatami-gaeshi","stars":3,"iconId":3333,"order":83},{"id":23267,"name":"Eisiger Nebel","stars":4,"iconId":3334,"order":84},{"id":23269,"name":"Stotram","stars":2,"iconId":3336,"order":85},{"id":23270,"name":"Heiligenstrahl","stars":2,"iconId":3337,"order":86},{"id":23271,"name":"Modrige Flut","stars":1,"iconId":3338,"order":87},{"id":23272,"name":"Engelspeise","stars":3,"iconId":3339,"order":88},{"id":23273,"name":"Barriere","stars":4,"iconId":3340,"order":89},{"id":23275,"name":"Zermalmender Geist","stars":2,"iconId":3342,"order":90},{"id":23276,"name":"Kampfinstinkt","stars":2,"iconId":3343,"order":91},{"id":23277,"name":"Ultravibration","stars":1,"iconId":3344,"order":92},{"id":23278,"name":"Frost","stars":2,"iconId":3345,"order":93},{"id":23279,"name":"Senfbombe","stars":4,"iconId":3346,"order":94},{"id":23280,"name":"Drachenkraft","stars":3,"iconId":3347,"order":95},{"id":23281,"name":"Ätherfunken","stars":1,"iconId":3348,"order":96},{"id":23282,"name":"Hydrosog","stars":4,"iconId":3349,"order":97},{"id":23283,"name":"Verfluchung des Wassers","stars":2,"iconId":3350,"order":98},{"id":23284,"name":"Choco-Meteo","stars":1,"iconId":3351,"order":99},{"id":23285,"name":"Matra-Magie","stars":3,"iconId":3352,"order":100},{"id":23286,"name":"Replikator","stars":4,"iconId":3353,"order":101},{"id":23287,"name":"Beide Enden","stars":5,"iconId":3354,"order":102},{"id":23288,"name":"Phantomhast","stars":5,"iconId":3355,"order":103},{"id":23290,"name":"Monddämmerung","stars":5,"iconId":3357,"order":104},{"id":34563,"name":"Goblingruß","stars":1,"iconId":3358,"order":105},{"id":34564,"name":"Rotation","stars":2,"iconId":3359,"order":106},{"id":34565,"name":"Skiltron","stars":1,"iconId":3360,"order":107},{"id":34566,"name":"Immense Infusion","stars":1,"iconId":3361,"order":108},{"id":34567,"name":"Zauberatem","stars":3,"iconId":3362,"order":109},{"id":34568,"name":"Bestialischer Zorn","stars":4,"iconId":3363,"order":110},{"id":34569,"name":"Mjam Mjam Matschkuchen","stars":2,"iconId":3364,"order":111},{"id":34570,"name":"Großes Reinemachen","stars":3,"iconId":3365,"order":112},{"id":34571,"name":"Rubin-Dynamo","stars":4,"iconId":3366,"order":113},{"id":34572,"name":"Prophezeiungsrune","stars":4,"iconId":3367,"order":114},{"id":34573,"name":"Dimensionsverschiebung","stars":4,"iconId":3368,"order":115},{"id":34574,"name":"Mette marcato","stars":3,"iconId":3369,"order":116},{"id":34575,"name":"Kraftfeld","stars":3,"iconId":3370,"order":117},{"id":34576,"name":"Schwinge des Urteils","stars":3,"iconId":3371,"order":118},{"id":34577,"name":"Laserauge","stars":3,"iconId":3372,"order":119},{"id":34578,"name":"Zuckerstange","stars":2,"iconId":3373,"order":120},{"id":34579,"name":"Ewige Flammen","stars":3,"iconId":3374,"order":121},{"id":34580,"name":"Pitsche, patsche","stars":5,"iconId":3375,"order":122},{"id":34581,"name":"Apokalypsis","stars":5,"iconId":3376,"order":123},{"id":34582,"name":"Sterblichkeit","stars":5,"iconId":3377,"order":124}]; // bereits nach 'order' (Spellbook-Reihenfolge) sortiert
+const SPELLS = [
+  {"id": 11385, "nameDe": "Wasserkanone", "nameEn": "Water Cannon", "nameFr": "Tir d'eau", "nameJa": "水鉄砲", "stars": 1, "iconId": 3253, "order": 1},
+  {"id": 11402, "nameDe": "Flammensturm", "nameEn": "Flame Thrower", "nameFr": "Crache-flammes", "nameJa": "火炎放射", "stars": 4, "iconId": 3270, "order": 2},
+  {"id": 11390, "nameDe": "Aqua-Atem", "nameEn": "Aqua Breath", "nameFr": "Aquasouffle", "nameJa": "アクアブレス", "stars": 4, "iconId": 3258, "order": 3},
+  {"id": 11389, "nameDe": "Rasender Sturz", "nameEn": "Flying Frenzy", "nameFr": "Démence", "nameJa": "狂乱", "stars": 3, "iconId": 3257, "order": 4},
+  {"id": 11398, "nameDe": "Bohrkanone", "nameEn": "Drill Cannons", "nameFr": "Canon-foreur", "nameJa": "ドリルキャノン", "stars": 2, "iconId": 3266, "order": 5},
+  {"id": 11387, "nameDe": "Hochstrom", "nameEn": "High Voltage", "nameFr": "Haute tension", "nameJa": "高圧電流", "stars": 4, "iconId": 3255, "order": 6},
+  {"id": 11401, "nameDe": "Böse Ahnung", "nameEn": "Loom", "nameFr": "Approche masquée", "nameJa": "ルーム", "stars": 1, "iconId": 3269, "order": 7},
+  {"id": 11407, "nameDe": "Schlussstich", "nameEn": "Final Sting", "nameFr": "Dard final", "nameJa": "ファイナルスピア", "stars": 2, "iconId": 3275, "order": 8},
+  {"id": 11386, "nameDe": "Gesang der Gemarterten", "nameEn": "Song of Torment", "nameFr": "Chant de l'agonie", "nameJa": "苦悶の歌", "stars": 2, "iconId": 3254, "order": 9},
+  {"id": 11404, "nameDe": "Finsterer Blick", "nameEn": "Glower", "nameFr": "Regard noir", "nameJa": "グラワー", "stars": 4, "iconId": 3272, "order": 10},
+  {"id": 11391, "nameDe": "Plattensprenger", "nameEn": "Plaincracker", "nameFr": "Brise-plaine", "nameJa": "プレーンクラッカー", "stars": 2, "iconId": 3259, "order": 11},
+  {"id": 11393, "nameDe": "Borstigkeit", "nameEn": "Bristle", "nameFr": "Hérissement", "nameJa": "怒髪天", "stars": 2, "iconId": 3261, "order": 12},
+  {"id": 11406, "nameDe": "Weißer Wind", "nameEn": "White Wind", "nameFr": "Vent blanc", "nameJa": "ホワイトウィンド", "stars": 3, "iconId": 3274, "order": 13},
+  {"id": 11414, "nameDe": "Petrifikation Stufe 5", "nameEn": "Level 5 Petrify", "nameFr": "Pétrification niveau 5", "nameJa": "レベル5石化", "stars": 2, "iconId": 3282, "order": 14},
+  {"id": 11400, "nameDe": "Blankes Messer", "nameEn": "Sharpened Knife", "nameFr": "Couteau aiguisé", "nameJa": "とぎたて", "stars": 4, "iconId": 3268, "order": 15},
+  {"id": 11418, "nameDe": "Eisstachel", "nameEn": "Ice Spikes", "nameFr": "Pointes de glace", "nameJa": "アイススパイク", "stars": 1, "iconId": 3286, "order": 16},
+  {"id": 11395, "nameDe": "Blutsauger", "nameEn": "Blood Drain", "nameFr": "Suceur de sang", "nameJa": "吸血", "stars": 1, "iconId": 3263, "order": 17},
+  {"id": 11392, "nameDe": "Eichelbombe", "nameEn": "Acorn Bomb", "nameFr": "Gland explosif", "nameJa": "どんぐり爆弾", "stars": 1, "iconId": 3260, "order": 18},
+  {"id": 11396, "nameDe": "Bombenwurf", "nameEn": "Bomb Toss", "nameFr": "Lancer de bombe", "nameJa": "爆弾投げ", "stars": 2, "iconId": 3264, "order": 19},
+  {"id": 11411, "nameDe": "Einschüchtern", "nameEn": "Off-guard", "nameFr": "Sans défense", "nameJa": "ガードオファ", "stars": 2, "iconId": 3279, "order": 20},
+  {"id": 11408, "nameDe": "Selbstzerstörung", "nameEn": "Self-destruct", "nameFr": "Auto-destruction", "nameJa": "自爆", "stars": 1, "iconId": 3276, "order": 21},
+  {"id": 11409, "nameDe": "Assimilation", "nameEn": "Transfusion", "nameFr": "Fusion", "nameJa": "融合", "stars": 2, "iconId": 3277, "order": 22},
+  {"id": 11403, "nameDe": "Verwirrung", "nameEn": "Faze", "nameFr": "Désorientation", "nameJa": "猫だまし", "stars": 3, "iconId": 3271, "order": 23},
+  {"id": 11423, "nameDe": "Spucksardine", "nameEn": "Flying Sardine", "nameFr": "Sardine volante", "nameJa": "フライングサーディン", "stars": 1, "iconId": 3291, "order": 24},
+  {"id": 11383, "nameDe": "Nieser", "nameEn": "Snort", "nameFr": "Souffle nasal", "nameJa": "鼻息", "stars": 4, "iconId": 3251, "order": 25},
+  {"id": 11384, "nameDe": "4-Tonzen-Gewicht", "nameEn": "4-tonze Weight", "nameFr": "Poids de 4 tonz", "nameJa": "4トンズ", "stars": 4, "iconId": 3252, "order": 26},
+  {"id": 11399, "nameDe": "Schiefer Blick", "nameEn": "the Look", "nameFr": "Regard intense", "nameJa": "怪視線", "stars": 2, "iconId": 3267, "order": 27},
+  {"id": 11388, "nameDe": "Schlechter Atem", "nameEn": "Bad Breath", "nameFr": "Mauvaise haleine", "nameJa": "臭い息", "stars": 3, "iconId": 3256, "order": 28},
+  {"id": 11424, "nameDe": "Diamantrücken", "nameEn": "Diamondback", "nameFr": "Blindage", "nameJa": "超硬化", "stars": 4, "iconId": 3292, "order": 29},
+  {"id": 11417, "nameDe": "Totalabwehr", "nameEn": "Mighty Guard", "nameFr": "Garde puissante", "nameJa": "マイティガード", "stars": 4, "iconId": 3285, "order": 30},
+  {"id": 11412, "nameDe": "Spitze Zunge", "nameEn": "Sticky Tongue", "nameFr": "Langue poisseuse", "nameJa": "スティッキータン", "stars": 4, "iconId": 3280, "order": 31},
+  {"id": 11410, "nameDe": "Schleimiges Sekret", "nameEn": "Toad Oil", "nameFr": "Huile de crapaud", "nameJa": "ガマの脂", "stars": 3, "iconId": 3278, "order": 32},
+  {"id": 11419, "nameDe": "Stimme des Widders", "nameEn": "the Ram's Voice", "nameFr": "Voix du bélier", "nameJa": "氷結の咆哮", "stars": 2, "iconId": 3287, "order": 33},
+  {"id": 11420, "nameDe": "Stimme des Drachen", "nameEn": "the Dragon's Voice", "nameFr": "Voix du dragon", "nameJa": "雷電の咆哮", "stars": 2, "iconId": 3288, "order": 34},
+  {"id": 11405, "nameDe": "Rakete", "nameEn": "Missile", "nameFr": "Missile", "nameJa": "ミサイル", "stars": 4, "iconId": 3273, "order": 35},
+  {"id": 11397, "nameDe": "1000 Nadeln", "nameEn": "1000 Needles", "nameFr": "1000 aiguilles", "nameJa": "針千本", "stars": 4, "iconId": 3265, "order": 36},
+  {"id": 11422, "nameDe": "Tintenstrahl", "nameEn": "Ink Jet", "nameFr": "Tir d'encre", "nameJa": "インクジェット", "stars": 3, "iconId": 3290, "order": 37},
+  {"id": 11425, "nameDe": "Feuer-Ango", "nameEn": "Fire Angon", "nameFr": "Angon enflammé", "nameJa": "ファイアアンゴン", "stars": 3, "iconId": 3293, "order": 38},
+  {"id": 11415, "nameDe": "Mondflöte", "nameEn": "Moon Flute", "nameFr": "Flûte lunaire", "nameJa": "月の笛", "stars": 1, "iconId": 3283, "order": 39},
+  {"id": 11413, "nameDe": "Schweifschraube", "nameEn": "Tail Screw", "nameFr": "Queue forante", "nameJa": "テールスクリュー", "stars": 4, "iconId": 3281, "order": 40},
+  {"id": 11394, "nameDe": "Geiststoß", "nameEn": "Mind Blast", "nameFr": "Explosion mentale", "nameJa": "マインドブラスト", "stars": 1, "iconId": 3262, "order": 41},
+  {"id": 11416, "nameDe": "Verhängnis", "nameEn": "Doom", "nameFr": "Glas", "nameJa": "死の宣告", "stars": 4, "iconId": 3284, "order": 42},
+  {"id": 11421, "nameDe": "Unheimliche Aura", "nameEn": "Peculiar Light", "nameFr": "Lumière sinistre", "nameJa": "不思議な光", "stars": 2, "iconId": 3289, "order": 43},
+  {"id": 11426, "nameDe": "Federregen", "nameEn": "Feather Rain", "nameFr": "Pluie de plumes", "nameJa": "フェザーレイン", "stars": 5, "iconId": 3294, "order": 44},
+  {"id": 11427, "nameDe": "Eruption", "nameEn": "Eruption", "nameFr": "Éruption", "nameJa": "エラプション", "stars": 5, "iconId": 3295, "order": 45},
+  {"id": 11428, "nameDe": "Bergsprenger", "nameEn": "Mountain Buster", "nameFr": "Casse-montagnes", "nameJa": "マウンテンバスター", "stars": 5, "iconId": 3296, "order": 46},
+  {"id": 11429, "nameDe": "Schockschlag", "nameEn": "Shock Strike", "nameFr": "Frappe de choc", "nameJa": "ショックストライク", "stars": 5, "iconId": 3297, "order": 47},
+  {"id": 11430, "nameDe": "Gläserner Tanz", "nameEn": "Glass Dance", "nameFr": "Danse de glace", "nameJa": "氷雪乱舞", "stars": 5, "iconId": 3298, "order": 48},
+  {"id": 11431, "nameDe": "Wogenschleier", "nameEn": "Veil of the Whorl", "nameFr": "Voile du Déchaîneur", "nameJa": "水神のヴェール", "stars": 5, "iconId": 3299, "order": 49},
+  {"id": 18295, "nameDe": "Gletscherluft", "nameEn": "Alpine Draft", "nameFr": "Vent alpin", "nameJa": "アルペンドラフト", "stars": 2, "iconId": 3300, "order": 50},
+  {"id": 18296, "nameDe": "Proteische Welle", "nameEn": "Protean Wave", "nameFr": "Vague inconstante", "nameJa": "プロティアンウェイブ", "stars": 3, "iconId": 3301, "order": 51},
+  {"id": 18297, "nameDe": "Schneesturm", "nameEn": "Northerlies", "nameFr": "Aquilons", "nameJa": "猛吹雪", "stars": 4, "iconId": 3302, "order": 52},
+  {"id": 18298, "nameDe": "Elektrogenese", "nameEn": "Electrogenesis", "nameFr": "Électrogenèse", "nameJa": "エレクトロジェネシス", "stars": 2, "iconId": 3303, "order": 53},
+  {"id": 18299, "nameDe": "Kaltstrahl", "nameEn": "Kaltstrahl", "nameFr": "Kaltstrahl", "nameJa": "カルトシュトラール", "stars": 2, "iconId": 3304, "order": 54},
+  {"id": 18300, "nameDe": "Abyssal-Transfixion", "nameEn": "Abyssal Transfixion", "nameFr": "Transfixion abyssale", "nameJa": "アビサルトランスフィクション", "stars": 4, "iconId": 3305, "order": 55},
+  {"id": 18301, "nameDe": "Fiepsen", "nameEn": "Chirp", "nameFr": "Gazouillement", "nameJa": "チャープ", "stars": 1, "iconId": 3306, "order": 56},
+  {"id": 18302, "nameDe": "Ekplexie", "nameEn": "Eerie Soundwave", "nameFr": "Onde lugubre", "nameJa": "怪音波", "stars": 2, "iconId": 3307, "order": 57},
+  {"id": 18303, "nameDe": "Vitakupo", "nameEn": "Pom Cure", "nameFr": "Pompon soignant", "nameJa": "ポンポンケアル", "stars": 3, "iconId": 3308, "order": 58},
+  {"id": 18304, "nameDe": "Gobhaut", "nameEn": "Gobskin", "nameFr": "Gobépiderme", "nameJa": "ゴブスキン", "stars": 4, "iconId": 3309, "order": 59},
+  {"id": 18305, "nameDe": "Zauberhammer", "nameEn": "Magic Hammer", "nameFr": "Marteau magique", "nameJa": "マジックハンマー", "stars": 2, "iconId": 3310, "order": 60},
+  {"id": 18306, "nameDe": "Absichern", "nameEn": "Avail", "nameFr": "Ordre défensif", "nameJa": "防御指示", "stars": 1, "iconId": 3311, "order": 61},
+  {"id": 18307, "nameDe": "Froschkonzert", "nameEn": "Frog Legs", "nameFr": "Ritournelle batracienne", "nameJa": "フロッグレッグ", "stars": 1, "iconId": 3312, "order": 62},
+  {"id": 18308, "nameDe": "Schallwelle", "nameEn": "Sonic Boom", "nameFr": "Bang supersonique", "nameJa": "ソニックブーム", "stars": 4, "iconId": 3313, "order": 63},
+  {"id": 18309, "nameDe": "Pfeife", "nameEn": "Whistle", "nameFr": "Sifflement", "nameJa": "ホイッスル", "stars": 3, "iconId": 3314, "order": 64},
+  {"id": 18310, "nameDe": "Weißer Rösselsprung", "nameEn": "White Knight's Tour", "nameFr": "Tour de cavalier blanc", "nameJa": "ホワイトナイトツアー", "stars": 2, "iconId": 3315, "order": 65},
+  {"id": 18311, "nameDe": "Schwarzer Rösselsprung", "nameEn": "Black Knight's Tour", "nameFr": "Tour de cavalier noir", "nameJa": "ブラックナイトツアー", "stars": 2, "iconId": 3316, "order": 66},
+  {"id": 18312, "nameDe": "Todesstufe 5", "nameEn": "Level 5 Death", "nameFr": "Mort niveau 5", "nameJa": "レベル5デス", "stars": 4, "iconId": 3317, "order": 67},
+  {"id": 18313, "nameDe": "Raketenwerfer", "nameEn": "Launcher", "nameFr": "Lance-roquettes", "nameJa": "ランチャー", "stars": 2, "iconId": 3318, "order": 68},
+  {"id": 18314, "nameDe": "Perpetueller Strahl", "nameEn": "Perpetual Ray", "nameFr": "Rayon perpétuel", "nameJa": "パーペチュアルレイ", "stars": 4, "iconId": 3319, "order": 69},
+  {"id": 18315, "nameDe": "Sukkulentenschild", "nameEn": "Cactguard", "nameFr": "Cactugarde", "nameJa": "カクトガード", "stars": 1, "iconId": 3320, "order": 70},
+  {"id": 18316, "nameDe": "Rachestoß", "nameEn": "Revenge Blast", "nameFr": "Éclat vengeur", "nameJa": "リベンジブラスト", "stars": 2, "iconId": 3321, "order": 71},
+  {"id": 18317, "nameDe": "Engelsflüstern", "nameEn": "Angel Whisper", "nameFr": "Grâce angélique", "nameJa": "天使のささやき", "stars": 4, "iconId": 3322, "order": 72},
+  {"id": 18318, "nameDe": "Exuviation", "nameEn": "Exuviation", "nameFr": "Exuviation", "nameJa": "イグジュビエーション", "stars": 2, "iconId": 3323, "order": 73},
+  {"id": 18319, "nameDe": "Reflux", "nameEn": "Reflux", "nameFr": "Reflux", "nameJa": "リフラックス", "stars": 3, "iconId": 3324, "order": 74},
+  {"id": 18320, "nameDe": "Verschlingen", "nameEn": "Devour", "nameFr": "Dévoration", "nameJa": "捕食", "stars": 1, "iconId": 3325, "order": 75},
+  {"id": 18321, "nameDe": "Kurzanalyse", "nameEn": "Condensed Libra", "nameFr": "Acuité concentrée", "nameJa": "プチライブラ", "stars": 3, "iconId": 3326, "order": 76},
+  {"id": 18322, "nameDe": "Äther-Mimikry", "nameEn": "Aetheric Mimicry", "nameFr": "Imitation éthéréenne", "nameJa": "エーテルコピー", "stars": 4, "iconId": 3327, "order": 77},
+  {"id": 18323, "nameDe": "Surpanakha", "nameEn": "Surpanakha", "nameFr": "Surpanakha", "nameJa": "徹甲散弾", "stars": 5, "iconId": 3328, "order": 78},
+  {"id": 18324, "nameDe": "Quasar", "nameEn": "Quasar", "nameFr": "Quasar", "nameJa": "クエーサー", "stars": 5, "iconId": 3329, "order": 79},
+  {"id": 18325, "nameDe": "Gewissenstritt", "nameEn": "J Kick", "nameFr": "Pied justicier", "nameJa": "ジャスティスキック", "stars": 5, "iconId": 3330, "order": 80},
+  {"id": 23264, "nameDe": "Dreizack", "nameEn": "Triple Trident", "nameFr": "Triple trident", "nameJa": "銛三段", "stars": 1, "iconId": 3331, "order": 81},
+  {"id": 23265, "nameDe": "Kribbeln", "nameEn": "Tingle", "nameFr": "Fourmillement", "nameJa": "ビリビリ", "stars": 2, "iconId": 3332, "order": 82},
+  {"id": 23266, "nameDe": "Tatami-gaeshi", "nameEn": "Tatami-gaeshi", "nameFr": "Tatami-gaeshi", "nameJa": "畳返しの術", "stars": 3, "iconId": 3333, "order": 83},
+  {"id": 23267, "nameDe": "Eisiger Nebel", "nameEn": "Cold Fog", "nameFr": "Brume glaciale", "nameJa": "冷たい霧", "stars": 4, "iconId": 3334, "order": 84},
+  {"id": 23269, "nameDe": "Stotram", "nameEn": "Stotram", "nameFr": "Stotram", "nameJa": "ストトラム", "stars": 2, "iconId": 3336, "order": 85},
+  {"id": 23270, "nameDe": "Heiligenstrahl", "nameEn": "Saintly Beam", "nameFr": "Faisceaux sacrés", "nameJa": "セイントビーム", "stars": 2, "iconId": 3337, "order": 86},
+  {"id": 23271, "nameDe": "Modrige Flut", "nameEn": "Feculent Flood", "nameFr": "Sukuinage-gadoue", "nameJa": "ドロドロ掬い投げ", "stars": 1, "iconId": 3338, "order": 87},
+  {"id": 23272, "nameDe": "Engelspeise", "nameEn": "Angel's Snack", "nameFr": "Angélique", "nameJa": "天使のおやつ", "stars": 3, "iconId": 3339, "order": 88},
+  {"id": 23273, "nameDe": "Barriere", "nameEn": "Chelonian Gate", "nameFr": "Barrière mystique", "nameJa": "玄結界", "stars": 4, "iconId": 3340, "order": 89},
+  {"id": 23275, "nameDe": "Zermalmender Geist", "nameEn": "The Rose of Destruction", "nameFr": "Rose de la destruction", "nameJa": "闘霊弾", "stars": 2, "iconId": 3342, "order": 90},
+  {"id": 23276, "nameDe": "Kampfinstinkt", "nameEn": "Basic Instinct", "nameFr": "Instinct profond", "nameJa": "闘争本能", "stars": 2, "iconId": 3343, "order": 91},
+  {"id": 23277, "nameDe": "Ultravibration", "nameEn": "Ultravibration", "nameFr": "Ultravibration", "nameJa": "超振動", "stars": 1, "iconId": 3344, "order": 92},
+  {"id": 23278, "nameDe": "Frost", "nameEn": "Blaze", "nameFr": "Givre", "nameJa": "ブレイズ", "stars": 2, "iconId": 3345, "order": 93},
+  {"id": 23279, "nameDe": "Senfbombe", "nameEn": "Mustard Bomb", "nameFr": "Obus d'ypérite", "nameJa": "マスタードボム", "stars": 4, "iconId": 3346, "order": 94},
+  {"id": 23280, "nameDe": "Drachenkraft", "nameEn": "Dragon Force", "nameFr": "Dracoforce", "nameJa": "ドラゴンフォース", "stars": 3, "iconId": 3347, "order": 95},
+  {"id": 23281, "nameDe": "Ätherfunken", "nameEn": "Aetherial Spark", "nameFr": "Étincelle éthérée", "nameJa": "エーテリックスパーク", "stars": 1, "iconId": 3348, "order": 96},
+  {"id": 23282, "nameDe": "Hydrosog", "nameEn": "Hydro Pull", "nameFr": "Hydrotraction", "nameJa": "ハイドロプル", "stars": 4, "iconId": 3349, "order": 97},
+  {"id": 23283, "nameDe": "Verfluchung des Wassers", "nameEn": "Malediction of Water", "nameFr": "Malédiction de l'eau", "nameJa": "水脈の呪詛", "stars": 2, "iconId": 3350, "order": 98},
+  {"id": 23284, "nameDe": "Choco-Meteo", "nameEn": "Choco Meteor", "nameFr": "Choco-météore", "nameJa": "チョコメテオ", "stars": 1, "iconId": 3351, "order": 99},
+  {"id": 23285, "nameDe": "Matra-Magie", "nameEn": "Matra Magic", "nameFr": "Magie Matra", "nameJa": "マトラマジック", "stars": 3, "iconId": 3352, "order": 100},
+  {"id": 23286, "nameDe": "Replikator", "nameEn": "Peripheral Synthesis", "nameFr": "Impression", "nameJa": "プリントアウト", "stars": 4, "iconId": 3353, "order": 101},
+  {"id": 23287, "nameDe": "Beide Enden", "nameEn": "Both Ends", "nameFr": "Coup de bâton tournicotant", "nameJa": "如意大旋風", "stars": 5, "iconId": 3354, "order": 102},
+  {"id": 23288, "nameDe": "Phantomhast", "nameEn": "Phantom Flurry", "nameFr": "Frénésie spectrale", "nameJa": "鬼宿脚", "stars": 5, "iconId": 3355, "order": 103},
+  {"id": 23290, "nameDe": "Monddämmerung", "nameEn": "Nightbloom", "nameFr": "Lis araignée", "nameJa": "月下彼岸花", "stars": 5, "iconId": 3357, "order": 104},
+  {"id": 34563, "nameDe": "Goblingruß", "nameEn": "Goblin Punch", "nameFr": "Coup de poing gobelin", "nameJa": "ゴブリンパンチ", "stars": 1, "iconId": 3358, "order": 105},
+  {"id": 34564, "nameDe": "Rotation", "nameEn": "Right Round", "nameFr": "Grande culbute", "nameJa": "大回転", "stars": 2, "iconId": 3359, "order": 106},
+  {"id": 34565, "nameDe": "Skiltron", "nameEn": "Schiltron", "nameFr": "Sheltron", "nameJa": "スキルトロン", "stars": 1, "iconId": 3360, "order": 107},
+  {"id": 34566, "nameDe": "Immense Infusion", "nameEn": "Rehydration", "nameFr": "Réhydratation", "nameJa": "補水", "stars": 1, "iconId": 3361, "order": 108},
+  {"id": 34567, "nameDe": "Zauberatem", "nameEn": "Breath of Magic", "nameFr": "Souffle magique", "nameJa": "マジカルブレス", "stars": 3, "iconId": 3362, "order": 109},
+  {"id": 34568, "nameDe": "Bestialischer Zorn", "nameEn": "Wild Rage", "nameFr": "Colère bestiale", "nameJa": "獣魂の怒り", "stars": 4, "iconId": 3363, "order": 110},
+  {"id": 34569, "nameDe": "Mjam Mjam Matschkuchen", "nameEn": "Peat Pelt", "nameFr": "Lancer de boue", "nameJa": "泥団子遊び", "stars": 2, "iconId": 3364, "order": 111},
+  {"id": 34570, "nameDe": "Großes Reinemachen", "nameEn": "Deep Clean", "nameFr": "Grand nettoyage", "nameJa": "大掃除", "stars": 3, "iconId": 3365, "order": 112},
+  {"id": 34571, "nameDe": "Rubin-Dynamo", "nameEn": "Ruby Dynamics", "nameFr": "Générateur rubis", "nameJa": "ルビーダイナモ", "stars": 4, "iconId": 3366, "order": 113},
+  {"id": 34572, "nameDe": "Prophezeiungsrune", "nameEn": "Divination Rune", "nameFr": "Rune de malice", "nameJa": "魔のルーン", "stars": 4, "iconId": 3367, "order": 114},
+  {"id": 34573, "nameDe": "Dimensionsverschiebung", "nameEn": "Dimensional Shift", "nameFr": "Translation dimensionnelle", "nameJa": "ディメンションシフト", "stars": 4, "iconId": 3368, "order": 115},
+  {"id": 34574, "nameDe": "Mette marcato", "nameEn": "Conviction Marcato", "nameFr": "Conviction - marcato", "nameJa": "コンヴィクション・マルカート", "stars": 3, "iconId": 3369, "order": 116},
+  {"id": 34575, "nameDe": "Kraftfeld", "nameEn": "Force Field", "nameFr": "Champ de force", "nameJa": "フォースフィールド", "stars": 3, "iconId": 3370, "order": 117},
+  {"id": 34576, "nameDe": "Schwinge des Urteils", "nameEn": "Winged Reprobation", "nameFr": "Réprobation ailée", "nameJa": "断罪の飛翔", "stars": 3, "iconId": 3371, "order": 118},
+  {"id": 34577, "nameDe": "Laserauge", "nameEn": "Laser Eye", "nameFr": "Faisceau maser", "nameJa": "メーザーアイ", "stars": 3, "iconId": 3372, "order": 119},
+  {"id": 34578, "nameDe": "Zuckerstange", "nameEn": "Candy Cane", "nameFr": "Canne en sucre d'orge", "nameJa": "キャンディケーン", "stars": 2, "iconId": 3373, "order": 120},
+  {"id": 34579, "nameDe": "Ewige Flammen", "nameEn": "Mortal Flame", "nameFr": "Flamme mortelle", "nameJa": "必滅の炎", "stars": 3, "iconId": 3374, "order": 121},
+  {"id": 34580, "nameDe": "Pitsche, patsche", "nameEn": "Sea Shanty", "nameFr": "Explosion tournicoton", "nameJa": "グルグルザパーン", "stars": 5, "iconId": 3375, "order": 122},
+  {"id": 34581, "nameDe": "Apokalypsis", "nameEn": "Apokalypsis", "nameFr": "Apokalypsis", "nameJa": "アポカリュプシス", "stars": 5, "iconId": 3376, "order": 123},
+  {"id": 34582, "nameDe": "Sterblichkeit", "nameEn": "Being Mortal", "nameFr": "Deuil des vivants", "nameJa": "死すべき定め", "stars": 5, "iconId": 3377, "order": 124}
+]; // bereits nach 'order' (Spellbook-Reihenfolge) sortiert
+
+const I18N = {
+  de: {
+    title: 'BLUnion – Spell-Status Companion',
+    h1: 'BLUnion – Spell-Status Companion',
+    subtitle: 'Erzeugt und liest denselben Sync-Code wie das Dalamud-Plugin (Präfix <code class="inline">BLU1:</code>). Läuft komplett im Browser, es wird nichts an einen Server geschickt.',
+    h2Export: '1. Eigenen Status exportieren',
+    labelCharName: 'Charaktername',
+    charNamePlaceholder: 'z.B. G\'raha Tia',
+    filterPlaceholder: 'Name oder Nr. (z.B. 58, #058, a)...',
+    count: (n, total) => `${n} / ${total} gelernt`,
+    btnGenerate: 'Code generieren',
+    btnCheckAll: 'Alle markieren',
+    btnUncheckAll: 'Alle leeren',
+    exportOutputPlaceholder: 'Generierter Code erscheint hier...',
+    btnCopy: 'In Zwischenablage kopieren',
+    h2Import: '2. Code eines Mitspielers importieren',
+    labelCode: 'Code (beginnt mit BLU1:)',
+    btnImport: 'Importieren & anzeigen',
+    hint: 'Kompatibilitätshinweis: nutzt die native <code class="inline">CompressionStream</code>/<code class="inline">DecompressionStream</code>-API des Browsers (gzip). Funktioniert in aktuellen Versionen von Chrome, Edge, Firefox und Safari. Falls dein Browser das nicht unterstützt, meldet die Seite das direkt. Spell-Icons werden per Hotlink von xivapi.com geladen, nicht selbst gehostet.',
+    errNoName: 'Bitte einen Charakternamen eingeben.',
+    okGenerated: (n) => `Code erzeugt (${n} Spells).`,
+    errGeneric: (m) => `Fehler: ${m}`,
+    okCopied: 'In Zwischenablage kopiert.',
+    errPrefix: 'Unbekanntes Code-Format (Präfix "BLU1:" fehlt).',
+    okImported: (name, n, total) => `${name}: ${n} / ${total} Spells gelernt.`,
+    labelMissing: (n) => `Fehlende Spells (${n}):`,
+    errImportFailed: (m) => `Import fehlgeschlagen: ${m}`,
+    unnamed: '(unbenannt)'
+  },
+  en: {
+    title: 'BLUnion – Spell Status Companion',
+    h1: 'BLUnion – Spell Status Companion',
+    subtitle: 'Generates and reads the same sync code as the Dalamud plugin (prefix <code class="inline">BLU1:</code>). Runs entirely in your browser, nothing is sent to a server.',
+    h2Export: '1. Export your own status',
+    labelCharName: 'Character name',
+    charNamePlaceholder: 'e.g. Alice Example',
+    filterPlaceholder: 'Name or # (e.g. 58, #058, a)...',
+    count: (n, total) => `${n} / ${total} learned`,
+    btnGenerate: 'Generate code',
+    btnCheckAll: 'Check all',
+    btnUncheckAll: 'Uncheck all',
+    exportOutputPlaceholder: 'Generated code will appear here...',
+    btnCopy: 'Copy to clipboard',
+    h2Import: '2. Import a party member\'s code',
+    labelCode: 'Code (starts with BLU1:)',
+    btnImport: 'Import & show',
+    hint: 'Compatibility note: uses the browser\'s native <code class="inline">CompressionStream</code>/<code class="inline">DecompressionStream</code> API (gzip). Works in current versions of Chrome, Edge, Firefox and Safari. If your browser doesn\'t support it, the page will tell you directly. Spell icons are hotlinked from xivapi.com, not hosted here.',
+    errNoName: 'Please enter a character name.',
+    okGenerated: (n) => `Code generated (${n} spells).`,
+    errGeneric: (m) => `Error: ${m}`,
+    okCopied: 'Copied to clipboard.',
+    errPrefix: 'Unknown code format (missing "BLU1:" prefix).',
+    okImported: (name, n, total) => `${name}: ${n} / ${total} spells learned.`,
+    labelMissing: (n) => `Missing spells (${n}):`,
+    errImportFailed: (m) => `Import failed: ${m}`,
+    unnamed: '(unnamed)'
+  },
+  fr: {
+    title: 'BLUnion – Compagnon de statut des sorts',
+    h1: 'BLUnion – Compagnon de statut des sorts',
+    subtitle: 'Génère et lit le même code de synchronisation que le plugin Dalamud (préfixe <code class="inline">BLU1:</code>). Fonctionne entièrement dans le navigateur, rien n\'est envoyé à un serveur.',
+    h2Export: '1. Exporter son propre statut',
+    labelCharName: 'Nom du personnage',
+    charNamePlaceholder: 'ex. Alice Exemple',
+    filterPlaceholder: 'Nom ou n° (ex. 58, #058, a)...',
+    count: (n, total) => `${n} / ${total} appris`,
+    btnGenerate: 'Générer le code',
+    btnCheckAll: 'Tout cocher',
+    btnUncheckAll: 'Tout décocher',
+    exportOutputPlaceholder: 'Le code généré apparaîtra ici...',
+    btnCopy: 'Copier dans le presse-papiers',
+    h2Import: '2. Importer le code d\'un coéquipier',
+    labelCode: 'Code (commence par BLU1:)',
+    btnImport: 'Importer et afficher',
+    hint: 'Remarque de compatibilité : utilise l\'API native <code class="inline">CompressionStream</code>/<code class="inline">DecompressionStream</code> du navigateur (gzip). Fonctionne avec les versions actuelles de Chrome, Edge, Firefox et Safari. Si votre navigateur ne le prend pas en charge, la page vous le signalera directement. Les icônes des sorts sont chargées depuis xivapi.com, pas hébergées ici.',
+    errNoName: 'Veuillez entrer un nom de personnage.',
+    okGenerated: (n) => `Code généré (${n} sorts).`,
+    errGeneric: (m) => `Erreur : ${m}`,
+    okCopied: 'Copié dans le presse-papiers.',
+    errPrefix: 'Format de code inconnu (préfixe "BLU1:" manquant).',
+    okImported: (name, n, total) => `${name} : ${n} / ${total} sorts appris.`,
+    labelMissing: (n) => `Sorts manquants (${n}) :`,
+    errImportFailed: (m) => `Échec de l'import : ${m}`,
+    unnamed: '(sans nom)'
+  },
+  ja: {
+    title: 'BLUnion – スペルステータス・コンパニオン',
+    h1: 'BLUnion – スペルステータス・コンパニオン',
+    subtitle: 'Dalamudプラグインと同じ同期コード（接頭辞 <code class="inline">BLU1:</code>）を生成・読み込みします。すべてブラウザ内で完結し、サーバーには何も送信されません。',
+    h2Export: '1. 自分のステータスをエクスポート',
+    labelCharName: 'キャラクター名',
+    charNamePlaceholder: '例：アリス・サンプル',
+    filterPlaceholder: '名前または番号（例：58、#058、a）...',
+    count: (n, total) => `${n} / ${total} 習得済み`,
+    btnGenerate: 'コードを生成',
+    btnCheckAll: 'すべて選択',
+    btnUncheckAll: 'すべて解除',
+    exportOutputPlaceholder: '生成されたコードがここに表示されます...',
+    btnCopy: 'クリップボードにコピー',
+    h2Import: '2. パーティメンバーのコードをインポート',
+    labelCode: 'コード（BLU1:で始まる）',
+    btnImport: 'インポートして表示',
+    hint: '互換性について：ブラウザ標準の <code class="inline">CompressionStream</code>/<code class="inline">DecompressionStream</code> API（gzip）を使用しています。最新版のChrome、Edge、Firefox、Safariで動作します。対応していない場合はページ上に直接表示されます。スペルアイコンはxivapi.comからホットリンクされており、当サイトではホストしていません。',
+    errNoName: 'キャラクター名を入力してください。',
+    okGenerated: (n) => `コードを生成しました（${n}個のスペル）。`,
+    errGeneric: (m) => `エラー：${m}`,
+    okCopied: 'クリップボードにコピーしました。',
+    errPrefix: '不明なコード形式です（"BLU1:"接頭辞がありません）。',
+    okImported: (name, n, total) => `${name}：${n} / ${total} 個のスペルを習得済み。`,
+    labelMissing: (n) => `未習得のスペル（${n}個）：`,
+    errImportFailed: (m) => `インポート失敗：${m}`,
+    unnamed: '（名前なし）'
+  }
+};
+
+const NAME_FIELD = { de: 'nameDe', en: 'nameEn', fr: 'nameFr', ja: 'nameJa' };
+
+function detectDefaultLang() {
+  const supported = Object.keys(I18N);
+  const nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
+  return supported.includes(nav) ? nav : 'en';
+}
+
+let currentLang = detectDefaultLang();
+
+function t() { return I18N[currentLang]; }
+function spellName(s) { return s[NAME_FIELD[currentLang]]; }
+
+function applyStaticTexts() {
+  const s = t();
+  document.getElementById('pageTitle').textContent = s.title;
+  document.getElementById('txt_h1').textContent = s.h1;
+  document.getElementById('txt_subtitle').innerHTML = s.subtitle;
+  document.getElementById('txt_h2_export').textContent = s.h2Export;
+  document.getElementById('txt_label_charname').textContent = s.labelCharName;
+  document.getElementById('charName').placeholder = s.charNamePlaceholder;
+  document.getElementById('filterExport').placeholder = s.filterPlaceholder;
+  document.getElementById('btn_generate').textContent = s.btnGenerate;
+  document.getElementById('btn_checkall').textContent = s.btnCheckAll;
+  document.getElementById('btn_uncheckall').textContent = s.btnUncheckAll;
+  document.getElementById('exportOutput').placeholder = s.exportOutputPlaceholder;
+  document.getElementById('btn_copy').textContent = s.btnCopy;
+  document.getElementById('txt_h2_import').textContent = s.h2Import;
+  document.getElementById('txt_label_code').textContent = s.labelCode;
+  document.getElementById('btn_import').textContent = s.btnImport;
+  document.getElementById('txt_hint').innerHTML = s.hint;
+  document.documentElement.lang = currentLang;
+  updateExportCount();
+}
 
 function starString(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
 
@@ -167,41 +453,53 @@ function buildList(containerId, filterInputId) {
   SPELLS.forEach(s => {
     const row = document.createElement('div');
     row.className = 'spell-row';
-    row.dataset.name = s.name.toLowerCase();
+    row.dataset.id = s.id;
     row.dataset.order = String(s.order);
     row.innerHTML = `
       <input type="checkbox" id="${containerId}_${s.id}" data-id="${s.id}">
       <span class="spell-order">${orderLabel(s.order)}</span>
       <img class="spell-icon" src="${iconUrl(s.iconId)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-      <span class="spell-name">${s.name}</span>
+      <span class="spell-name" data-role="name"></span>
       <span class="stars">${starString(s.stars)}</span>
       <span class="spell-id">#${s.id}</span>
     `;
     container.appendChild(row);
   });
-  document.getElementById(filterInputId).addEventListener('input', (e) => {
-    const raw = e.target.value.trim();
-    // Reine Zahl (mit optionalem führenden '#', führende Nullen egal) -> nach
-    // Spellbook-Nummer filtern. Alles andere -> Teilstring-Suche im Namen.
-    const numMatch = raw.match(/^#?(\d+)$/);
-    container.querySelectorAll('.spell-row').forEach(r => {
-      let visible;
-      if (raw === '') {
-        visible = true;
-      } else if (numMatch) {
-        visible = parseInt(r.dataset.order, 10) === parseInt(numMatch[1], 10);
-      } else {
-        visible = r.dataset.name.includes(raw.toLowerCase());
-      }
-      r.style.display = visible ? '' : 'none';
-    });
-  });
+  refreshSpellNames(containerId);
+  document.getElementById(filterInputId).addEventListener('input', (e) => applyFilter(container, e.target.value));
   container.addEventListener('change', updateExportCount);
+}
+
+function refreshSpellNames(containerId) {
+  const container = document.getElementById(containerId);
+  const byId = Object.fromEntries(SPELLS.map(s => [String(s.id), s]));
+  container.querySelectorAll('.spell-row').forEach(row => {
+    const s = byId[row.dataset.id];
+    const nameEl = row.querySelector('[data-role=name]');
+    if (s && nameEl) nameEl.textContent = spellName(s);
+    row.dataset.name = (s ? spellName(s) : '').toLowerCase();
+  });
+}
+
+function applyFilter(container, raw) {
+  raw = raw.trim();
+  const numMatch = raw.match(/^#?(\d+)$/);
+  container.querySelectorAll('.spell-row').forEach(r => {
+    let visible;
+    if (raw === '') {
+      visible = true;
+    } else if (numMatch) {
+      visible = parseInt(r.dataset.order, 10) === parseInt(numMatch[1], 10);
+    } else {
+      visible = r.dataset.name.includes(raw.toLowerCase());
+    }
+    r.style.display = visible ? '' : 'none';
+  });
 }
 
 function updateExportCount() {
   const checked = document.querySelectorAll('#exportList input[type=checkbox]:checked').length;
-  document.getElementById('exportCount').textContent = `${checked} / ${SPELLS.length} gelernt`;
+  document.getElementById('exportCount').textContent = t().count(checked, SPELLS.length);
 }
 
 function checkAll(value) {
@@ -210,14 +508,14 @@ function checkAll(value) {
 }
 
 async function gzipCompress(str) {
-  if (!('CompressionStream' in window)) throw new Error('Browser unterstützt CompressionStream nicht.');
+  if (!('CompressionStream' in window)) throw new Error('CompressionStream not supported by this browser.');
   const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'));
   const buf = await new Response(stream).arrayBuffer();
   return new Uint8Array(buf);
 }
 
 async function gzipDecompress(bytes) {
-  if (!('DecompressionStream' in window)) throw new Error('Browser unterstützt DecompressionStream nicht.');
+  if (!('DecompressionStream' in window)) throw new Error('DecompressionStream not supported by this browser.');
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
   const buf = await new Response(stream).arrayBuffer();
   return new TextDecoder().decode(buf);
@@ -243,12 +541,13 @@ async function generateCode() {
   const name = document.getElementById('charName').value.trim();
   if (!name) {
     statusEl.className = 'status-msg error';
-    statusEl.textContent = 'Bitte einen Charakternamen eingeben.';
+    statusEl.textContent = t().errNoName;
     return;
   }
   const ids = Array.from(document.querySelectorAll('#exportList input[type=checkbox]:checked'))
     .map(cb => parseInt(cb.dataset.id, 10));
 
+  // Feldnamen exakt wie Models/PlayerSpellStatus.cs in C# (PascalCase).
   const payload = {
     CharacterName: name,
     LearnedSpellIds: ids,
@@ -261,10 +560,10 @@ async function generateCode() {
     const code = 'BLU1:' + bytesToBase64(compressed);
     document.getElementById('exportOutput').value = code;
     statusEl.className = 'status-msg ok';
-    statusEl.textContent = `Code erzeugt (${ids.length} Spells).`;
+    statusEl.textContent = t().okGenerated(ids.length);
   } catch (err) {
     statusEl.className = 'status-msg error';
-    statusEl.textContent = 'Fehler: ' + err.message;
+    statusEl.textContent = t().errGeneric(err.message);
   }
 }
 
@@ -275,7 +574,7 @@ function copyOutput() {
   navigator.clipboard.writeText(out.value).then(() => {
     const statusEl = document.getElementById('exportStatus');
     statusEl.className = 'status-msg ok';
-    statusEl.textContent = 'In Zwischenablage kopiert.';
+    statusEl.textContent = t().okCopied;
   });
 }
 
@@ -290,7 +589,7 @@ async function importCode() {
   const prefix = 'BLU1:';
   if (!raw.startsWith(prefix)) {
     statusEl.className = 'status-msg error';
-    statusEl.textContent = 'Unbekanntes Code-Format (Präfix "BLU1:" fehlt).';
+    statusEl.textContent = t().errPrefix;
     return;
   }
 
@@ -300,38 +599,46 @@ async function importCode() {
     const status = JSON.parse(json);
     const learned = new Set((status.LearnedSpellIds || status.learnedSpellIds || []).map(Number));
 
+    const charName = status.CharacterName || status.characterName || t().unnamed;
     statusEl.className = 'status-msg ok';
-    statusEl.textContent = `${status.CharacterName || status.characterName || '(unbenannt)'}: ${learned.size} / ${SPELLS.length} Spells gelernt.`;
+    statusEl.textContent = t().okImported(charName, learned.size, SPELLS.length);
 
-    const missing = SPELLS.filter(s => !learned.has(s.id));
+    const missing = SPELLS.filter(sp => !learned.has(sp.id));
     const list = document.createElement('div');
     list.className = 'spell-list';
     list.style.maxHeight = '320px';
-    missing.forEach(s => {
+    missing.forEach(sp => {
       const row = document.createElement('div');
       row.className = 'spell-row';
       row.innerHTML = `
-        <span class="spell-order">${orderLabel(s.order)}</span>
-        <img class="spell-icon" src="${iconUrl(s.iconId)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-        <span class="spell-name">${s.name}</span>
-        <span class="stars">${starString(s.stars)}</span>
-        <span class="spell-id">#${s.id}</span>
+        <span class="spell-order">${orderLabel(sp.order)}</span>
+        <img class="spell-icon" src="${iconUrl(sp.iconId)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <span class="spell-name">${spellName(sp)}</span>
+        <span class="stars">${starString(sp.stars)}</span>
+        <span class="spell-id">#${sp.id}</span>
       `;
       list.appendChild(row);
     });
     const label = document.createElement('label');
     label.style.marginTop = '4px';
-    label.textContent = `Fehlende Spells (${missing.length}):`;
+    label.textContent = t().labelMissing(missing.length);
     resultEl.appendChild(label);
     resultEl.appendChild(list);
   } catch (err) {
     statusEl.className = 'status-msg error';
-    statusEl.textContent = 'Import fehlgeschlagen: ' + err.message;
+    statusEl.textContent = t().errImportFailed(err.message);
   }
 }
 
+document.getElementById('langSwitch').addEventListener('change', (e) => {
+  currentLang = e.target.value;
+  applyStaticTexts();
+  refreshSpellNames('exportList');
+});
+
+document.getElementById('langSwitch').value = currentLang;
 buildList('exportList', 'filterExport');
-updateExportCount();
+applyStaticTexts();
 </script>
 </body>
 </html>

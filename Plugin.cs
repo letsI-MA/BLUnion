@@ -36,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
         IObjectTable objectTable,
         IUnlockState unlockState,
         ITextureProvider textureProvider,
+        IClientState clientState,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
@@ -58,7 +59,8 @@ public sealed class Plugin : IDalamudPlugin
             this.comparisonService,
             this.localSpellUnlockService,
             this.syncProvider,
-            textureProvider);
+            textureProvider,
+            clientState);
 
         this.windowSystem.AddWindow(this.mainWindow);
 

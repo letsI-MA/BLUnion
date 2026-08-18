@@ -3,9 +3,11 @@ using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game;
+using Dalamud.Interface;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 
 namespace BLUnion.UI;
 
@@ -79,6 +81,21 @@ public sealed class MainWindow : Window
             MinimumSize = new System.Numerics.Vector2(420, 300),
             MaximumSize = new System.Numerics.Vector2(1200, 1200),
         };
+
+        // Ko-fi-Support-Button als Titelleisten-Icon, analog zu anderen Dalamud-Plugins (Herz
+        // oben rechts neben dem Schließen-Button). Bewusst über die eingebaute
+        // Window.TitleBarButtons-API (List<TitleBarButton>) statt selbst in Draw() gezeichnet -
+        // TitleBarButton ist dabei KEIN verschachtelter Typ von Window, sondern der
+        // eigenständige Dalamud.Interface.Windowing.TitleBarButton (per Reflection gegen die
+        // installierte Dalamud.dll 15.0.3.2 verifiziert, siehe csproj-Kommentar zur API-Version).
+        this.TitleBarButtons.Add(new TitleBarButton
+        {
+            Icon = FontAwesomeIcon.Heart,
+            IconOffset = new System.Numerics.Vector2(2, 1),
+            IconColor = new System.Numerics.Vector4(0.92f, 0.35f, 0.48f, 1f),
+            Click = _ => Util.OpenLink("https://ko-fi.com/galderia"),
+            ShowTooltip = () => ImGui.SetTooltip("Support on Ko-fi"),
+        });
     }
 
     public override void Draw()

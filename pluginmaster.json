@@ -10,8 +10,8 @@
     "RepoUrl": "https://github.com/letsI-MA/BLUnion",
     "IconUrl": "https://raw.githubusercontent.com/letsI-MA/BLUnion/main/images/icon.png",
     "DalamudApiLevel": 15,
-    "DownloadLinkInstall": "https://github.com/letsI-MA/BLUnion/releases/download/v0.1.0/BLUnion-latest.zip",
-    "DownloadLinkUpdate": "https://github.com/letsI-MA/BLUnion/releases/download/v0.1.0/BLUnion-latest.zip",
-    "LastUpdate": "1787044297"
+    "DownloadLinkInstall": "https://github.com/letsI-MA/BLUnion/releases/download/v0.2.0.0/BLUnion-latest.zip",
+    "DownloadLinkUpdate": "https://github.com/letsI-MA/BLUnion/releases/download/v0.2.0.0/BLUnion-latest.zip",
+    "LastUpdate": "1787046859"
   }
 ]

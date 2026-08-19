@@ -40,7 +40,7 @@ Either way, `/blunion` opens the window.
 
 ## Where the data comes from
 
-Spell names, icons, and their order come straight from the game files via Lumina. Monster and source-location info was put together with help from [FFXIV Collect](https://ffxivcollect.com/)'s public API, with some gaps filled in from [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary). A handful of monster/zone names aren't translated into all four languages yet - those fall back to English until I get around to it.
+Spell names, icons, and their order come straight from the game files via [Lumina](https://github.com/NotAdam/Lumina). Monster and source-location info was put together with help from [FFXIV Collect](https://ffxivcollect.com/)'s public API, with some gaps filled in from [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary). A handful of monster/zone names aren't translated into all four languages yet - those fall back to English until I get around to it.
 
 ## Rough architecture
 

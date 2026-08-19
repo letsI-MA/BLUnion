@@ -486,8 +486,10 @@ public sealed class MainWindow : Window
             try
             {
                 this.lastError = null;
-                var localPlayerName = this.partyService.GetPartyMembers()
-                    .FirstOrDefault(m => m.IsBlueMage)?.Name ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
+                // Bewusst direkt der eigene Charaktername (nicht länger "erster Blue Mage in
+                // der Party") - siehe Doc-Kommentar an PartyService.GetLocalPlayerName().
+                var localPlayerName = this.partyService.GetLocalPlayerName()
+                    ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
 
                 var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
                 this.syncProvider.PublishLocalStatus(status);

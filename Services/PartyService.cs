@@ -72,4 +72,16 @@ public sealed class PartyService
 
     public IReadOnlyList<PartyMemberInfo> GetBlueMagePartyMembers()
         => this.GetPartyMembers().Where(m => m.IsBlueMage).ToList();
+
+    /// <summary>
+    /// Liefert den Namen des EIGENEN Charakters direkt aus dem ObjectTable - unabhängig von der
+    /// Party-Reihenfolge/Blue-Mage-Filterung. Bewusst NICHT mehr über
+    /// GetPartyMembers().FirstOrDefault(m => m.IsBlueMage) ermittelt (siehe Bugreport
+    /// 2026-08-19): das griff bei mehreren Blue Mages in der Party fälschlich den ERSTEN Blue
+    /// Mage der Party-Liste statt des eigenen Charakters - dadurch bekamen exportierte Sync-
+    /// Codes teils den Namen eines anderen Party-Mitglieds, wodurch beim Import mehrere Codes
+    /// unter demselben (falschen) Namen landeten und sich gegenseitig überschrieben, statt sich
+    /// als separate Einträge zu addieren.
+    /// </summary>
+    public string? GetLocalPlayerName() => this.objectTable.LocalPlayer?.Name.TextValue;
 }

@@ -3,11 +3,13 @@ using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game;
+using Dalamud.Game.Chat;
 using Dalamud.Interface;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using EcChat = ECommons.Automation.Chat;
 
 namespace BLUnion.UI;
 
@@ -16,8 +18,13 @@ namespace BLUnion.UI;
 /// Party anzeigen, eigenen Status anzeigen, fehlende Spells + Fundort.
 /// Party-Vergleich (Phase 2) und Lernplan (Phase 2/3) sind vorbereitet,
 /// aber bewusst noch nicht der Fokus dieses Fensters.
+///
+/// Implementiert <see cref="IDisposable"/> (anders als die meisten Dalamud-<see cref="Window"/>-
+/// Ableitungen) einzig wegen Feature 3 (siehe <see cref="autoImportAsPartyLeader"/>/
+/// <see cref="OnChatMessage"/>): der dort registrierte Chat-Hook muss beim Entladen des Plugins
+/// zuverlässig wieder abgemeldet werden, siehe <see cref="Dispose"/>.
 /// </summary>
-public sealed class MainWindow : Window
+public sealed class MainWindow : Window, IDisposable
 {
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
@@ -25,6 +32,14 @@ public sealed class MainWindow : Window
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
     private readonly ITextureProvider textureProvider;
+    private readonly IChatGui chatGui;
+    private readonly IPluginLog log;
+
+    /// <summary>Mindestabstand zwischen zwei automatischen Party-Chat-Posts desselben Spielers
+    /// (Feature 2, siehe <see cref="TryAutoShareToPartyChat"/>) - verhindert Chat-Spam, wenn
+    /// mehrfach kurz hintereinander auf "exportieren" geklickt wird, OHNE das sofortige
+    /// Zwischenablage-Kopieren selbst zu verzögern (das läuft davon unabhängig bei jedem Klick).</summary>
+    private static readonly TimeSpan AutoShareCooldown = TimeSpan.FromSeconds(10);
 
     /// <summary>URL des Web Companion (siehe DrawWebCompanionTab) - dieselbe Adresse wie im
     /// README-Abschnitt "Sync without a server" verlinkt.</summary>
@@ -34,6 +49,32 @@ public sealed class MainWindow : Window
     private string comparisonFilterText = string.Empty;
     private string learningPlanFilterText = string.Empty;
     private string? lastError;
+
+    /// <summary>Steuert NUR die Farbe, in der <see cref="lastError"/> angezeigt wird (siehe
+    /// <see cref="DrawLastMessage"/>) - true für echte Fehler (rot), false für reine Erfolgs-/
+    /// Statusmeldungen (grün). Bewusst als zweites Feld statt zwei getrennter string?-Felder:
+    /// es gibt an jeder Stelle im Code ohnehin immer nur GENAU eine aktuelle Meldung, nie beide
+    /// gleichzeitig - ein zusätzliches bool ist da einfacher als zwei Nullable-Strings synchron
+    /// zu halten.</summary>
+    private bool lastMessageIsError;
+
+    /// <summary>Feature 2: wenn aktiviert (Default AN, siehe Konstruktor-Kommentar unten), wird
+    /// der beim Klick auf "exportieren" erzeugte Sync-Code zusätzlich zum Zwischenablage-Kopieren
+    /// automatisch per <see cref="TryAutoShareToPartyChat"/> in den Party-Chat gepostet. Wie
+    /// <see cref="excludeTotems"/>/<see cref="displayLanguage"/> bewusst NICHT persistiert.</summary>
+    private bool autoShareToPartyChat = true;
+
+    /// <summary>Zeitpunkt des letzten automatischen Party-Chat-Posts (Feature 2) - null, solange
+    /// noch nie automatisch gepostet wurde. Siehe <see cref="AutoShareCooldown"/>/
+    /// <see cref="TryAutoShareToPartyChat"/>.</summary>
+    private DateTimeOffset? lastAutoShareAt;
+
+    /// <summary>Feature 3: wenn aktiviert, ist <see cref="OnChatMessage"/> an
+    /// <see cref="IChatGui.ChatMessage"/> angemeldet und übernimmt automatisch jeden im Chat
+    /// gefundenen "BLU:"-Sync-Code. Default AUS (anders als <see cref="autoShareToPartyChat"/>) -
+    /// automatisches Übernehmen fremder Daten ist ein deutlich größerer Eingriff als automatisches
+    /// Teilen der eigenen, das soll der Spieler bewusst erst aktivieren.</summary>
+    private bool autoImportAsPartyLeader;
 
     /// <summary>"Totems ausblenden"-Filter (Comparison-/Lernplan-Tab, siehe DrawComparisonTab/
     /// DrawLearningPlanTab) - EIN gemeinsamer Zustand für beide Tabs, kein separater Toggle pro
@@ -54,7 +95,9 @@ public sealed class MainWindow : Window
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
         ITextureProvider textureProvider,
-        IClientState clientState)
+        IClientState clientState,
+        IChatGui chatGui,
+        IPluginLog log)
         : base("BLUnion###BLUnion")
     {
         this.partyService = partyService;
@@ -63,6 +106,8 @@ public sealed class MainWindow : Window
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;
         this.textureProvider = textureProvider;
+        this.chatGui = chatGui;
+        this.log = log;
 
         // Default anhand der Client-Sprache vorbelegen, falls eine der 4 unterstützten -
         // ClientLanguage kennt aktuell ohnehin nur genau diese 4 Werte, der Fallback greift
@@ -168,11 +213,7 @@ public sealed class MainWindow : Window
 
     private void DrawComparisonTab()
     {
-        if (this.lastError is not null)
-        {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0.4f, 0.4f, 1), this.lastError);
-            ImGui.Separator();
-        }
+        this.DrawLastMessage();
 
         var allSpellIds = this.spellDataService.Spells.Keys;
         var partyStatus = this.syncProvider.GetKnownPartyStatus();
@@ -477,6 +518,12 @@ public sealed class MainWindow : Window
 
     private void DrawSyncTab()
     {
+        // Zeigt insbesondere die Erfolgsmeldung nach dem Export-Button an (siehe unten) - vorher
+        // stand dieser Aufruf hier NICHT, wodurch "Code in Zwischenablage kopiert." erst sichtbar
+        // wurde, wenn man danach zufällig in den Comparison- oder Web-Companion-Tab wechselte
+        // (die einzigen beiden Tabs, die lastError bisher anzeigten). Jetzt konsistent wie dort.
+        this.DrawLastMessage();
+
         ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.SyncIntro, this.displayLanguage));
 
         ImGui.Separator();
@@ -485,7 +532,6 @@ public sealed class MainWindow : Window
         {
             try
             {
-                this.lastError = null;
                 // Bewusst direkt der eigene Charaktername (nicht länger "erster Blue Mage in
                 // der Party") - siehe Doc-Kommentar an PartyService.GetLocalPlayerName().
                 var localPlayerName = this.partyService.GetLocalPlayerName()
@@ -494,12 +540,20 @@ public sealed class MainWindow : Window
                 var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
                 this.syncProvider.PublishLocalStatus(status);
                 var code = this.syncProvider.ExportToCode(status);
+
+                // Zwischenablage-Kopie passiert IMMER sofort bei jedem Klick, unabhängig vom
+                // automatischen Party-Chat-Post weiter unten (der kann wegen Cooldown/fehlender
+                // Party übersprungen werden) - siehe Aufgabenstellung zu Feature 2.
                 ImGui.SetClipboardText(code);
-                this.lastError = UiStrings.Get(UiStrings.Key.ClipboardCopiedMessage, this.displayLanguage);
+
+                var sharedToPartyChat = this.TryAutoShareToPartyChat(code);
+                this.SetSuccessMessage(sharedToPartyChat
+                    ? UiStrings.Get(UiStrings.Key.ClipboardCopiedAndSharedMessage, this.displayLanguage)
+                    : UiStrings.Get(UiStrings.Key.ClipboardCopiedMessage, this.displayLanguage));
             }
             catch (Exception ex)
             {
-                this.lastError = UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message);
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
             }
         }
 
@@ -511,14 +565,29 @@ public sealed class MainWindow : Window
             try
             {
                 this.syncProvider.ImportCode(this.importCodeBuffer);
-                this.lastError = null;
+                this.ClearMessage();
                 this.importCodeBuffer = string.Empty;
             }
             catch (Exception ex)
             {
-                this.lastError = UiStrings.Format(UiStrings.Key.ImportFailed, this.displayLanguage, ex.Message);
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.ImportFailed, this.displayLanguage, ex.Message));
             }
         }
+
+        ImGui.Separator();
+
+        // Feature 3: An-/Abmelden des Chat-Hooks passiert NUR im Moment der tatsächlichen
+        // Änderung (ImGui.Checkbox liefert true nur im Frame des Klicks, ref-Wert ist zu diesem
+        // Zeitpunkt schon aktualisiert) - kein +=/-= bei jedem Frame, siehe OnChatMessage.
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoImportAsLeaderToggle, this.displayLanguage), ref this.autoImportAsPartyLeader))
+        {
+            if (this.autoImportAsPartyLeader)
+                this.chatGui.ChatMessage += this.OnChatMessage;
+            else
+                this.chatGui.ChatMessage -= this.OnChatMessage;
+        }
+
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.AutoImportAsLeaderHint, this.displayLanguage));
 
         ImGui.Separator();
         ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.CurrentlyLoadedPlayersHeader, this.displayLanguage));
@@ -578,8 +647,124 @@ public sealed class MainWindow : Window
         {
             var fixture = createFixture(this.spellDataService);
             this.syncProvider.PublishLocalStatus(fixture);
-            this.lastError = UiStrings.Format(
-                UiStrings.Key.DevFixtureLoaded, this.displayLanguage, fixture.CharacterName, fixture.LearnedSpellIds.Count);
+            this.SetSuccessMessage(UiStrings.Format(
+                UiStrings.Key.DevFixtureLoaded, this.displayLanguage, fixture.CharacterName, fixture.LearnedSpellIds.Count));
+        }
+    }
+
+    /// <summary>Zeigt <see cref="lastError"/> an, falls gesetzt - Rot für echte Fehler, Grün
+    /// (Signalfarbe) für reine Erfolgs-/Statusmeldungen (siehe <see cref="lastMessageIsError"/>).
+    /// Zentral hier statt an jeder Anzeigestelle dupliziert (Sync-, Comparison- und Web-Companion-
+    /// Tab teilen sich alle dieselbe lastError-Anzeige).</summary>
+    private void DrawLastMessage()
+    {
+        if (this.lastError is null)
+            return;
+
+        var color = this.lastMessageIsError
+            ? new System.Numerics.Vector4(1, 0.4f, 0.4f, 1)
+            : new System.Numerics.Vector4(0.3f, 0.85f, 0.4f, 1);
+
+        ImGui.TextColored(color, this.lastError);
+        ImGui.Separator();
+    }
+
+    /// <summary>Setzt eine reine Erfolgs-/Statusmeldung (wird grün angezeigt, siehe
+    /// <see cref="DrawLastMessage"/>) - für alles, was KEIN Fehler ist (Zwischenablage kopiert,
+    /// Link kopiert, Browser geöffnet, Dev-Fixture geladen, automatischer Import).</summary>
+    private void SetSuccessMessage(string message)
+    {
+        this.lastError = message;
+        this.lastMessageIsError = false;
+    }
+
+    /// <summary>Setzt eine echte Fehlermeldung (wird rot angezeigt, siehe
+    /// <see cref="DrawLastMessage"/>) - für alles aus einem catch-Block bzw. sonstige
+    /// tatsächliche Fehlschläge (kaputter Import-Code, Exception beim Export/Browser-Öffnen).</summary>
+    private void SetErrorMessage(string message)
+    {
+        this.lastError = message;
+        this.lastMessageIsError = true;
+    }
+
+    /// <summary>Blendet die aktuelle Meldung wieder aus, ohne eine neue zu setzen (z.B. nach
+    /// erfolgreichem manuellem Import, der bewusst keine eigene Erfolgsmeldung zeigt).</summary>
+    private void ClearMessage() => this.lastError = null;
+
+    /// <summary>Feature 2: postet <paramref name="code"/> automatisch als "/p "-Chatnachricht,
+    /// falls <see cref="autoShareToPartyChat"/> aktiviert ist, der Spieler aktuell in einer Party
+    /// ist (<see cref="PartyService.IsInParty"/>) und seit dem letzten automatischen Post
+    /// mindestens <see cref="AutoShareCooldown"/> vergangen ist. Liefert true, wenn tatsächlich
+    /// gepostet wurde (der Aufrufer wählt danach die passende Erfolgsmeldung) - das Zwischenablage-
+    /// Kopieren selbst läuft in DrawSyncTab komplett unabhängig davon weiter, auch wenn hier
+    /// übersprungen wird.
+    ///
+    /// Cooldown statt z.B. den Button zu deaktivieren: mehrfaches Klicken soll weiterhin sofort
+    /// wieder in die Zwischenablage kopieren (z.B. nachdem man versehentlich woanders hin
+    /// geklickt hat und die Zwischenablage überschrieben wurde) - nur der Chat-Post selbst soll
+    /// nicht bei jedem Klick erneut spammen.</summary>
+    private bool TryAutoShareToPartyChat(string code)
+    {
+        if (!this.autoShareToPartyChat || !this.partyService.IsInParty)
+            return false;
+
+        var now = DateTimeOffset.UtcNow;
+        if (this.lastAutoShareAt is { } lastShare && now - lastShare < AutoShareCooldown)
+            return false;
+
+        EcChat.SendMessage("/p " + code);
+        this.lastAutoShareAt = now;
+        return true;
+    }
+
+    /// <summary>Feature 3: Handler für <see cref="IChatGui.ChatMessage"/>, nur angemeldet
+    /// während <see cref="autoImportAsPartyLeader"/> aktiviert ist (siehe DrawSyncTab). Deckt
+    /// BEWUSST alle Chat-Kanäle/-Typen ab (kein Filtern nach XivChatType) - Sync-Codes können in
+    /// jedem Kanal gepostet werden, nicht nur im Party-Chat, und Spieler schreiben oft noch Text
+    /// drumherum, daher die Suche nach dem Teilstring "BLU:" statt einem Vergleich der kompletten
+    /// Nachricht.</summary>
+    private void OnChatMessage(IHandleableChatMessage message)
+    {
+        var senderName = message.Sender.TextValue;
+
+        // Eigene, selbst gesendete Codes NICHT re-importieren - sonst würde der eigene Eintrag
+        // durch den automatischen Import mit IsLocalPlayer=false überschrieben (siehe
+        // ManualCodeSyncProvider.ImportCode) und das "(Du)"-Suffix ginge verloren. Vergleich des
+        // Chat-Absenders VOR dem Import-Versuch ist einfacher, als den Namen erst aus dem
+        // decodierten Code selbst zu extrahieren - genau dieser einfachere Weg wurde hier bewusst
+        // gewählt (siehe Aufgabenstellung).
+        var localPlayerName = this.partyService.GetLocalPlayerName();
+        if (localPlayerName is not null && string.Equals(senderName, localPlayerName, StringComparison.Ordinal))
+            return;
+
+        var text = message.Message.TextValue;
+        var codeStart = text.IndexOf(ManualCodeSyncProvider.CurrentPrefix, StringComparison.Ordinal);
+        if (codeStart < 0)
+            return;
+
+        // Ab dem gefundenen "BLU:" bis zum nächsten Whitespace (oder Nachrichtenende) extrahieren -
+        // der Code kann irgendwo mitten in einer sonst frei formulierten Chatnachricht stehen.
+        var codeEnd = codeStart;
+        while (codeEnd < text.Length && !char.IsWhiteSpace(text[codeEnd]))
+            codeEnd++;
+
+        var code = text[codeStart..codeEnd];
+
+        try
+        {
+            this.syncProvider.ImportCode(code);
+
+            // Die Dictionary-basierte Ablage in ManualCodeSyncProvider (known[CharacterName] = ...)
+            // überschreibt bei wiederholtem Import automatisch denselben Eintrag statt einen
+            // zweiten anzulegen - mehrfaches Posten/Lesen desselben Codes erzeugt hier bewusst
+            // KEINE separate Historie, nur diese eine, flüchtige Erfolgsmeldung.
+            this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.AutoImportedMessage, this.displayLanguage, senderName));
+        }
+        catch (Exception ex)
+        {
+            // Bewusst NICHT als UI-Fehlermeldung angezeigt (würde bei jedem kaputten/fremden
+            // "BLU:"-Vorkommen im Chat-Rauschen nerven, siehe Aufgabenstellung) - nur geloggt.
+            this.log.Debug(ex, $"Automatischer Sync-Code-Import fehlgeschlagen (Absender \"{senderName}\").");
         }
     }
 
@@ -588,11 +773,7 @@ public sealed class MainWindow : Window
     /// als Code zu exportieren/importieren, ganz ohne laufendes FFXIV.</summary>
     private void DrawWebCompanionTab()
     {
-        if (this.lastError is not null)
-        {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0.4f, 0.4f, 1), this.lastError);
-            ImGui.Separator();
-        }
+        this.DrawLastMessage();
 
         ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.WebCompanionIntro, this.displayLanguage));
         ImGui.Separator();
@@ -607,11 +788,11 @@ public sealed class MainWindow : Window
             try
             {
                 Process.Start(new ProcessStartInfo(WebCompanionUrl) { UseShellExecute = true });
-                this.lastError = UiStrings.Get(UiStrings.Key.BrowserOpenedMessage, this.displayLanguage);
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.BrowserOpenedMessage, this.displayLanguage));
             }
             catch (Exception ex)
             {
-                this.lastError = UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message);
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
             }
         }
 
@@ -620,7 +801,7 @@ public sealed class MainWindow : Window
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.CopyLinkButton, this.displayLanguage)))
         {
             ImGui.SetClipboardText(WebCompanionUrl);
-            this.lastError = UiStrings.Get(UiStrings.Key.LinkCopiedMessage, this.displayLanguage);
+            this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LinkCopiedMessage, this.displayLanguage));
         }
     }
 
@@ -637,6 +818,13 @@ public sealed class MainWindow : Window
 
         ImGui.Separator();
         ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.DisplayLanguageHint, this.displayLanguage));
+
+        // Feature 2: reine Checkbox, kein An-/Abmelden von irgendwas nötig (anders als beim
+        // Chat-Hook in Feature 3) - der aktuelle Wert wird einfach beim nächsten Export-Klick in
+        // DrawSyncTab gelesen (siehe TryAutoShareToPartyChat).
+        ImGui.Separator();
+        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatToggle, this.displayLanguage), ref this.autoShareToPartyChat);
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatHint, this.displayLanguage));
     }
 
     /// <summary>Name EINER Sprache, immer in ihrer eigenen Schrift ("Deutsch", "English",
@@ -664,4 +852,13 @@ public sealed class MainWindow : Window
     /// Lernplan-Tab). Für die meisten Monster DE/FR über FFXIV Collect verifiziert, JA aktuell
     /// noch Platzhalter (= Englisch) bis zum Lumina-Nachzug, siehe Models/Monster.cs.</summary>
     private string GetMonsterName(Monster monster) => monster.GetName(this.displayLanguage);
+
+    /// <summary>Meldet den in Feature 3 (siehe <see cref="autoImportAsPartyLeader"/>/
+    /// <see cref="OnChatMessage"/>) ggf. noch aktiven Chat-Hook wieder ab. Bewusst unbedingt
+    /// (kein if (this.autoImportAsPartyLeader) davor) - ein -= auf ein Delegate, das nie
+    /// abonniert wurde, ist in C# ein sicherer No-Op, und so kann hier nichts vergessen werden.
+    /// Muss von Plugin.Dispose() aufgerufen werden (Window selbst ist nicht IDisposable und wird
+    /// von WindowSystem.RemoveAllWindows() auch nicht entsorgt) - sonst bliebe der Hook nach dem
+    /// Entladen/Neuladen des Plugins bestehen (Speicherleck + doppeltes Feuern bei einem Reload).</summary>
+    public void Dispose() => this.chatGui.ChatMessage -= this.OnChatMessage;
 }

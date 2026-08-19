@@ -30,7 +30,7 @@
   -->
 
   <PropertyGroup>
-    <Version>0.4.0.0</Version>
+    <Version>0.5.0.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>BLUnion</RootNamespace>
     <AssemblyName>BLUnion</AssemblyName>
@@ -38,6 +38,26 @@
 
   <ItemGroup>
     <None Include="Data\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    ECommons: sendet die automatische Party-Chat-Nachricht beim Export (siehe MainWindow.
+    TryAutoShareToPartyChat) über ECommons.Automation.Chat.SendMessage - Dalamud selbst bietet
+    dafür bewusst keine offizielle API (Chat-Eingaben sollen normalerweise vom Spieler kommen).
+
+    Ursprünglich war dafür XivCommon vorgesehen (der früher übliche Standard-Weg im Dalamud-
+    Ecosystem für genau diesen Zweck) - das aber am 2026-08-19 per dotnet build UND per Reflection
+    gegen die installierte Dalamud.dll 15.0.3.2 verifiziert als nicht mehr kompatibel verworfen:
+    XivCommon 9.0.0 (letzte NuGet-Version, unmaintained seit 2023) verlangt im XivCommonBase-
+    Konstruktor den Typ Dalamud.Plugin.DalamudPluginInterface, der in API 15 nicht mehr public
+    ist (CS7036). ECommons ist der heute aktiv gepflegte Nachfolger für diesen Anwendungsfall,
+    Chat.SendMessage darin ruft direkt UIModule::ProcessChatBoxEntry über FFXIVClientStructs auf
+    (kein eigener Sig-Scan mehr nötig). Erfordert einmalig ECommonsMain.Init(...)/.Dispose() in
+    Plugin.cs (siehe dort) - danach ist Chat.SendMessage eine reine static-Methode ohne eigenes
+    Objekt.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ECommons" Version="3.2.1.17" />
   </ItemGroup>
 
 </Project>

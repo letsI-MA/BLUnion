@@ -4,6 +4,7 @@ using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using ECommons;
 
 // IUnlockState wird hier nur als Konstruktor-Parametertyp durchgereicht (siehe
 // LocalSpellUnlockService für den eigentlichen, kommentierten Einsatz) - ist aber
@@ -37,10 +38,18 @@ public sealed class Plugin : IDalamudPlugin
         IUnlockState unlockState,
         ITextureProvider textureProvider,
         IClientState clientState,
+        IChatGui chatGui,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
         this.commandManager = commandManager;
+
+        // Muss vor jeder Nutzung von ECommons-Funktionalität laufen (hier: ECommons.Automation.
+        // Chat.SendMessage in MainWindow.TryAutoShareToPartyChat, siehe csproj-Kommentar zur
+        // PackageReference) - initialisiert u.a. ECommons' eigene Svc-Service-Zugriffe intern.
+        // Keine Module angefordert (params Module[] leer gelassen): Chat.SendMessage braucht
+        // keines der optionalen ECommons-Module (VfxTracking, ObjectFunctions, ...).
+        ECommonsMain.Init(pluginInterface, this);
 
         this.partyService = new PartyService(partyList, objectTable);
         this.spellDataService = new SpellDataService(log);
@@ -60,7 +69,9 @@ public sealed class Plugin : IDalamudPlugin
             this.localSpellUnlockService,
             this.syncProvider,
             textureProvider,
-            clientState);
+            clientState,
+            chatGui,
+            log);
 
         this.windowSystem.AddWindow(this.mainWindow);
 
@@ -78,7 +89,15 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         this.pluginInterface.UiBuilder.Draw -= this.windowSystem.Draw;
+        // Vor RemoveAllWindows: meldet u.a. den Feature-3-Chat-Hook ab (siehe MainWindow.Dispose),
+        // falls "Als Gruppenanführer..." noch aktiviert war - sonst Speicherleck/doppeltes Feuern
+        // bei einem Plugin-Reload.
+        this.mainWindow.Dispose();
         this.windowSystem.RemoveAllWindows();
         this.commandManager.RemoveHandler(CommandName);
+
+        // Als Letztes: ECommonsMain.Init() lief zuerst im Konstruktor, .Dispose() räumt
+        // entsprechend als Letztes wieder auf (u.a. die von ECommons intern gesetzten Hooks).
+        ECommonsMain.Dispose();
     }
 }

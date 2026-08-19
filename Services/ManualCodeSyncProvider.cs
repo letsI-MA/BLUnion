@@ -28,7 +28,12 @@ namespace BLUnion.Services;
 /// </summary>
 public sealed class ManualCodeSyncProvider : ISyncProvider
 {
-    private const string CurrentPrefix = "BLU:";
+    /// <summary>Präfix des aktuellen Codeformats (siehe Klassendoc) - bewusst public: dient
+    /// MainWindow.OnChatMessage (Feature "Gruppenanführer" - automatisches Einlesen von im Chat
+    /// gefundenen Sync-Codes) als EINZIGE Quelle für den zu suchenden Teilstring, statt das
+    /// Literal "BLU:" ein zweites Mal an anderer Stelle zu duplizieren.</summary>
+    public const string CurrentPrefix = "BLU:";
+
     private const string LegacyPrefix = "BLU1:";
 
     /// <summary>Feste Größe der Bitmaske im "BLU:"-Format (128 Bits, siehe Klassendoc).</summary>

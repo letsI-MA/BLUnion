@@ -79,6 +79,12 @@ public static class UiStrings
         CopyLinkButton,
         BrowserOpenedMessage,
         LinkCopiedMessage,
+        ClipboardCopiedAndSharedMessage,
+        AutoShareToPartyChatToggle,
+        AutoShareToPartyChatHint,
+        AutoImportAsLeaderToggle,
+        AutoImportAsLeaderHint,
+        AutoImportedMessage,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -499,6 +505,69 @@ public static class UiStrings
             [DisplayLanguage.English] = "Link copied to clipboard.",
             [DisplayLanguage.French] = "Lien copié dans le presse-papiers.",
             [DisplayLanguage.Japanese] = "リンクをクリップボードにコピーしました。",
+        },
+        // Ersetzt ClipboardCopiedMessage, wenn der Code zusätzlich automatisch in den Party-Chat
+        // gepostet wurde (siehe MainWindow.TryAutoShareToPartyChat) - NICHT verwendet, wenn der
+        // Post wegen des 10-Sekunden-Cooldowns übersprungen wurde (dann weiterhin die normale
+        // ClipboardCopiedMessage, damit es sich nicht wie ein Fehlschlag anfühlt).
+        [Key.ClipboardCopiedAndSharedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Status in Zwischenablage kopiert und in den Party-Chat gepostet.",
+            [DisplayLanguage.English] = "Status copied to clipboard and posted to party chat.",
+            [DisplayLanguage.French] = "Statut copié dans le presse-papiers et publié dans le chat de groupe.",
+            [DisplayLanguage.Japanese] = "状況をクリップボードにコピーし、パーティチャットに投稿しました。",
+        },
+        [Key.AutoShareToPartyChatToggle] = new()
+        {
+            [DisplayLanguage.German] = "Code beim Export automatisch in den Party-Chat (/p) posten",
+            [DisplayLanguage.English] = "Automatically post the code to party chat (/p) on export",
+            [DisplayLanguage.French] = "Publier automatiquement le code dans le chat de groupe (/p) lors de l'export",
+            [DisplayLanguage.Japanese] = "エクスポート時にコードを自動的にパーティチャット (/p) に投稿する",
+        },
+        [Key.AutoShareToPartyChatHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "Passiert nur, wenn du aktuell in einer Party bist, und höchstens alle 10 Sekunden - " +
+                "so gibt es keinen Chat-Spam, falls du mehrmals hintereinander auf 'exportieren' klickst.",
+            [DisplayLanguage.English] =
+                "Only happens while you're currently in a party, and at most once every 10 seconds - " +
+                "so clicking 'export' repeatedly won't spam the chat.",
+            [DisplayLanguage.French] =
+                "Ne se produit que si tu es actuellement dans un groupe, et au maximum toutes les " +
+                "10 secondes - ainsi, cliquer plusieurs fois sur « exporter » ne spamme pas le chat.",
+            [DisplayLanguage.Japanese] =
+                "現在パーティに参加している場合のみ実行され、最短でも10秒間隔です。「エクスポート」を" +
+                "連続でクリックしてもチャットがスパムされません。",
+        },
+        [Key.AutoImportAsLeaderToggle] = new()
+        {
+            [DisplayLanguage.German] = "Als Gruppenanführer eingehende Sync-Codes automatisch übernehmen",
+            [DisplayLanguage.English] = "As party leader, automatically import incoming sync codes",
+            [DisplayLanguage.French] = "En tant que chef de groupe, importer automatiquement les codes de synchro reçus",
+            [DisplayLanguage.Japanese] = "パーティリーダーとして、受信した同期コードを自動的に取り込む",
+        },
+        [Key.AutoImportAsLeaderHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "Durchsucht alle Chat-Kanäle nach Codes im Format \"BLU:...\" - deine eigenen Codes " +
+                "werden dabei nicht erneut importiert.",
+            [DisplayLanguage.English] =
+                "Scans all chat channels for codes in the \"BLU:...\" format - your own codes won't be " +
+                "re-imported.",
+            [DisplayLanguage.French] =
+                "Analyse tous les canaux de discussion à la recherche de codes au format « BLU:... » - " +
+                "tes propres codes ne sont pas réimportés.",
+            [DisplayLanguage.Japanese] =
+                "すべてのチャットチャンネルを「BLU:...」形式のコードについて検索します。自分自身の" +
+                "コードは再インポートされません。",
+        },
+        // {0} = Name des Spielers, dessen Code automatisch übernommen wurde (Feature 3).
+        [Key.AutoImportedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Automatisch importiert: {0}",
+            [DisplayLanguage.English] = "Automatically imported: {0}",
+            [DisplayLanguage.French] = "Importé automatiquement : {0}",
+            [DisplayLanguage.Japanese] = "自動的にインポートしました: {0}",
         },
     };
 

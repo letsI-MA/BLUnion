@@ -84,4 +84,15 @@ public sealed class PartyService
     /// als separate Einträge zu addieren.
     /// </summary>
     public string? GetLocalPlayerName() => this.objectTable.LocalPlayer?.Name.TextValue;
+
+    /// <summary>
+    /// True, wenn der lokale Spieler aktuell Mitglied einer regulären Party ist (mindestens 1
+    /// Eintrag in <see cref="IPartyList"/> - solo zählt hier bewusst NICHT als Party, anders als
+    /// bei <see cref="GetPartyMembers"/>, das im Solo-Fall den eigenen Charakter als Ersatz
+    /// liefert). Gebraucht für das automatische Teilen des Export-Codes im Party-Chat (siehe
+    /// MainWindow.TryAutoShareToPartyChat): ein "/p "-Chatbefehl ohne Party würde vom Spiel nur
+    /// mit einer Systemfehlermeldung quittiert - das wird hier im Vorfeld vermieden, statt den
+    /// Fehler erst vom Spiel zurückgemeldet zu bekommen.
+    /// </summary>
+    public bool IsInParty => this.partyList.Length > 0;
 }

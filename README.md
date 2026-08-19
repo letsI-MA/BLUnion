@@ -1,103 +1,75 @@
-# BLUnion
+# BLUnion 
 
-A [Dalamud](https://github.com/goatcorp/Dalamud) plugin for FINAL FANTASY XIV that helps Blue Mage parties plan together which spells to learn next – including source locations and a web companion for players without the plugin installed.
+A Dalamud plugin for FINAL FANTASY XIV that helps groups of Blue Mages figure out what to learn next, together.
 
-> ⚠️ **Early development stage.** This project is being actively developed for a small test group.
+If you've ever tried to organize a BLU spell-hunting session with friends, you know the drill: someone asks "wait, who still needs Diamondback?", nobody remembers, and you end up cross-referencing spellbooks by hand. BLUnion automates that part.
 
-## What does BLUnion do?
+It reads your own learned spells directly from the game (no manual entry), lets you compare progress with your party, and shows you where to actually get the spells you're missing - monster, zone, coordinates if known. There's also a "Learning Plan" tab that groups missing spells by monster, so if one enemy teaches three things your group needs, you'll see that at a glance instead of hunting spell by spell.
 
-When several Blue Mages are in a party together, BLUnion shows:
+This is still an early build I'm actively working on with a small group of friends testing it. Expect rough edges.
 
-- **Who already has which spells learned** – detected automatically, no manual entry needed
-- **Which spells the group is still missing**, prioritized by how many players need them
-- **Where to learn a missing spell** (monster, zone/dungeon/trial, coordinates where known)
-- **Which monster covers several missing spells at once** (the "Learning Plan" tab), so the group can plan efficiently
+## What it does
 
-The plugin does **not** automate any gameplay – it only reads and compares information.
+- Detects your party and who in it is a Blue Mage
+- Reads your own spell status automatically (via Dalamud's `IUnlockState`)
+- Compares multiple players and sorts missing spells by how many people actually need them
+- Shows monster/zone/coordinates for 122 of the 124 spells (the other 2 either need no source or the source data is still incomplete)
+- Filter by name or spell number (`58`, `#058`, whatever)
+- Option to hide totem-only spells if you're not chasing those right now
+- Full UI in German, English, French, and Japanese
+- Sync between players via a short export/import code - no account, no server
+- A [browser companion](https://letsi-ma.github.io/BLUnion/) for people who don't want to install the plugin at all
 
-## Features
+## How sync works
 
-- Party and Blue Mage detection
-- Automatic spell status detection via the official (experimental) Dalamud API `IUnlockState`
-- Multi-player comparison, sorted by urgency
-- Monster/source location database for all 124 Blue Magic spells
-- Filter by name or spellbook number (`58`, `#058`, `a`, ...)
-- "Hide totems" filter for the source display
-- Fully localized UI: **German, English, French, Japanese**
-- Sync between players via export/import codes – no server required
-- A companion **website** (see below), so people without the plugin installed can still contribute their status
+You export your status as a short code and send it however you want - Discord, whatever. Someone else pastes it into the plugin and instantly sees the comparison. No backend, nothing stored anywhere but locally on your own machine.
 
-## Sync without a server
+If you don't have (or don't want) the Dalamud plugin, the [companion site](https://letsi-ma.github.io/BLUnion/) does the same thing in your browser - generate a code, read someone else's, done.
 
-Each player can export their own spell status as a compact text code (`BLU:...`) and share it with others, e.g. via Discord. Others import the code in the plugin and immediately see the comparison – no central server, no registration required. (Older `BLU1:...` codes from before this format change can still be imported during the transition period, but are no longer generated.)
+## Installing it
 
-For players who don't want to (or can't) install a Dalamud plugin, there's a web companion at **[letsi-ma.github.io/BLUnion](https://letsi-ma.github.io/BLUnion/)**, which can generate and read the same code directly in the browser – without FFXIV even running.
+The easiest way is via the custom plugin repository:
 
-## Installation
+1. In-game: `/xlsettings` → Experimental → Custom Plugin Repositories
+2. Add: `https://raw.githubusercontent.com/letsI-MA/BLUnion/main/pluginmaster.json`
+3. Save. BLUnion now shows up under Available Plugins in `/xlplugins`, updates included.
 
-**Recommended: via custom plugin repository**
+If you'd rather build it yourself: clone the repo, `dotnet build`, then point Dalamud's Dev Plugin Locations at the resulting DLL.
 
-1. In-game, open `/xlsettings` → *Experimental* → *Custom Plugin Repositories*.
-2. Paste this URL into an empty field and confirm:
-   ```
-   https://raw.githubusercontent.com/letsI-MA/BLUnion/main/pluginmaster.json
-   ```
-3. Save. BLUnion will now show up under *Available Plugins* in `/xlplugins` and can be installed like any other plugin, including future updates.
+Either way, `/blunion` opens the window.
 
-**Alternative: building from source (dev plugin)**
+## Where the data comes from
 
-1. Build the project (see below).
-2. In `/xlsettings` → *Experimental* → *Dev Plugin Locations*, add the path to the built `BLUnion.dll`.
-3. Enable the plugin via `/xlplugins`.
+Spell names, icons, and their order come straight from the game files via Lumina. Monster and source-location info was put together with help from [FFXIV Collect](https://ffxivcollect.com/)'s public API, with some gaps filled in from [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary). A handful of monster/zone names aren't translated into all four languages yet - those fall back to English until I get around to it.
 
-Either way, open the main window with `/blunion`.
-
-## Build
-
-Requires a local Dalamud installation (`DALAMUD_HOME`) and the .NET SDK matching the installed Dalamud API version.
-
-```
-dotnet build
-```
-
-## Data sources & credits
-
-Spell, monster, and source-location data comes from several sources:
-
-- Spell names, icons, and ordering: pulled directly from the game files (via [Lumina](https://github.com/NotAdam/Lumina)/Dalamud)
-- Monster/source-location mappings: curated with the help of the public API from [FFXIV Collect](https://ffxivcollect.com/) (non-commercial use)
-- Supplementary research: [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary)
-
-Not all monster/location names have been verified in every supported language yet – missing translations are marked as placeholders in the code (falling back to English).
-
-## Architecture
+## Rough architecture
 
 ```
 Plugin
   ├── PartyService            – party / Blue Mage detection
-  ├── LocalSpellUnlockService – own spell status (IUnlockState)
-  ├── SpellDataService        – loads spell/monster/source/location data
+  ├── LocalSpellUnlockService – reads your own spell status
+  ├── SpellDataService        – spell/monster/source/location data
   ├── ComparisonService       – comparison & monster grouping
   ├── SpellFilter             – name/number filtering
-  ├── ISyncProvider           – swappable sync strategy
-  │     └── ManualCodeSyncProvider (export/import code)
-  ├── UiStrings                – centralized, localized UI strings
-  └── UI
-        └── MainWindow – Party / Spell Comparison / Learning Plan / Sync / Settings
+  ├── ISyncProvider           – export/import code sync
+  ├── UiStrings               – all the translated UI text
+  └── UI (MainWindow)         – Party / Comparison / Learning Plan / Sync / Settings
 ```
 
-Static game data (`Data/*.json`) is intentionally kept separate from user settings.
+Game data lives separately from your own settings, on purpose.
 
-## Known limitations
+## Known gaps
 
-- 2 of 124 spells have no source listed (Kaltstrahl, partially) or need none (Water Cannon)
-- Some monster/location names are still placeholders for certain languages
-- Sync is currently manual (code-based) only, no automatic live sync
+- 2 of 124 spells don't have full source info yet
+- Some monster/location names are still English-only placeholders
+- Sync is code-based only for now - no live/automatic sync yet
 
 ## License
 
 See [LICENSE](LICENSE).
 
+# Unite. Learn. Mimic.
+
 ---
 
-*This is an unofficial fan project and is not affiliated with SQUARE ENIX. FINAL FANTASY XIV © SQUARE ENIX CO., LTD.*
+Unofficial fan project, not affiliated with SQUARE ENIX. FINAL FANTASY XIV © SQUARE ENIX CO., LTD.

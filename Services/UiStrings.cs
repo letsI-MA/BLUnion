@@ -85,6 +85,43 @@ public static class UiStrings
         AutoImportAsLeaderToggle,
         AutoImportAsLeaderHint,
         AutoImportedMessage,
+        LiveSyncEnabledToggle,
+        LiveSyncEnabledHint,
+        LiveSyncDeleteProfileButton,
+        LiveSyncPushSucceeded,
+        LiveSyncPushFailed,
+        LiveSyncFetchFailed,
+        LiveSyncDeleteSucceeded,
+        LiveSyncDeleteFailed,
+        LiveSyncBrowseFailed,
+        DevPublishTestProfilesButton,
+        DevTestProfilesPublished,
+        DevTestProfilesFailed,
+
+        // Phase 2: Gruppenfinder-Tab (siehe UI/MainWindow.cs DrawGroupFinderTab).
+        TabGroupFinder,
+        GroupFinderInactiveHint,
+        GroupFinderGoToSettingsButton,
+        GroupFinderGoToSettingsMessage,
+        GroupFinderMyEntryHeader,
+        GroupFinderVisibleToggle,
+        GroupFinderOwnVisibleConfirmation,
+        GroupFinderTagMorning,
+        GroupFinderTagAfternoon,
+        GroupFinderTagEvening,
+        GroupFinderTagWeekend,
+        GroupFinderTagFlexible,
+        GroupFinderNoteLabel,
+        GroupFinderWantedPlayerCountLabel,
+        GroupFinderWantedPlayerCountAny,
+        GroupFinderOthersHeader,
+        GroupFinderDeterminingDataCenter,
+        GroupFinderRefreshButton,
+        GroupFinderAddToComparisonButton,
+        GroupFinderAddedToComparisonMessage,
+        GroupFinderNoEntries,
+        GroupFinderProgressFormat,
+        GroupFinderWantedPlayerCountEntryFormat,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -568,6 +605,306 @@ public static class UiStrings
             [DisplayLanguage.English] = "Automatically imported: {0}",
             [DisplayLanguage.French] = "Importé automatiquement : {0}",
             [DisplayLanguage.Japanese] = "自動的にインポートしました: {0}",
+        },
+        [Key.LiveSyncEnabledToggle] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync aktivieren",
+            [DisplayLanguage.English] = "Enable Live-Sync",
+            [DisplayLanguage.French] = "Activer la synchro en direct",
+            [DisplayLanguage.Japanese] = "ライブ同期を有効にする",
+        },
+        // Transparenz-Hinweis (siehe Aufgabenstellung): erklärt bewusst, dass der eigene Status
+        // auf einem externen Server landet und dort OHNE Authentifizierung per Name+World lesbar
+        // ist - der Nutzer soll das vor dem Aktivieren wissen, nicht erst hinterher entdecken.
+        [Key.LiveSyncEnabledHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "Legt deinen Spell-Status auf einem externen Server ab und ruft automatisch die " +
+                "Profile anderer Blue Mages in deiner Party ab - kein manueller Code-Austausch " +
+                "mehr nötig. Dein Status ist dort öffentlich per Charaktername + World abrufbar " +
+                "(ohne Login), aber nicht durchsuchbar.",
+            [DisplayLanguage.English] =
+                "Stores your spell status on an external server and automatically fetches the " +
+                "profiles of other Blue Mages in your party - no more manual code exchange. Your " +
+                "status is publicly readable there via character name + world (no login), but not " +
+                "browsable/searchable.",
+            [DisplayLanguage.French] =
+                "Enregistre ton statut de sorts sur un serveur externe et récupère automatiquement " +
+                "les profils des autres Mages bleus de ton groupe - plus besoin d'échanger des " +
+                "codes manuellement. Ton statut y est lisible publiquement via nom de personnage + " +
+                "monde (sans connexion), mais non consultable/recherchable.",
+            [DisplayLanguage.Japanese] =
+                "自分のスペル状況を外部サーバーに保存し、パーティ内の他の青魔道士のプロフィールを" +
+                "自動的に取得します。手動でのコード交換は不要になります。自分の状況はキャラクター名" +
+                "とワールドで(ログインなしに)誰でも閲覧可能ですが、一覧検索はできません。",
+        },
+        [Key.LiveSyncDeleteProfileButton] = new()
+        {
+            [DisplayLanguage.German] = "Mein Profil löschen",
+            [DisplayLanguage.English] = "Delete my profile",
+            [DisplayLanguage.French] = "Supprimer mon profil",
+            [DisplayLanguage.Japanese] = "自分のプロフィールを削除",
+        },
+        [Key.LiveSyncPushSucceeded] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: eigenes Profil aktualisiert.",
+            [DisplayLanguage.English] = "Live-Sync: own profile updated.",
+            [DisplayLanguage.French] = "Synchro en direct : profil mis à jour.",
+            [DisplayLanguage.Japanese] = "ライブ同期: 自分のプロフィールを更新しました。",
+        },
+        [Key.LiveSyncPushFailed] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: Aktualisieren des eigenen Profils fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Live-Sync: failed to update own profile ({0})",
+            [DisplayLanguage.French] = "Synchro en direct : échec de la mise à jour du profil ({0})",
+            [DisplayLanguage.Japanese] = "ライブ同期: 自分のプロフィールの更新に失敗しました ({0})",
+        },
+        [Key.LiveSyncFetchFailed] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: Abrufen mindestens eines Party-Profils fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Live-Sync: failed to fetch at least one party profile ({0})",
+            [DisplayLanguage.French] = "Synchro en direct : échec de la récupération d'au moins un profil du groupe ({0})",
+            [DisplayLanguage.Japanese] = "ライブ同期: 少なくとも1件のパーティプロフィールの取得に失敗しました ({0})",
+        },
+        [Key.LiveSyncDeleteSucceeded] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: eigenes Profil gelöscht.",
+            [DisplayLanguage.English] = "Live-Sync: own profile deleted.",
+            [DisplayLanguage.French] = "Synchro en direct : profil supprimé.",
+            [DisplayLanguage.Japanese] = "ライブ同期: 自分のプロフィールを削除しました。",
+        },
+        [Key.LiveSyncDeleteFailed] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: Löschen des eigenen Profils fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Live-Sync: failed to delete own profile ({0})",
+            [DisplayLanguage.French] = "Synchro en direct : échec de la suppression du profil ({0})",
+            [DisplayLanguage.Japanese] = "ライブ同期: 自分のプロフィールの削除に失敗しました ({0})",
+        },
+        [Key.LiveSyncBrowseFailed] = new()
+        {
+            [DisplayLanguage.German] = "Gruppenfinder: Abrufen anderer Spieler fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Group finder: failed to fetch other players ({0})",
+            [DisplayLanguage.French] = "Recherche de groupe : échec de la récupération des autres joueurs ({0})",
+            [DisplayLanguage.Japanese] = "グループファインダー: 他プレイヤーの取得に失敗しました ({0})",
+        },
+        // Dev-Tool (siehe UI/MainWindow.cs DrawSyncTab, neben den bestehenden Dev-Fixture-
+        // Buttons) - veröffentlicht Alice/Bob/Charles als echte Testprofile beim Live-Sync-Worker,
+        // um den Gruppenfinder ohne echte Mitspieler testen zu können.
+        [Key.DevPublishTestProfilesButton] = new()
+        {
+            [DisplayLanguage.German] = "Dev: Testprofile im Gruppenfinder veröffentlichen",
+            [DisplayLanguage.English] = "Dev: Publish test profiles to group finder",
+            [DisplayLanguage.French] = "Dev : publier des profils de test dans la recherche de groupe",
+            [DisplayLanguage.Japanese] = "開発: テストプロフィールをグループファインダーに公開",
+        },
+        // {0} = Anzahl erfolgreich veröffentlichter Testprofile (siehe LiveSyncService.PublishDevTestProfilesAsync).
+        [Key.DevTestProfilesPublished] = new()
+        {
+            [DisplayLanguage.German] = "Dev: {0} Testprofile im Gruppenfinder veröffentlicht.",
+            [DisplayLanguage.English] = "Dev: published {0} test profiles to the group finder.",
+            [DisplayLanguage.French] = "Dev : {0} profils de test publiés dans la recherche de groupe.",
+            [DisplayLanguage.Japanese] = "開発: {0}件のテストプロフィールをグループファインダーに公開しました。",
+        },
+        // {0} = betroffene Fixture(n) + Fehlergrund (siehe LiveSyncService.PublishDevTestProfilesAsync).
+        [Key.DevTestProfilesFailed] = new()
+        {
+            [DisplayLanguage.German] = "Dev: Veröffentlichen der Testprofile fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Dev: failed to publish test profiles ({0})",
+            [DisplayLanguage.French] = "Dev : échec de la publication des profils de test ({0})",
+            [DisplayLanguage.Japanese] = "開発: テストプロフィールの公開に失敗しました ({0})",
+        },
+
+        // Phase 2: Gruppenfinder-Tab.
+        [Key.TabGroupFinder] = new()
+        {
+            [DisplayLanguage.German] = "Gruppenfinder",
+            [DisplayLanguage.English] = "Group Finder",
+            [DisplayLanguage.French] = "Recherche de groupe",
+            [DisplayLanguage.Japanese] = "グループファインダー",
+        },
+        // Erklärt die Voraussetzung aus der Aufgabenstellung: der Gruppenfinder ist KEIN
+        // separates Profil/Login, sondern setzt zwingend aktives Live-Sync voraus.
+        [Key.GroupFinderInactiveHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "Der Gruppenfinder erweitert dein Live-Sync-Profil um Verfügbarkeit, Notiz und " +
+                "gewünschte Mitspieleranzahl - es gibt keinen eigenen Gruppenfinder-Login. Aktiviere " +
+                "zuerst Live-Sync im Settings-Tab, um hier sichtbar zu werden und andere Spieler zu finden.",
+            [DisplayLanguage.English] =
+                "The group finder extends your Live-Sync profile with availability, a note and a " +
+                "desired player count - there's no separate group finder login. Enable Live-Sync in " +
+                "the Settings tab first to become visible here and find other players.",
+            [DisplayLanguage.French] =
+                "La recherche de groupe complète ton profil de synchro en direct avec disponibilité, " +
+                "note et nombre de coéquipiers souhaité - il n'y a pas de connexion séparée. Active " +
+                "d'abord la synchro en direct dans l'onglet Paramètres pour devenir visible ici et " +
+                "trouver d'autres joueurs.",
+            [DisplayLanguage.Japanese] =
+                "グループファインダーは、あなたのライブ同期プロフィールに空き時間・メモ・希望人数を追加" +
+                "する機能です。専用のログインはありません。ここで表示され、他のプレイヤーを見つけるには" +
+                "まず設定タブでライブ同期を有効にしてください。",
+        },
+        [Key.GroupFinderGoToSettingsButton] = new()
+        {
+            [DisplayLanguage.German] = "Wo finde ich Live-Sync?",
+            [DisplayLanguage.English] = "Where do I find Live-Sync?",
+            [DisplayLanguage.French] = "Où trouver la synchro en direct ?",
+            [DisplayLanguage.Japanese] = "ライブ同期はどこ?",
+        },
+        [Key.GroupFinderGoToSettingsMessage] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync aktivierst du im Settings-Tab (Checkbox 'Live-Sync aktivieren').",
+            [DisplayLanguage.English] = "You can enable Live-Sync in the Settings tab (checkbox 'Enable Live-Sync').",
+            [DisplayLanguage.French] = "Tu actives la synchro en direct dans l'onglet Paramètres (case « Activer la synchro en direct »).",
+            [DisplayLanguage.Japanese] = "ライブ同期は設定タブの「ライブ同期を有効にする」チェックボックスで有効化できます。",
+        },
+        [Key.GroupFinderMyEntryHeader] = new()
+        {
+            [DisplayLanguage.German] = "Mein Eintrag",
+            [DisplayLanguage.English] = "My entry",
+            [DisplayLanguage.French] = "Mon entrée",
+            [DisplayLanguage.Japanese] = "自分の登録内容",
+        },
+        [Key.GroupFinderVisibleToggle] = new()
+        {
+            [DisplayLanguage.German] = "Im Gruppenfinder sichtbar",
+            [DisplayLanguage.English] = "Visible in group finder",
+            [DisplayLanguage.French] = "Visible dans la recherche de groupe",
+            [DisplayLanguage.Japanese] = "グループファインダーに表示する",
+        },
+        // {0} = Verfügbarkeits-Tags (bereits übersetzt+kommagetrennt, oder "–"), {1} = Notiz in
+        // Anführungszeichen (oder "–"), {2} = gewünschte Mitspieleranzahl (oder
+        // GroupFinderWantedPlayerCountAny) - alle drei bereits fertig aufbereitet von
+        // MainWindow.DrawGroupFinderTab übergeben, siehe dort. Zeigt IMMER den zuletzt vom Worker
+        // bestätigten Stand (LastKnownOwnProfile), nicht die ggf. noch ungespeicherten
+        // Eingabefelder - einzige sichtbare Bestätigung, dass "Im Gruppenfinder sichtbar"
+        // tatsächlich funktioniert hat (der eigene Eintrag wird aus der "Andere Spieler"-Liste
+        // bewusst herausgefiltert, siehe dort).
+        [Key.GroupFinderOwnVisibleConfirmation] = new()
+        {
+            [DisplayLanguage.German] = "Dein Profil ist im Gruppenfinder sichtbar ({0}, {1}, gesucht: {2}).",
+            [DisplayLanguage.English] = "Your profile is visible in the group finder ({0}, {1}, looking for: {2}).",
+            [DisplayLanguage.French] = "Ton profil est visible dans la recherche de groupe ({0}, {1}, recherché : {2}).",
+            [DisplayLanguage.Japanese] = "あなたのプロフィールはグループファインダーに表示されています ({0}、{1}、募集: {2})。",
+        },
+        [Key.GroupFinderTagMorning] = new()
+        {
+            [DisplayLanguage.German] = "Morgens",
+            [DisplayLanguage.English] = "Morning",
+            [DisplayLanguage.French] = "Matin",
+            [DisplayLanguage.Japanese] = "朝",
+        },
+        [Key.GroupFinderTagAfternoon] = new()
+        {
+            [DisplayLanguage.German] = "Nachmittags",
+            [DisplayLanguage.English] = "Afternoon",
+            [DisplayLanguage.French] = "Après-midi",
+            [DisplayLanguage.Japanese] = "昼",
+        },
+        [Key.GroupFinderTagEvening] = new()
+        {
+            [DisplayLanguage.German] = "Abends",
+            [DisplayLanguage.English] = "Evening",
+            [DisplayLanguage.French] = "Soir",
+            [DisplayLanguage.Japanese] = "夜",
+        },
+        [Key.GroupFinderTagWeekend] = new()
+        {
+            [DisplayLanguage.German] = "Wochenende",
+            [DisplayLanguage.English] = "Weekend",
+            [DisplayLanguage.French] = "Week-end",
+            [DisplayLanguage.Japanese] = "週末",
+        },
+        [Key.GroupFinderTagFlexible] = new()
+        {
+            [DisplayLanguage.German] = "Flexibel",
+            [DisplayLanguage.English] = "Flexible",
+            [DisplayLanguage.French] = "Flexible",
+            [DisplayLanguage.Japanese] = "柔軟",
+        },
+        [Key.GroupFinderNoteLabel] = new()
+        {
+            [DisplayLanguage.German] = "Notiz (max. 60 Zeichen)",
+            [DisplayLanguage.English] = "Note (max. 60 characters)",
+            [DisplayLanguage.French] = "Note (60 caractères max.)",
+            [DisplayLanguage.Japanese] = "メモ (最大60文字)",
+        },
+        [Key.GroupFinderWantedPlayerCountLabel] = new()
+        {
+            [DisplayLanguage.German] = "Gewünschte Mitspieleranzahl (0 = egal)",
+            [DisplayLanguage.English] = "Desired player count (0 = any)",
+            [DisplayLanguage.French] = "Nombre de coéquipiers souhaité (0 = peu importe)",
+            [DisplayLanguage.Japanese] = "希望人数 (0 = 指定なし)",
+        },
+        [Key.GroupFinderWantedPlayerCountAny] = new()
+        {
+            [DisplayLanguage.German] = "egal wie viele",
+            [DisplayLanguage.English] = "any number",
+            [DisplayLanguage.French] = "peu importe",
+            [DisplayLanguage.Japanese] = "人数指定なし",
+        },
+        // {0} = Data Center (siehe LiveSyncService.LastKnownOwnProfile).
+        [Key.GroupFinderOthersHeader] = new()
+        {
+            [DisplayLanguage.German] = "Andere Spieler auf {0}",
+            [DisplayLanguage.English] = "Other players on {0}",
+            [DisplayLanguage.French] = "Autres joueurs sur {0}",
+            [DisplayLanguage.Japanese] = "{0}の他プレイヤー",
+        },
+        // Platzhalter, solange LiveSyncService.LastKnownOwnProfile noch null ist (siehe
+        // Aufgabenstellung: "kurz 'wird ermittelt...' anzeigen statt eines leeren/falschen
+        // Zustands").
+        [Key.GroupFinderDeterminingDataCenter] = new()
+        {
+            [DisplayLanguage.German] = "Data Center wird ermittelt...",
+            [DisplayLanguage.English] = "Determining data center...",
+            [DisplayLanguage.French] = "Détermination du data center...",
+            [DisplayLanguage.Japanese] = "データセンターを確認中...",
+        },
+        [Key.GroupFinderRefreshButton] = new()
+        {
+            [DisplayLanguage.German] = "Aktualisieren",
+            [DisplayLanguage.English] = "Refresh",
+            [DisplayLanguage.French] = "Actualiser",
+            [DisplayLanguage.Japanese] = "更新",
+        },
+        [Key.GroupFinderAddToComparisonButton] = new()
+        {
+            [DisplayLanguage.German] = "In Vergleich aufnehmen",
+            [DisplayLanguage.English] = "Add to comparison",
+            [DisplayLanguage.French] = "Ajouter à la comparaison",
+            [DisplayLanguage.Japanese] = "比較に追加",
+        },
+        // {0} = Charaktername (siehe MainWindow.DrawGroupFinderTab).
+        [Key.GroupFinderAddedToComparisonMessage] = new()
+        {
+            [DisplayLanguage.German] = "'{0}' wurde in den Spell-Vergleich aufgenommen.",
+            [DisplayLanguage.English] = "'{0}' was added to the spell comparison.",
+            [DisplayLanguage.French] = "« {0} » a été ajouté à la comparaison des sorts.",
+            [DisplayLanguage.Japanese] = "「{0}」をスペル比較に追加しました。",
+        },
+        [Key.GroupFinderNoEntries] = new()
+        {
+            [DisplayLanguage.German] = "Aktuell keine anderen sichtbaren Spieler im Gruppenfinder auf diesem Data Center.",
+            [DisplayLanguage.English] = "Currently no other visible players in the group finder on this data center.",
+            [DisplayLanguage.French] = "Actuellement aucun autre joueur visible dans la recherche de groupe sur ce data center.",
+            [DisplayLanguage.Japanese] = "現在このデータセンターのグループファインダーに他の表示中プレイヤーはいません。",
+        },
+        // {0} = Anzahl gelernter Spells, {1} = Gesamtanzahl bekannter Spells.
+        [Key.GroupFinderProgressFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0}/{1} gelernt",
+            [DisplayLanguage.English] = "{0}/{1} learned",
+            [DisplayLanguage.French] = "{0}/{1} appris",
+            [DisplayLanguage.Japanese] = "{0}/{1} 習得済み",
+        },
+        // {0} = entweder die Zahl der gewünschten Mitspieler oder GroupFinderWantedPlayerCountAny.
+        [Key.GroupFinderWantedPlayerCountEntryFormat] = new()
+        {
+            [DisplayLanguage.German] = "Gesucht: {0}",
+            [DisplayLanguage.English] = "Looking for: {0}",
+            [DisplayLanguage.French] = "Recherché : {0}",
+            [DisplayLanguage.Japanese] = "募集: {0}",
         },
     };
 

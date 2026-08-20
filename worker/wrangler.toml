@@ -1,0 +1,16 @@
+# BLUnion Live-Sync Worker (Phase 1) - siehe README.md für Setup/Deploy.
+#
+# "name" bestimmt die generierte *.workers.dev-URL (https://<name>.<subdomain>.workers.dev) -
+# nach dem ersten "wrangler deploy" muss diese URL in die Plugin-Konstante
+# LiveSyncService.WorkerBaseUrl (Services/LiveSyncService.cs) eingetragen werden.
+name = "blunion-livesync"
+main = "src/index.ts"
+compatibility_date = "2026-08-20"
+
+# KV-Namespace für die Profil-Speicherung (siehe Datenmodell in README.md). Die "id" hier ist
+# ein Platzhalter - vor dem ersten Deploy per
+#   wrangler kv namespace create BLUNION_PROFILES
+# einen echten Namespace anlegen und dessen "id" hier eintragen (siehe README.md).
+[[kv_namespaces]]
+binding = "BLUNION_PROFILES"
+id = "f0830d1c36fc475ba0dca0093dc6a528"

@@ -26,6 +26,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ComparisonService comparisonService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
+    private readonly Configuration configuration;
+    private readonly LiveSyncService liveSyncService;
 
     private readonly MainWindow mainWindow;
 
@@ -57,6 +59,20 @@ public sealed class Plugin : IDalamudPlugin
         this.localSpellUnlockService = new LocalSpellUnlockService(log, dataManager, unlockState, objectTable);
         this.syncProvider = new ManualCodeSyncProvider(this.spellDataService);
 
+        // Erstes Projekt-Feature mit persistenter Konfiguration (siehe Configuration.cs) - alle
+        // bisherigen UI-Zustände waren bewusst nur In-Memory. GetPluginConfig() liefert beim
+        // allerersten Start null, dann eine frische Configuration mit den dortigen Defaults.
+        this.configuration = this.pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        this.configuration.Initialize(this.pluginInterface);
+
+        this.liveSyncService = new LiveSyncService(
+            this.partyService,
+            this.spellDataService,
+            this.localSpellUnlockService,
+            this.syncProvider,
+            this.configuration,
+            log);
+
         // Statische Spell-/Monster-/Source-/Location-Daten liegen neben der Plugin-DLL.
         var dataDir = Path.Combine(this.pluginInterface.AssemblyLocation.DirectoryName!, "Data");
         log.Information($"Lade Spell-/Monster-/Source-/Location-Daten aus \"{dataDir}\".");
@@ -68,6 +84,8 @@ public sealed class Plugin : IDalamudPlugin
             this.comparisonService,
             this.localSpellUnlockService,
             this.syncProvider,
+            this.configuration,
+            this.liveSyncService,
             textureProvider,
             clientState,
             chatGui,
@@ -95,6 +113,10 @@ public sealed class Plugin : IDalamudPlugin
         this.mainWindow.Dispose();
         this.windowSystem.RemoveAllWindows();
         this.commandManager.RemoveHandler(CommandName);
+
+        // Entsorgt den internen HttpClient (siehe LiveSyncService.Dispose) - sonst bliebe er nach
+        // einem Plugin-Reload als offener Handle bestehen.
+        this.liveSyncService.Dispose();
 
         // Als Letztes: ECommonsMain.Init() lief zuerst im Konstruktor, .Dispose() räumt
         // entsprechend als Letztes wieder auf (u.a. die von ECommons intern gesetzten Hooks).

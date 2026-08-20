@@ -31,9 +31,18 @@ public sealed class MainWindow : Window, IDisposable
     private readonly ComparisonService comparisonService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
+    private readonly Configuration configuration;
+    private readonly LiveSyncService liveSyncService;
     private readonly ITextureProvider textureProvider;
     private readonly IChatGui chatGui;
     private readonly IPluginLog log;
+
+    /// <summary>Grüne Signalfarbe für reine Erfolgs-/Statusmeldungen (siehe <see cref="DrawLastMessage"/>) -
+    /// EINE gemeinsame Konstante statt des Literals an mehreren Stellen, damit z.B. die
+    /// Gruppenfinder-Sichtbarkeits-Bestätigung in <see cref="DrawGroupFinderTab"/> garantiert
+    /// exakt dieselbe Farbe wie "Code in Zwischenablage kopiert." & Co. verwendet, nicht nur
+    /// zufällig einen ähnlichen Farbwert.</summary>
+    private static readonly System.Numerics.Vector4 SuccessMessageColor = new(0.3f, 0.85f, 0.4f, 1);
 
     /// <summary>Mindestabstand zwischen zwei automatischen Party-Chat-Posts desselben Spielers
     /// (Feature 2, siehe <see cref="TryAutoShareToPartyChat"/>) - verhindert Chat-Spam, wenn
@@ -88,12 +97,33 @@ public sealed class MainWindow : Window, IDisposable
     /// Default aus dem Konstruktor.</summary>
     private DisplayLanguage displayLanguage;
 
+    /// <summary>Ob der Gruppenfinder-Tab im VORHERIGEN Frame aktiv war (siehe Draw()) - erkennt
+    /// den Übergang "gerade erst geöffnet", um GENAU dann automatisch
+    /// <see cref="LiveSyncService.TriggerBrowse"/> auszulösen (siehe Aufgabenstellung: "beim
+    /// Öffnen des Tabs", NICHT bei jedem Draw-Call, während der Tab bereits offen ist).</summary>
+    private bool groupFinderTabWasActive;
+
+    /// <summary>True, sobald <see cref="groupFinderVisible"/>/<see cref="groupFinderTags"/>/
+    /// <see cref="groupFinderNoteBuffer"/>/<see cref="groupFinderWantedPlayerCountBuffer"/>
+    /// einmalig aus <see cref="LiveSyncService.LastKnownOwnProfile"/> vorbelegt wurden (siehe
+    /// DrawGroupFinderTab) - NUR einmal pro Session, sonst würde ein weiterer automatischer
+    /// Push (z.B. durch einen neu gelernten Spell mitten in der Bearbeitung) die gerade
+    /// eingegebenen, noch nicht abgeschickten Änderungen wieder überschreiben.</summary>
+    private bool groupFinderVisibilityInitialized;
+
+    private bool groupFinderVisible;
+    private HashSet<AvailabilityTag> groupFinderTags = new();
+    private string groupFinderNoteBuffer = string.Empty;
+    private string groupFinderWantedPlayerCountBuffer = "0";
+
     public MainWindow(
         PartyService partyService,
         SpellDataService spellDataService,
         ComparisonService comparisonService,
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
+        Configuration configuration,
+        LiveSyncService liveSyncService,
         ITextureProvider textureProvider,
         IClientState clientState,
         IChatGui chatGui,
@@ -105,6 +135,8 @@ public sealed class MainWindow : Window, IDisposable
         this.comparisonService = comparisonService;
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;
+        this.configuration = configuration;
+        this.liveSyncService = liveSyncService;
         this.textureProvider = textureProvider;
         this.chatGui = chatGui;
         this.log = log;
@@ -145,6 +177,14 @@ public sealed class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
+        // Läuft JEDEN Frame, unabhängig vom aktuell sichtbaren Tab - Live-Sync-Push/-Fetch sollen
+        // z.B. auch weiterlaufen, während der Party- oder Comparison-Tab offen ist, nicht nur bei
+        // geöffnetem Sync-/Settings-Tab (siehe LiveSyncService.Tick-Doc). Rein zeitgesteuert/
+        // lokal, nie blockierend - siehe dortigen Klassendoc zum Cross-Thread-Zugriff.
+        this.liveSyncService.Tick();
+        if (this.liveSyncService.TryTakePendingResult(out var liveSyncEventKind, out var liveSyncDetail))
+            this.ApplyLiveSyncResult(liveSyncEventKind, liveSyncDetail);
+
         // WindowName trägt neben dem sichtbaren Titel (vor "###") auch die STABILE ImGui-Id
         // (nach "###") - die muss über Sprachwechsel hinweg gleich bleiben (sonst verliert ImGui
         // z.B. Fenstergröße/-position), nur der sichtbare Teil wird pro Frame neu übersetzt.
@@ -180,6 +220,22 @@ public sealed class MainWindow : Window, IDisposable
                 this.DrawSyncTab();
                 ImGui.EndTabItem();
             }
+
+            // Erkennung "Tab gerade erst geöffnet" (siehe groupFinderTabWasActive-Doc): der
+            // BeginTabItem-Rückgabewert wird hier bewusst in eine lokale Variable statt direkt in
+            // die if-Bedingung geschrieben, damit er nach dem Block noch zum Aktualisieren von
+            // groupFinderTabWasActive zur Verfügung steht.
+            var groupFinderTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabGroupFinder, this.displayLanguage) + "###TabGroupFinder");
+            if (groupFinderTabActiveThisFrame)
+            {
+                if (!this.groupFinderTabWasActive)
+                    this.liveSyncService.TriggerBrowse();
+
+                this.DrawGroupFinderTab();
+                ImGui.EndTabItem();
+            }
+
+            this.groupFinderTabWasActive = groupFinderTabActiveThisFrame;
 
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabWebCompanion, this.displayLanguage) + "###TabWebCompanion"))
             {
@@ -635,6 +691,16 @@ public sealed class MainWindow : Window, IDisposable
         this.DrawDevFixtureButton(UiStrings.Get(UiStrings.Key.DevLoadBobButton, this.displayLanguage), DevTestFixtures.CreateBob);
         ImGui.SameLine();
         this.DrawDevFixtureButton(UiStrings.Get(UiStrings.Key.DevLoadCharlesButton, this.displayLanguage), DevTestFixtures.CreateCharles);
+        ImGui.SameLine();
+
+        // Wie die drei Buttons oben unkonditioniert sichtbar (siehe Kommentar über diesem
+        // Dev-Tool-Abschnitt: "absichtlich dauerhaft hier", kein #if DEBUG/Konfigurationsflag in
+        // diesem Projekt) - veröffentlicht dieselben drei Fixtures zusätzlich als ECHTE, im
+        // Gruppenfinder sichtbare Testprofile beim Live-Sync-Worker (siehe
+        // LiveSyncService.PublishDevTestProfiles), um Phase 2 (Browse/"In Vergleich aufnehmen")
+        // ohne einen dritten echten Mitspieler testen zu können.
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.DevPublishTestProfilesButton, this.displayLanguage)))
+            this.liveSyncService.PublishDevTestProfiles();
     }
 
     /// <summary>Lädt einen der Dev-Test-Charaktere aus <see cref="DevTestFixtures"/> und
@@ -663,7 +729,7 @@ public sealed class MainWindow : Window, IDisposable
 
         var color = this.lastMessageIsError
             ? new System.Numerics.Vector4(1, 0.4f, 0.4f, 1)
-            : new System.Numerics.Vector4(0.3f, 0.85f, 0.4f, 1);
+            : SuccessMessageColor;
 
         ImGui.TextColored(color, this.lastError);
         ImGui.Separator();
@@ -690,6 +756,43 @@ public sealed class MainWindow : Window, IDisposable
     /// <summary>Blendet die aktuelle Meldung wieder aus, ohne eine neue zu setzen (z.B. nach
     /// erfolgreichem manuellem Import, der bewusst keine eigene Erfolgsmeldung zeigt).</summary>
     private void ClearMessage() => this.lastError = null;
+
+    /// <summary>Übersetzt ein von <see cref="LiveSyncService.TryTakePendingResult"/> geliefertes
+    /// Ergebnis in eine lokalisierte Meldung über das bestehende SetSuccessMessage/SetErrorMessage-
+    /// Muster (siehe Aufgabenstellung: "konsistent über das bestehende lastMessageIsError-Muster").
+    /// <paramref name="detail"/> ist bewusst unlokalisiert (HTTP-Status/Exception-Text vom Server/
+    /// Netzwerk) - wird nur bei Fehlern über UiStrings.Key.GenericError-artige Format-Keys mit
+    /// eingesetzt, analog zu den bestehenden catch-Blöcken in DrawSyncTab.</summary>
+    private void ApplyLiveSyncResult(LiveSyncEventKind kind, string? detail)
+    {
+        switch (kind)
+        {
+            case LiveSyncEventKind.PushSucceeded:
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LiveSyncPushSucceeded, this.displayLanguage));
+                break;
+            case LiveSyncEventKind.PushFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncPushFailed, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.FetchFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncFetchFailed, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.DeleteSucceeded:
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LiveSyncDeleteSucceeded, this.displayLanguage));
+                break;
+            case LiveSyncEventKind.DeleteFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncDeleteFailed, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.BrowseFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncBrowseFailed, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.DevTestProfilesPublished:
+                this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.DevTestProfilesPublished, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.DevTestProfilesFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.DevTestProfilesFailed, this.displayLanguage, detail ?? "?"));
+                break;
+        }
+    }
 
     /// <summary>Feature 2: postet <paramref name="code"/> automatisch als "/p "-Chatnachricht,
     /// falls <see cref="autoShareToPartyChat"/> aktiviert ist, der Spieler aktuell in einer Party
@@ -768,6 +871,229 @@ public sealed class MainWindow : Window, IDisposable
         }
     }
 
+    /// <summary>Phase 2 "Live-Sync": öffentlicher Gruppenfinder. KEIN separates Profil/Login
+    /// (siehe Aufgabenstellung) - erweitert nur das bestehende Live-Sync-Profil um Sichtbarkeit/
+    /// Verfügbarkeit/Notiz/gewünschte Mitspieleranzahl, daher die Sperre auf
+    /// <see cref="Configuration.LiveSyncEnabled"/> gleich zu Beginn.</summary>
+    private void DrawGroupFinderTab()
+    {
+        this.DrawLastMessage();
+
+        if (!this.configuration.LiveSyncEnabled)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderInactiveHint, this.displayLanguage));
+
+            // Kein echter Tab-Wechsel per Code (siehe Aufgabenstellung: "oder zumindest sagt, wo
+            // die zu finden ist") - zeigt stattdessen bewusst nur einen Hinweis über das
+            // bestehende Meldungs-System, statt fragil in die interne ImGui-Tab-Auswahl
+            // einzugreifen.
+            if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderGoToSettingsButton, this.displayLanguage)))
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupFinderGoToSettingsMessage, this.displayLanguage));
+
+            return;
+        }
+
+        // Einmalige Vorbelegung der lokalen Eingabepuffer aus dem zuletzt vom Server bestätigten
+        // Stand (siehe groupFinderVisibilityInitialized-Doc) - VOR dem allerersten Push in dieser
+        // Session ist LastKnownOwnProfile noch null, dann bleiben die Puffer-Defaults (unsichtbar,
+        // keine Tags, leere Notiz, 0) stehen, bis der erste automatische Push abgeschlossen ist.
+        if (!this.groupFinderVisibilityInitialized && this.liveSyncService.LastKnownOwnProfile is { } ownProfile)
+        {
+            this.groupFinderVisible = ownProfile.VisibleInGroupFinder;
+            this.groupFinderTags = new HashSet<AvailabilityTag>(ownProfile.AvailabilityTags);
+            this.groupFinderNoteBuffer = ownProfile.Note;
+            this.groupFinderWantedPlayerCountBuffer = ownProfile.WantedPlayerCount.ToString();
+            this.groupFinderVisibilityInitialized = true;
+        }
+
+        ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.GroupFinderMyEntryHeader, this.displayLanguage));
+        ImGui.Separator();
+
+        // Checkbox pusht SOFORT bei Klick (siehe LiveSyncService.SetGroupFinderVisibility-Doc) -
+        // kein Debounce, anders als bei den Textfeldern weiter unten.
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupFinderVisibleToggle, this.displayLanguage), ref this.groupFinderVisible))
+            this.liveSyncService.SetGroupFinderVisibility(this.groupFinderVisible);
+
+        // Fünf anklickbare Tags, Mehrfachauswahl möglich (siehe Aufgabenstellung) - jeder Klick
+        // pusht sofort den kompletten aktuellen Auswahlstand (Toggle-Buttons, keine
+        // Tastatureingabe, daher kein Debounce - siehe LiveSyncService.SetGroupFinderAvailabilityTags-Doc).
+        // Enum.GetValues<T>() liefert die Werte in Deklarationsreihenfolge (dasselbe Muster wie
+        // bei den Sprach-Radio-Buttons in DrawSettingsTab) - stabile, vorhersehbare Anzeigereihenfolge.
+        foreach (var tag in Enum.GetValues<AvailabilityTag>())
+        {
+            var selected = this.groupFinderTags.Contains(tag);
+            if (ImGui.Checkbox($"{UiStrings.Get(GetAvailabilityTagLabelKey(tag), this.displayLanguage)}##GroupFinderTag{tag}", ref selected))
+            {
+                if (selected)
+                    this.groupFinderTags.Add(tag);
+                else
+                    this.groupFinderTags.Remove(tag);
+
+                this.liveSyncService.SetGroupFinderAvailabilityTags(this.groupFinderTags);
+            }
+
+            ImGui.SameLine();
+        }
+
+        ImGui.NewLine();
+
+        // Notiz UND Mitspieleranzahl werden NICHT bei jedem Tastendruck gepusht, sondern erst bei
+        // Fokusverlust (siehe Aufgabenstellung, analoges Debounce-Denken wie beim
+        // Auto-Share-Cooldown aus Feature 2) - IsItemDeactivatedAfterEdit() feuert genau einmal,
+        // im Frame des Fokusverlusts NACH einer tatsächlichen Änderung (kein Push bei Fokusverlust
+        // ohne Änderung).
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputText(UiStrings.Get(UiStrings.Key.GroupFinderNoteLabel, this.displayLanguage), ref this.groupFinderNoteBuffer, 60);
+        var notePushNeeded = ImGui.IsItemDeactivatedAfterEdit();
+
+        // ImGuiInputTextFlags.CharsDecimal filtert bereits die meisten Nicht-Ziffern beim Tippen
+        // heraus (siehe Aufgabenstellung "nur Ziffern akzeptieren") - der anschließende
+        // int.TryParse-Fallback unten fängt den ImGui-seitig weiterhin erlaubten Rest ('.', '+',
+        // '-') zusätzlich ab, damit daraus nie ein für den Worker ungültiger Wert gepusht wird
+        // (siehe worker/src/index.ts isValidWantedPlayerCount: lehnt Nicht-Ganzzahlen mit 400 ab).
+        ImGui.SetNextItemWidth(80);
+        ImGui.InputText(
+            UiStrings.Get(UiStrings.Key.GroupFinderWantedPlayerCountLabel, this.displayLanguage),
+            ref this.groupFinderWantedPlayerCountBuffer, 2, ImGuiInputTextFlags.CharsDecimal);
+        var wantedPlayerCountPushNeeded = ImGui.IsItemDeactivatedAfterEdit();
+
+        if (notePushNeeded || wantedPlayerCountPushNeeded)
+        {
+            if (!int.TryParse(this.groupFinderWantedPlayerCountBuffer, out var wantedPlayerCount))
+                wantedPlayerCount = 0;
+
+            wantedPlayerCount = Math.Clamp(wantedPlayerCount, 0, 8);
+            this.groupFinderWantedPlayerCountBuffer = wantedPlayerCount.ToString();
+
+            this.liveSyncService.SetGroupFinderNoteAndWantedPlayerCount(this.groupFinderNoteBuffer, wantedPlayerCount);
+        }
+
+        // Sichtbare Bestätigung, dass "Im Gruppenfinder sichtbar" tatsächlich funktioniert hat -
+        // ohne diese Zeile hätte der Nutzer sonst keine Möglichkeit, das zu sehen, weil der
+        // eigene Eintrag bewusst aus der "Andere Spieler"-Liste weiter unten herausgefiltert wird
+        // (siehe dort). Zeigt bewusst den zuletzt vom WORKER bestätigten Stand
+        // (LastKnownOwnProfile, aus der Push-Response) statt der ggf. noch ungespeicherten
+        // Eingabefelder oben - eine Checkbox/ein Tag kann angeklickt sein, während der zugehörige
+        // Push noch unterwegs oder fehlgeschlagen ist. Dieselbe grüne Signalfarbe wie
+        // DrawLastMessage (siehe SuccessMessageColor-Doc) - KEINE neue Farbe definiert.
+        if (this.liveSyncService.LastKnownOwnProfile is { VisibleInGroupFinder: true } confirmedProfile)
+        {
+            var tagsText = confirmedProfile.AvailabilityTags.Count > 0
+                ? string.Join(", ", confirmedProfile.AvailabilityTags.Select(tag => UiStrings.Get(GetAvailabilityTagLabelKey(tag), this.displayLanguage)))
+                : "–";
+            var noteText = string.IsNullOrEmpty(confirmedProfile.Note) ? "–" : $"\"{confirmedProfile.Note}\"";
+            var wantedPlayerCountText = confirmedProfile.WantedPlayerCount == 0
+                ? UiStrings.Get(UiStrings.Key.GroupFinderWantedPlayerCountAny, this.displayLanguage)
+                : confirmedProfile.WantedPlayerCount.ToString();
+
+            ImGui.TextColored(SuccessMessageColor, UiStrings.Format(
+                UiStrings.Key.GroupFinderOwnVisibleConfirmation, this.displayLanguage, tagsText, noteText, wantedPlayerCountText));
+        }
+
+        ImGui.Separator();
+
+        // Data Center kommt AUSSCHLIESSLICH aus der zuletzt bekannten eigenen Profil-Antwort
+        // (siehe LiveSyncService.LastKnownOwnProfile-Doc), NICHT erneut lokal aus der World
+        // hergeleitet (siehe Aufgabenstellung: würde die World->DC-Zuordnung aus
+        // worker/src/worlds.ts im C#-Code duplizieren). Vor dem allerersten Push ist das noch
+        // unbekannt - dann Platzhalter statt eines leeren/falschen Zustands.
+        var dataCenter = this.liveSyncService.LastKnownOwnProfile?.DataCenter;
+        if (dataCenter is null)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderDeterminingDataCenter, this.displayLanguage));
+            return;
+        }
+
+        ImGui.TextUnformatted(UiStrings.Format(UiStrings.Key.GroupFinderOthersHeader, this.displayLanguage, dataCenter));
+        ImGui.SameLine();
+
+        // Manueller Refresh zusätzlich zum automatischen Abruf beim Öffnen des Tabs (siehe
+        // Draw()/groupFinderTabWasActive) - beides zusammen deckt "nicht bei jedem Draw-Call"
+        // aus der Aufgabenstellung ab.
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderRefreshButton, this.displayLanguage)))
+            this.liveSyncService.TriggerBrowse();
+
+        ImGui.Separator();
+
+        // Eigenfilterung ("Andere Spieler" soll wirklich nur ANDERE zeigen) passiert BEWUSST erst
+        // hier beim Rendern, nicht in LiveSyncService.TriggerBrowseAsync: dort läuft der Code nach
+        // dem await auf einem Threadpool-Thread, und this.partyService.GetLocalPlayerName() ist
+        // eine Dalamud-Service-API (IObjectTable) mit Thread-Affinität - ein früherer Versuch,
+        // dort zu filtern, führte zur Laufzeit-Exception "Not on main thread!". Hier in Draw()
+        // läuft der Code garantiert auf dem Framework-Thread (siehe MainWindow.Draw()), der
+        // Zugriff auf partyService ist also unproblematisch. LiveSyncService.LastBrowseResults
+        // liefert deshalb absichtlich die ungefilterten Rohdaten (siehe dortiger Doc-Kommentar).
+        var localPlayerName = this.partyService.GetLocalPlayerName();
+        var entries = this.liveSyncService.LastBrowseResults
+            .Where(entry => !string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal))
+            .ToList();
+
+        if (entries.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderNoEntries, this.displayLanguage));
+            return;
+        }
+
+        var totalSpellCount = this.spellDataService.Spells.Count;
+
+        foreach (var entry in entries)
+        {
+            ImGui.TextUnformatted($"{entry.CharacterName} ({entry.World})");
+            ImGui.SameLine();
+            ImGui.TextUnformatted(UiStrings.Format(
+                UiStrings.Key.GroupFinderProgressFormat, this.displayLanguage, entry.LearnedSpellIds.Count, totalSpellCount));
+
+            if (entry.AvailabilityTags.Count > 0)
+            {
+                var tagLabels = entry.AvailabilityTags.Select(tag => UiStrings.Get(GetAvailabilityTagLabelKey(tag), this.displayLanguage));
+                ImGui.TextUnformatted(string.Join(", ", tagLabels));
+            }
+
+            if (!string.IsNullOrEmpty(entry.Note))
+                ImGui.TextWrapped(entry.Note);
+
+            var wantedPlayerCountText = entry.WantedPlayerCount == 0
+                ? UiStrings.Get(UiStrings.Key.GroupFinderWantedPlayerCountAny, this.displayLanguage)
+                : entry.WantedPlayerCount.ToString();
+            ImGui.TextUnformatted(UiStrings.Format(UiStrings.Key.GroupFinderWantedPlayerCountEntryFormat, this.displayLanguage, wantedPlayerCountText));
+
+            if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddToComparisonButton, this.displayLanguage)}##GroupFinderAdd{entry.CharacterName}"))
+            {
+                var status = new PlayerSpellStatus
+                {
+                    CharacterName = entry.CharacterName,
+                    LearnedSpellIds = entry.LearnedSpellIds,
+                    IsLocalPlayer = false,
+                };
+
+                // Dieselbe Merge-/Dedup-Logik wie beim Live-Sync-Party-Fetch (siehe
+                // LiveSyncService.FetchPartyMemberProfilesAsync) - bewusst hier direkt über
+                // syncProvider.PublishLocalStatus wiederverwendet statt eines zweiten,
+                // eigenständigen Merge-Pfads, damit Party-Auto-Sync und Gruppenfinder-Funde im
+                // selben Comparison-Tab-Datenbestand zusammenlaufen und sich bei gleichem Namen
+                // nicht duplizieren.
+                this.syncProvider.PublishLocalStatus(status);
+                this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.GroupFinderAddedToComparisonMessage, this.displayLanguage, entry.CharacterName));
+            }
+
+            ImGui.Separator();
+        }
+    }
+
+    /// <summary>Zentrale Zuordnung AvailabilityTag -> UiStrings.Key (siehe DrawGroupFinderTab,
+    /// sowohl für die eigenen Tag-Checkboxen als auch für die Anzeige fremder Einträge) - EINE
+    /// Stelle statt zweier unabhängiger switch-Ausdrücke, die bei einem künftigen sechsten Tag
+    /// sonst leicht auseinanderlaufen könnten.</summary>
+    private static UiStrings.Key GetAvailabilityTagLabelKey(AvailabilityTag tag) => tag switch
+    {
+        AvailabilityTag.Morning => UiStrings.Key.GroupFinderTagMorning,
+        AvailabilityTag.Afternoon => UiStrings.Key.GroupFinderTagAfternoon,
+        AvailabilityTag.Evening => UiStrings.Key.GroupFinderTagEvening,
+        AvailabilityTag.Weekend => UiStrings.Key.GroupFinderTagWeekend,
+        AvailabilityTag.Flexible => UiStrings.Key.GroupFinderTagFlexible,
+        _ => throw new ArgumentOutOfRangeException(nameof(tag), tag, null),
+    };
+
     /// <summary>Verweis auf die Browser-Version des Sync-Codes (siehe README-Abschnitt "Sync
     /// without a server") - erlaubt Freunden ohne installiertes Plugin, ihren Status trotzdem
     /// als Code zu exportieren/importieren, ganz ohne laufendes FFXIV.</summary>
@@ -807,6 +1133,10 @@ public sealed class MainWindow : Window, IDisposable
 
     private void DrawSettingsTab()
     {
+        // Zeigt insbesondere Push-/Fetch-/Lösch-Ergebnisse von Live-Sync an (siehe
+        // ApplyLiveSyncResult) - dieselbe zentrale Anzeige wie in den anderen Tabs.
+        this.DrawLastMessage();
+
         ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.DisplayLanguageHeader, this.displayLanguage));
         ImGui.Separator();
 
@@ -825,6 +1155,29 @@ public sealed class MainWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatToggle, this.displayLanguage), ref this.autoShareToPartyChat);
         ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatHint, this.displayLanguage));
+
+        // Live-Sync: einzige NEUE persistierte Einstellung im Projekt (siehe Configuration.cs) -
+        // deshalb sofort per Save() weggeschrieben, statt wie die übrigen Checkboxen hier nur
+        // In-Memory zu leben.
+        ImGui.Separator();
+
+        var liveSyncEnabled = this.configuration.LiveSyncEnabled;
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.LiveSyncEnabledToggle, this.displayLanguage), ref liveSyncEnabled))
+        {
+            this.configuration.LiveSyncEnabled = liveSyncEnabled;
+            this.configuration.Save();
+            // Kein gesonderter PushOwnProfile()-Aufruf beim Einschalten nötig: LiveSyncService.Tick
+            // (läuft ab jetzt jeden Frame, siehe Draw()) erkennt beim allerersten Durchlauf von
+            // selbst, dass noch nichts gepusht wurde, und stößt den ersten Push automatisch an.
+        }
+
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.LiveSyncEnabledHint, this.displayLanguage));
+
+        var hasLiveSyncProfile = this.liveSyncService.HasEditTokenForLocalCharacter();
+        ImGui.BeginDisabled(!hasLiveSyncProfile);
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.LiveSyncDeleteProfileButton, this.displayLanguage)))
+            this.liveSyncService.DeleteOwnProfile();
+        ImGui.EndDisabled();
     }
 
     /// <summary>Name EINER Sprache, immer in ihrer eigenen Schrift ("Deutsch", "English",

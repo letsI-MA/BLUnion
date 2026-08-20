@@ -1,0 +1,9 @@
+# Enthält den Cloudflare-API-Token im Klartext (siehe README.md) - darf NIE ins Repo.
+.env
+
+# Lokale Kopie der Live-Sync-Profile (siehe mirror_kv_to_sqlite.py) - enthält echte
+# Nutzerdaten (Charakternamen, editTokenHash, ...), soll deshalb nicht committet werden.
+blunion_profiles.db
+
+# Python-Bytecode-Cache (entsteht beim Ausführen, kein Quellcode).
+__pycache__/

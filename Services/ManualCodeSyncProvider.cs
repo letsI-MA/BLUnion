@@ -36,8 +36,11 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
 
     private const string LegacyPrefix = "BLU1:";
 
-    /// <summary>Feste Größe der Bitmaske im "BLU:"-Format (128 Bits, siehe Klassendoc).</summary>
-    private const int BitmaskBytes = 16;
+    /// <summary>Feste Größe der Bitmaske im "BLU:"-Format (128 Bits, siehe Klassendoc). Internal
+    /// (nicht mehr private): <see cref="LiveSyncService"/> nutzt dasselbe Bit-Mapping für das
+    /// Live-Sync-Worker-Backend (dort OHNE das Namens-Präfixbyte dieser Klasse hier, siehe
+    /// worker/README.md) und muss die Größe kennen, um sie NICHT zu duplizieren.</summary>
+    internal const int BitmaskBytes = 16;
 
     private readonly Dictionary<string, PlayerSpellStatus> known = new();
     private readonly SpellDataService spellDataService;
@@ -70,15 +73,7 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
                 $"für das Sync-Codeformat (max. {byte.MaxValue}).");
         }
 
-        var orderedIds = this.spellDataService.OrderedSpellIds;
-        EnsureBitmaskCapacity(orderedIds.Count);
-
-        var bitmask = new byte[BitmaskBytes];
-        for (var idx = 0; idx < orderedIds.Count; idx++)
-        {
-            if (status.LearnedSpellIds.Contains(orderedIds[idx]))
-                bitmask[idx >> 3] |= (byte)(1 << (idx % 8));
-        }
+        var bitmask = EncodeBitmask(this.spellDataService, status.LearnedSpellIds);
 
         var payload = new byte[1 + nameBytes.Length + BitmaskBytes];
         payload[0] = (byte)nameBytes.Length;
@@ -130,22 +125,12 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
 
         var name = Encoding.UTF8.GetString(payload, 1, nameLength);
         var bitmaskOffset = 1 + nameLength;
-
-        var orderedIds = this.spellDataService.OrderedSpellIds;
-        EnsureBitmaskCapacity(orderedIds.Count);
-
-        var learnedIds = new HashSet<uint>();
-        for (var idx = 0; idx < orderedIds.Count; idx++)
-        {
-            var b = payload[bitmaskOffset + (idx >> 3)];
-            if ((b & (1 << (idx % 8))) != 0)
-                learnedIds.Add(orderedIds[idx]);
-        }
+        var bitmask = payload[bitmaskOffset..(bitmaskOffset + BitmaskBytes)];
 
         return new PlayerSpellStatus
         {
             CharacterName = name,
-            LearnedSpellIds = learnedIds,
+            LearnedSpellIds = DecodeBitmask(this.spellDataService, bitmask),
         };
     }
 
@@ -177,10 +162,59 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
         }
     }
 
-    private static string ToBase64Url(byte[] bytes) =>
+    /// <summary>Kodiert eine Menge gelernter Spell-Ids als 16-Byte-Bitmaske - DIE kanonische
+    /// Bit-Mapping-Implementierung (aufsteigend nach <see cref="SpellDataService.OrderedSpellIds"/>,
+    /// siehe Klassendoc), von <see cref="ExportToCode"/> UND von <see cref="LiveSyncService"/>
+    /// (Worker-Backend) genutzt - bewusst hier zentralisiert statt zweimal eigenständig
+    /// implementiert, damit beide Sync-Wege garantiert dieselben Bits meinen.</summary>
+    internal static byte[] EncodeBitmask(SpellDataService spellDataService, IReadOnlySet<uint> learnedSpellIds)
+    {
+        var orderedIds = spellDataService.OrderedSpellIds;
+        EnsureBitmaskCapacity(orderedIds.Count);
+
+        var bitmask = new byte[BitmaskBytes];
+        for (var idx = 0; idx < orderedIds.Count; idx++)
+        {
+            if (learnedSpellIds.Contains(orderedIds[idx]))
+                bitmask[idx >> 3] |= (byte)(1 << (idx % 8));
+        }
+
+        return bitmask;
+    }
+
+    /// <summary>Kehrt <see cref="EncodeBitmask"/> um. <paramref name="bitmask"/> darf länger sein
+    /// als <see cref="BitmaskBytes"/> (überzählige Bytes werden ignoriert) - aber NICHT kürzer,
+    /// da sonst ein vom Server/Import gelieferter, korrupt gekürzter Wert stillschweigend falsche
+    /// (fehlende) Spells ergäbe statt eines klaren Fehlers.</summary>
+    internal static HashSet<uint> DecodeBitmask(SpellDataService spellDataService, byte[] bitmask)
+    {
+        if (bitmask.Length < BitmaskBytes)
+        {
+            throw new FormatException(
+                $"Bitmaske ist zu kurz ({bitmask.Length} statt mindestens {BitmaskBytes} Bytes).");
+        }
+
+        var orderedIds = spellDataService.OrderedSpellIds;
+        EnsureBitmaskCapacity(orderedIds.Count);
+
+        var learnedIds = new HashSet<uint>();
+        for (var idx = 0; idx < orderedIds.Count; idx++)
+        {
+            var b = bitmask[idx >> 3];
+            if ((b & (1 << (idx % 8))) != 0)
+                learnedIds.Add(orderedIds[idx]);
+        }
+
+        return learnedIds;
+    }
+
+    /// <summary>Internal (nicht mehr private): <see cref="LiveSyncService"/> braucht dieselbe
+    /// Base64-URL-safe-ohne-Padding-Kodierung für die an den Worker gesendete/von ihm empfangene
+    /// Bitmaske (siehe worker/README.md) - keine zweite Implementierung dafür.</summary>
+    internal static string ToBase64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private static byte[] FromBase64Url(string base64Url)
+    internal static byte[] FromBase64Url(string base64Url)
     {
         var base64 = base64Url.Replace('-', '+').Replace('_', '/');
         base64 += (base64.Length % 4) switch

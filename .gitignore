@@ -2,3 +2,10 @@ bin/
 obj/
 *.user
 .vs/
+
+# OS-generierte Dateien (repo-weit, Muster ohne führenden Slash greift auf jeder Ebene) -
+# betrifft potenziell jeden Ordner (worker/, docs/, tools/kv-mirror/, ...), daher hier zentral
+# statt in jedem Unterordner einzeln.
+Thumbs.db
+.DS_Store
+desktop.ini

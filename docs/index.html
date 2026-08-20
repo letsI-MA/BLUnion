@@ -46,7 +46,7 @@
   }
   .panel h2 { font-size: 1.05rem; margin: 0 0 12px; }
   label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 4px; }
-  input[type=text], textarea {
+  input[type=text], input[type=number], textarea {
     width: 100%;
     background: #10131a;
     border: 1px solid var(--border);
@@ -105,6 +105,21 @@
   .spell-id { color: var(--text-dim); font-size: 0.72rem; width: 46px; text-align: right; }
   code.inline { background: #10131a; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
   .hint { color: var(--text-dim); font-size: 0.82rem; margin-top: 6px; line-height: 1.4; }
+  h3.gf-subheader { font-size: 0.95rem; margin: 18px 0 8px; color: var(--text); }
+  .gf-tag-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .gf-tag-row label, .gf-checkbox-row label {
+    display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text); margin-bottom: 0;
+  }
+  .gf-tag-row input[type=checkbox], .gf-checkbox-row input[type=checkbox] {
+    width: 16px; height: 16px; accent-color: var(--accent);
+  }
+  .gf-entry { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  .gf-entry:last-child { border-bottom: none; }
+  .gf-entry:hover { background: #20242d; }
+  .gf-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .gf-entry-name { font-weight: 600; }
+  .gf-entry-meta { color: var(--text-dim); font-size: 0.8rem; margin-top: 3px; line-height: 1.4; }
+  .gf-entry .row { margin-top: 8px; }
   .group-member {
     display: inline-flex;
     align-items: center;
@@ -220,6 +235,71 @@
       </label>
     </div>
     <div class="spell-list" id="groupTable" style="display:none; max-height:480px; margin-top:10px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2 id="txt_h2_groupfinder">4. Gruppenfinder</h2>
+    <div class="hint" id="txt_gf_intro" style="margin-top:0;"></div>
+
+    <h3 class="gf-subheader" id="txt_gf_myentry_header"></h3>
+
+    <label id="txt_gf_label_code" for="gfImportInput">Code (beginnt mit BLU:)</label>
+    <textarea id="gfImportInput" placeholder="BLU:..."></textarea>
+
+    <label id="txt_gf_label_world" for="gfWorld" style="margin-top:12px;">World</label>
+    <input type="text" id="gfWorld">
+
+    <div class="hint" id="gfDecodedPreview" style="margin-top:6px; min-height: 1.2em;"></div>
+
+    <div class="row gf-checkbox-row">
+      <label>
+        <input type="checkbox" id="gfVisible">
+        <span id="txt_gf_visible"></span>
+      </label>
+    </div>
+
+    <div class="gf-tag-row">
+      <label><input type="checkbox" id="gfTag_morning"><span id="txt_gf_tag_morning"></span></label>
+      <label><input type="checkbox" id="gfTag_afternoon"><span id="txt_gf_tag_afternoon"></span></label>
+      <label><input type="checkbox" id="gfTag_evening"><span id="txt_gf_tag_evening"></span></label>
+      <label><input type="checkbox" id="gfTag_weekend"><span id="txt_gf_tag_weekend"></span></label>
+      <label><input type="checkbox" id="gfTag_flexible"><span id="txt_gf_tag_flexible"></span></label>
+    </div>
+
+    <label id="txt_gf_label_note" for="gfNote" style="margin-top:12px;">Notiz</label>
+    <input type="text" id="gfNote" maxlength="60">
+
+    <label id="txt_gf_label_wanted" for="gfWantedCount" style="margin-top:12px;">Mitspieleranzahl</label>
+    <input type="number" id="gfWantedCount" min="0" max="8" value="0" style="max-width:120px;">
+
+    <div class="row">
+      <button id="btn_gfPublish" onclick="gfPublishMyEntry()"></button>
+      <button class="secondary" id="btn_gfDelete" onclick="gfDeleteMyEntry()" disabled></button>
+      <span class="status-msg" id="gfMyEntryStatus"></span>
+    </div>
+
+    <h3 class="gf-subheader" id="txt_gf_others_header"></h3>
+
+    <div class="row" style="margin-top:0;">
+      <label id="txt_gf_label_dc" for="gfDataCenter" style="margin-bottom:0;"></label>
+      <select id="gfDataCenter" style="background:#10131a; border:1px solid var(--border); color:var(--text); border-radius:6px; padding:8px 10px; font-size:0.85rem;">
+        <option value="" id="txt_gf_dc_placeholder" selected></option>
+        <option value="Aether">Aether</option>
+        <option value="Crystal">Crystal</option>
+        <option value="Dynamis">Dynamis</option>
+        <option value="Primal">Primal</option>
+        <option value="Chaos">Chaos</option>
+        <option value="Light">Light</option>
+        <option value="Elemental">Elemental</option>
+        <option value="Gaia">Gaia</option>
+        <option value="Mana">Mana</option>
+        <option value="Meteor">Meteor</option>
+        <option value="Materia">Materia</option>
+      </select>
+      <button class="secondary" id="btn_gfRefresh" onclick="gfBrowse()"></button>
+    </div>
+    <div class="status-msg" id="gfBrowseStatus"></div>
+    <div class="spell-list" id="gfBrowseList" style="margin-top:10px; max-height:420px; display:none;"></div>
   </div>
 
   <div class="hint" id="txt_hint"></div>
@@ -396,7 +476,35 @@ const I18N = {
     sortUrgency: 'Sortieren: Dringlichkeit',
     sortOrder: 'Sortieren: Spellbook-Nr.',
     sortName: 'Sortieren: Name (A-Z)',
-    sortStars: 'Sortieren: Sterne (schwer zuerst)'
+    sortStars: 'Sortieren: Sterne (schwer zuerst)',
+    h2GroupFinder: '4. Gruppenfinder',
+    gfIntro: 'Veröffentlicht deinen Status auf demselben Server wie das Dalamud-Plugin (Live-Sync) - andere können dich dann im Gruppenfinder finden, ohne dass ihr Codes austauschen müsst. Nutzt zum Einlesen von Name + Spellstatus denselben BLU:-Code wie oben unter "2.".',
+    gfMyEntryHeader: 'Mein Eintrag',
+    gfLabelWorld: 'World',
+    gfWorldPlaceholder: 'z.B. Gilgamesh',
+    gfVisibleLabel: 'Im Gruppenfinder sichtbar',
+    gfTags: { morning: 'Morgens', afternoon: 'Nachmittags', evening: 'Abends', weekend: 'Wochenende', flexible: 'Flexibel' },
+    gfLabelNote: 'Notiz (max. 60 Zeichen)',
+    gfLabelWantedCount: 'Gewünschte Mitspieleranzahl (0 = egal)',
+    gfWantedAny: 'egal wie viele',
+    btnGfPublish: 'Veröffentlichen',
+    btnGfUpdate: 'Aktualisieren',
+    btnGfDelete: 'Profil löschen',
+    gfDecodedAs: (name) => `Erkannt als: ${name}`,
+    gfErrNoWorld: 'Bitte eine World eingeben.',
+    gfErrNoCode: 'Bitte zuerst einen gültigen BLU:-Code eingeben.',
+    gfOkPublished: (name) => `${name}: Profil im Gruppenfinder veröffentlicht.`,
+    gfErrPublishFailed: (m) => `Veröffentlichen fehlgeschlagen: ${m}`,
+    gfOkDeleted: (name) => `${name}: Profil gelöscht.`,
+    gfErrDeleteFailed: (m) => `Löschen fehlgeschlagen: ${m}`,
+    gfOthersHeader: 'Andere Spieler',
+    gfLabelDataCenter: 'Data Center',
+    gfDataCenterPlaceholder: '– auswählen –',
+    btnGfRefresh: 'Aktualisieren',
+    gfNoEntries: 'Aktuell keine anderen sichtbaren Spieler im Gruppenfinder auf diesem Data Center.',
+    gfErrBrowseFailed: (m) => `Abrufen fehlgeschlagen: ${m}`,
+    gfWantedLabel: (n) => `Gesucht: ${n}`,
+    btnGfAddToComparison: 'In Vergleich aufnehmen'
   },
   en: {
     title: 'BLUnion – Spell Status Companion',
@@ -440,7 +548,35 @@ const I18N = {
     sortUrgency: 'Sort: Urgency',
     sortOrder: 'Sort: Spellbook #',
     sortName: 'Sort: Name (A-Z)',
-    sortStars: 'Sort: Stars (hardest first)'
+    sortStars: 'Sort: Stars (hardest first)',
+    h2GroupFinder: '4. Group Finder',
+    gfIntro: 'Publishes your status to the same server as the Dalamud plugin (Live-Sync) - others can then find you in the group finder without exchanging codes. Uses the same BLU: code as under "2." above to read name + spell status.',
+    gfMyEntryHeader: 'My entry',
+    gfLabelWorld: 'World',
+    gfWorldPlaceholder: 'e.g. Gilgamesh',
+    gfVisibleLabel: 'Visible in group finder',
+    gfTags: { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', weekend: 'Weekend', flexible: 'Flexible' },
+    gfLabelNote: 'Note (max. 60 characters)',
+    gfLabelWantedCount: 'Desired player count (0 = any)',
+    gfWantedAny: 'any number',
+    btnGfPublish: 'Publish',
+    btnGfUpdate: 'Update',
+    btnGfDelete: 'Delete profile',
+    gfDecodedAs: (name) => `Detected as: ${name}`,
+    gfErrNoWorld: 'Please enter a world.',
+    gfErrNoCode: 'Please enter a valid BLU: code first.',
+    gfOkPublished: (name) => `${name}: profile published to the group finder.`,
+    gfErrPublishFailed: (m) => `Publishing failed: ${m}`,
+    gfOkDeleted: (name) => `${name}: profile deleted.`,
+    gfErrDeleteFailed: (m) => `Deletion failed: ${m}`,
+    gfOthersHeader: 'Other players',
+    gfLabelDataCenter: 'Data center',
+    gfDataCenterPlaceholder: '– select –',
+    btnGfRefresh: 'Refresh',
+    gfNoEntries: 'Currently no other visible players in the group finder on this data center.',
+    gfErrBrowseFailed: (m) => `Fetching failed: ${m}`,
+    gfWantedLabel: (n) => `Looking for: ${n}`,
+    btnGfAddToComparison: 'Add to comparison'
   },
   fr: {
     title: 'BLUnion – Compagnon de statut des sorts',
@@ -484,7 +620,35 @@ const I18N = {
     sortUrgency: 'Trier : urgence',
     sortOrder: 'Trier : n° de grimoire',
     sortName: 'Trier : nom (A-Z)',
-    sortStars: 'Trier : étoiles (difficile d\'abord)'
+    sortStars: 'Trier : étoiles (difficile d\'abord)',
+    h2GroupFinder: '4. Recherche de groupe',
+    gfIntro: 'Publie ton statut sur le même serveur que le plugin Dalamud (synchro en direct) - les autres peuvent alors te trouver dans la recherche de groupe sans échanger de codes. Utilise le même code BLU: que sous « 2. » ci-dessus pour lire nom + statut de sorts.',
+    gfMyEntryHeader: 'Mon entrée',
+    gfLabelWorld: 'Monde',
+    gfWorldPlaceholder: 'ex. Gilgamesh',
+    gfVisibleLabel: 'Visible dans la recherche de groupe',
+    gfTags: { morning: 'Matin', afternoon: 'Après-midi', evening: 'Soir', weekend: 'Week-end', flexible: 'Flexible' },
+    gfLabelNote: 'Note (60 caractères max.)',
+    gfLabelWantedCount: 'Nombre de coéquipiers souhaité (0 = peu importe)',
+    gfWantedAny: 'peu importe',
+    btnGfPublish: 'Publier',
+    btnGfUpdate: 'Mettre à jour',
+    btnGfDelete: 'Supprimer le profil',
+    gfDecodedAs: (name) => `Détecté comme : ${name}`,
+    gfErrNoWorld: 'Veuillez entrer un monde.',
+    gfErrNoCode: 'Veuillez d\'abord entrer un code BLU: valide.',
+    gfOkPublished: (name) => `${name} : profil publié dans la recherche de groupe.`,
+    gfErrPublishFailed: (m) => `Échec de la publication : ${m}`,
+    gfOkDeleted: (name) => `${name} : profil supprimé.`,
+    gfErrDeleteFailed: (m) => `Échec de la suppression : ${m}`,
+    gfOthersHeader: 'Autres joueurs',
+    gfLabelDataCenter: 'Data center',
+    gfDataCenterPlaceholder: '– sélectionner –',
+    btnGfRefresh: 'Actualiser',
+    gfNoEntries: 'Actuellement aucun autre joueur visible dans la recherche de groupe sur ce data center.',
+    gfErrBrowseFailed: (m) => `Échec de la récupération : ${m}`,
+    gfWantedLabel: (n) => `Recherché : ${n}`,
+    btnGfAddToComparison: 'Ajouter à la comparaison'
   },
   ja: {
     title: 'BLUnion – スペルステータス・コンパニオン',
@@ -528,7 +692,35 @@ const I18N = {
     sortUrgency: '並び替え：緊急度',
     sortOrder: '並び替え：スペルブック番号',
     sortName: '並び替え：名前（A-Z）',
-    sortStars: '並び替え：星（難しい順）'
+    sortStars: '並び替え：星（難しい順）',
+    h2GroupFinder: '4. グループファインダー',
+    gfIntro: 'Dalamudプラグイン（ライブ同期）と同じサーバーにあなたの状況を公開します - コードを交換しなくても、他のプレイヤーがグループファインダーであなたを見つけられるようになります。名前とスペル状況の読み込みには上の「2.」と同じBLU:コードを使用します。',
+    gfMyEntryHeader: '自分の登録内容',
+    gfLabelWorld: 'ワールド',
+    gfWorldPlaceholder: '例：Gilgamesh',
+    gfVisibleLabel: 'グループファインダーに表示する',
+    gfTags: { morning: '朝', afternoon: '昼', evening: '夜', weekend: '週末', flexible: '柔軟' },
+    gfLabelNote: 'メモ（最大60文字）',
+    gfLabelWantedCount: '希望人数（0 = 指定なし）',
+    gfWantedAny: '人数指定なし',
+    btnGfPublish: '公開',
+    btnGfUpdate: '更新',
+    btnGfDelete: 'プロフィールを削除',
+    gfDecodedAs: (name) => `検出: ${name}`,
+    gfErrNoWorld: 'ワールドを入力してください。',
+    gfErrNoCode: '先に有効なBLU:コードを入力してください。',
+    gfOkPublished: (name) => `${name}: プロフィールをグループファインダーに公開しました。`,
+    gfErrPublishFailed: (m) => `公開に失敗しました：${m}`,
+    gfOkDeleted: (name) => `${name}: プロフィールを削除しました。`,
+    gfErrDeleteFailed: (m) => `削除に失敗しました：${m}`,
+    gfOthersHeader: '他プレイヤー',
+    gfLabelDataCenter: 'データセンター',
+    gfDataCenterPlaceholder: '－選択－',
+    btnGfRefresh: '更新',
+    gfNoEntries: '現在このデータセンターのグループファインダーに他の表示中プレイヤーはいません。',
+    gfErrBrowseFailed: (m) => `取得に失敗しました：${m}`,
+    gfWantedLabel: (n) => `募集: ${n}`,
+    btnGfAddToComparison: '比較に追加'
   }
 };
 
@@ -577,6 +769,7 @@ function applyStaticTexts() {
   document.documentElement.lang = currentLang;
   updateExportCount();
   renderGroup();
+  applyGroupFinderTexts();
 }
 
 function starString(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
@@ -654,6 +847,11 @@ function checkAll(value) {
 // manuelles Hinzufügen der eigenen Auswahl als auch automatisch beim
 // Importieren eines Codes befüllt.
 let group = [];
+
+// Zwischengespeichertes Rohergebnis des letzten GET /profiles/browse-Aufrufs (siehe gfBrowse) -
+// erlaubt applyGroupFinderTexts(), die Liste bei einem Sprachwechsel mit übersetzten Tags neu zu
+// rendern, ohne den Worker ein zweites Mal abzufragen.
+let lastGfBrowseEntries = null;
 
 function addOrUpdateGroupMember(name, learnedSet) {
   const idx = group.findIndex(m => m.name === name);
@@ -827,14 +1025,33 @@ function base64UrlToBytes(str) {
 // Feste, stabile Bit-Reihenfolge: alle 124 Spell-Ids aufsteigend sortiert.
 const SORTED_IDS = SPELLS.map(s => s.id).slice().sort((a, b) => a - b);
 
-function encodeCompact(name, learnedIds) {
-  const nameBytes = new TextEncoder().encode(name);
-  if (nameBytes.length > 255) throw new Error('Name too long.');
-
+// Reines Bit-Mapping OHNE das Namens-Präfixbyte des "BLU:"-Formats (siehe encodeCompact/
+// decodeCompact) - das ist exakt das Format, das der Live-Sync-Worker in "spellBitmaskBase64"
+// erwartet/liefert (siehe worker/src/index.ts, Feld-Doc bei BITMASK_BYTES). Aus encodeCompact/
+// decodeCompact herausgezogen und vom Gruppenfinder-Code weiter unten (gfPublishMyEntry/
+// gfRenderBrowseResults) wiederverwendet, statt eine zweite Bitmask-Implementierung zu bauen -
+// beide Varianten (mit/ohne Namenspräfix) teilen sich dieselbe SORTED_IDS-Bit-Zuordnung.
+function buildBitmask(learnedIds) {
   const bitmask = new Uint8Array(16); // 128 Bits, 124 genutzt
   SORTED_IDS.forEach((id, idx) => {
     if (learnedIds.has(id)) bitmask[idx >> 3] |= (1 << (idx % 8));
   });
+  return bitmask;
+}
+
+function decodeBitmask(bitmask) {
+  const learned = new Set();
+  SORTED_IDS.forEach((id, idx) => {
+    if (bitmask[idx >> 3] & (1 << (idx % 8))) learned.add(id);
+  });
+  return learned;
+}
+
+function encodeCompact(name, learnedIds) {
+  const nameBytes = new TextEncoder().encode(name);
+  if (nameBytes.length > 255) throw new Error('Name too long.');
+
+  const bitmask = buildBitmask(learnedIds);
 
   const payload = new Uint8Array(1 + nameBytes.length + 16);
   payload[0] = nameBytes.length;
@@ -849,12 +1066,7 @@ function decodeCompact(payload) {
   const name = new TextDecoder().decode(payload.slice(1, 1 + nameLen));
   const bitmask = payload.slice(1 + nameLen, 1 + nameLen + 16);
 
-  const learned = new Set();
-  SORTED_IDS.forEach((id, idx) => {
-    if (bitmask[idx >> 3] & (1 << (idx % 8))) learned.add(id);
-  });
-
-  return { name, learned };
+  return { name, learned: decodeBitmask(bitmask) };
 }
 
 async function generateCode() {
@@ -964,6 +1176,308 @@ async function importCode() {
   }
 }
 
+// --- Gruppenfinder (Phase 2 von Live-Sync) ---
+// Spricht denselben Cloudflare-Worker/dieselben Endpoints an wie das Dalamud-Plugin
+// (siehe worker/src/index.ts) - KEIN eigenes Backend, keine Parallelstruktur. Genau wie beim
+// Plugin gibt es kein separates Gruppenfinder-Profil/-Login: Sichtbarkeit setzt einen gültigen
+// BLU:-Code voraus (denselben wie oben unter "2."), aus dem Name + Spellstatus decodiert werden.
+const WORKER_BASE_URL = 'https://blunion-livesync.skysurfer101.workers.dev';
+
+// Dieselben internen (englischen) Wire-Values wie Plugin/Worker (siehe worker/src/index.ts
+// ALLOWED_AVAILABILITY_TAGS bzw. Models/AvailabilityTag.cs im Plugin) - NICHT neu erfunden.
+const AVAILABILITY_TAGS = ['morning', 'afternoon', 'evening', 'weekend', 'flexible'];
+
+// TTL, die die Website beim Veröffentlichen IMMER mitschickt (siehe worker/src/index.ts
+// resolveTtlSeconds) - kürzer als die reguläre 90-Tage-Plugin-Lebensdauer, damit von hier aus
+// veröffentlichte Profile nicht wochenlang herumliegen, falls sie nie wieder aktualisiert werden.
+const GF_TTL_HOURS = 24;
+
+function gfTokenStorageKey(world, characterName) {
+  return `blunion_livesync_token_${world.trim().toLowerCase()}_${characterName.trim().toLowerCase()}`;
+}
+
+function gfGetStoredToken(world, characterName) {
+  return localStorage.getItem(gfTokenStorageKey(world, characterName));
+}
+
+function gfSetStoredToken(world, characterName, token) {
+  localStorage.setItem(gfTokenStorageKey(world, characterName), token);
+}
+
+function gfRemoveStoredToken(world, characterName) {
+  localStorage.removeItem(gfTokenStorageKey(world, characterName));
+}
+
+function gfProfileUrl(world, characterName) {
+  return `${WORKER_BASE_URL}/profile/${encodeURIComponent(world)}/${encodeURIComponent(characterName)}`;
+}
+
+// Decodiert den aktuellen Textarea-Inhalt über DIESELBE decodeCompact-Funktion wie der normale
+// Import unter "2." (siehe Aufgabenstellung: keine neue Parsing-Logik) - liefert null bei leerem/
+// ungültigem Code statt zu werfen, damit Aufrufer (Preview/Publish/Delete) das defensiv behandeln
+// können, ohne selbst try/catch zu brauchen.
+function gfTryDecodeMyCode() {
+  const raw = document.getElementById('gfImportInput').value.trim();
+  if (!raw.startsWith('BLU:')) return null;
+  try {
+    const decoded = decodeCompact(base64UrlToBytes(raw.slice('BLU:'.length)));
+    return decoded.name ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+// Rein lesend/lokal - aktualisiert Vorschau-Text + Publish/Update-Button-Beschriftung + Löschen-
+// Button-Aktivierung, OHNE irgendetwas an den Worker zu senden. Läuft bei jeder Änderung von
+// Code/World, nach einem erfolgreichen Publish/Delete und bei Sprachwechsel (siehe
+// applyGroupFinderTexts) - "Aktualisieren" statt "Veröffentlichen", sobald für die decodierte
+// Name+World-Kombination bereits ein Token in localStorage gefunden wird (siehe Aufgabenstellung).
+function gfUpdateMyEntryPreview() {
+  const decoded = gfTryDecodeMyCode();
+  const world = document.getElementById('gfWorld').value.trim();
+  const previewEl = document.getElementById('gfDecodedPreview');
+  const publishBtn = document.getElementById('btn_gfPublish');
+  const deleteBtn = document.getElementById('btn_gfDelete');
+
+  if (decoded && world) {
+    previewEl.textContent = t().gfDecodedAs(decoded.name);
+    const existingToken = gfGetStoredToken(world, decoded.name);
+    publishBtn.textContent = existingToken ? t().btnGfUpdate : t().btnGfPublish;
+    deleteBtn.disabled = !existingToken;
+  } else {
+    previewEl.textContent = '';
+    publishBtn.textContent = t().btnGfPublish;
+    deleteBtn.disabled = true;
+  }
+}
+
+async function gfPublishMyEntry() {
+  const statusEl = document.getElementById('gfMyEntryStatus');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  const decoded = gfTryDecodeMyCode();
+  if (!decoded) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrNoCode;
+    return;
+  }
+
+  const world = document.getElementById('gfWorld').value.trim();
+  if (!world) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrNoWorld;
+    return;
+  }
+
+  const characterName = decoded.name;
+  const existingToken = gfGetStoredToken(world, characterName);
+
+  const tags = AVAILABILITY_TAGS.filter(tag => document.getElementById(`gfTag_${tag}`).checked);
+  const note = document.getElementById('gfNote').value.slice(0, 60);
+  const wantedPlayerCount = parseInt(document.getElementById('gfWantedCount').value, 10) || 0;
+  const visibility = document.getElementById('gfVisible').checked ? 'listed' : 'unlisted';
+
+  // Dieselbe reine Bitmask-Kodierung (ohne Namens-Präfixbyte) wie der Worker erwartet - siehe
+  // buildBitmask-Doc weiter oben, extrahiert aus encodeCompact statt neu gebaut.
+  const body = {
+    spellBitmaskBase64: bytesToBase64Url(buildBitmask(decoded.learned)),
+    visibility,
+    availabilityTags: tags,
+    note,
+    wantedPlayerCount,
+    ttlHours: GF_TTL_HOURS,
+  };
+  if (existingToken) body.editToken = existingToken;
+
+  try {
+    const response = await fetch(gfProfileUrl(world, characterName), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().gfErrPublishFailed((json && json.error) || `HTTP ${response.status}`);
+      return;
+    }
+
+    // Beim allerersten PUT für diesen Charakter vom Worker generiert und einmalig zurückgegeben
+    // (siehe worker/README.md) - ab jetzt lokal gespeichert, damit ein erneuter Besuch dieser
+    // Seite das Profil aktualisieren statt ein zweites anzulegen kann.
+    if (json && json.editToken) gfSetStoredToken(world, characterName, json.editToken);
+
+    statusEl.className = 'status-msg ok';
+    statusEl.textContent = t().gfOkPublished(characterName);
+    gfUpdateMyEntryPreview();
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrPublishFailed(err.message);
+  }
+}
+
+async function gfDeleteMyEntry() {
+  const statusEl = document.getElementById('gfMyEntryStatus');
+  const decoded = gfTryDecodeMyCode();
+  const world = document.getElementById('gfWorld').value.trim();
+  if (!decoded || !world) return;
+
+  const characterName = decoded.name;
+  const token = gfGetStoredToken(world, characterName);
+  if (!token) return; // Button ist in diesem Fall ohnehin disabled, siehe gfUpdateMyEntryPreview.
+
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  try {
+    const response = await fetch(gfProfileUrl(world, characterName), {
+      method: 'DELETE',
+      headers: { 'X-Edit-Token': token },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      const json = await response.json().catch(() => null);
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().gfErrDeleteFailed((json && json.error) || `HTTP ${response.status}`);
+      return;
+    }
+
+    gfRemoveStoredToken(world, characterName);
+    statusEl.className = 'status-msg ok';
+    statusEl.textContent = t().gfOkDeleted(characterName);
+    gfUpdateMyEntryPreview();
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrDeleteFailed(err.message);
+  }
+}
+
+async function gfBrowse() {
+  const dataCenter = document.getElementById('gfDataCenter').value;
+  const statusEl = document.getElementById('gfBrowseStatus');
+  const listEl = document.getElementById('gfBrowseList');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  if (!dataCenter) {
+    listEl.style.display = 'none';
+    listEl.innerHTML = '';
+    lastGfBrowseEntries = null;
+    return;
+  }
+
+  try {
+    const response = await fetch(`${WORKER_BASE_URL}/profiles/browse?dataCenter=${encodeURIComponent(dataCenter)}`);
+    const json = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().gfErrBrowseFailed((json && json.error) || `HTTP ${response.status}`);
+      return;
+    }
+
+    lastGfBrowseEntries = Array.isArray(json) ? json : [];
+    gfRenderBrowseResults(lastGfBrowseEntries);
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrBrowseFailed(err.message);
+  }
+}
+
+// Rein clientseitiges Rendern der zuletzt abgerufenen Rohdaten (siehe lastGfBrowseEntries) -
+// separat von gfBrowse(), damit ein Sprachwechsel (übersetzte Tags/Beschriftungen) neu rendern
+// kann, ohne den Worker ein zweites Mal abzufragen (siehe applyGroupFinderTexts).
+function gfRenderBrowseResults(entries) {
+  const listEl = document.getElementById('gfBrowseList');
+  listEl.innerHTML = '';
+  listEl.style.display = '';
+
+  if (entries.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.style.padding = '10px 12px';
+    hint.textContent = t().gfNoEntries;
+    listEl.appendChild(hint);
+    return;
+  }
+
+  entries.forEach(entry => {
+    let learned;
+    try {
+      learned = decodeBitmask(base64UrlToBytes(entry.spellBitmaskBase64 || ''));
+    } catch {
+      learned = new Set();
+    }
+
+    const tagLabels = (entry.availabilityTags || []).map(tag => (t().gfTags[tag] || tag)).join(', ');
+    const note = entry.note || '';
+    const wantedText = entry.wantedPlayerCount ? String(entry.wantedPlayerCount) : t().gfWantedAny;
+
+    const row = document.createElement('div');
+    row.className = 'gf-entry';
+    row.innerHTML = `
+      <div class="gf-entry-head">
+        <span class="gf-entry-name">${entry.characterName || ''} (${entry.world || ''})</span>
+        <span class="count-badge">${t().count(learned.size, SPELLS.length)}</span>
+      </div>
+      <div class="gf-entry-meta">
+        ${tagLabels ? tagLabels + '<br>' : ''}${note ? `"${note}"<br>` : ''}${t().gfWantedLabel(wantedText)}
+      </div>
+      <div class="row">
+        <button class="secondary">${t().btnGfAddToComparison}</button>
+      </div>
+    `;
+    listEl.appendChild(row);
+
+    // onclick nachträglich per addEventListener statt als Inline-HTML-Attribut gesetzt, weil
+    // Charakternamen Apostrophe/Sonderzeichen enthalten können (z.B. "Y'shtola Rhul") - als
+    // Inline-onclick-Wert müsste der Name sonst zusätzlich escaped werden; ein Closure ist hier
+    // einfacher und robuster.
+    row.querySelector('button').addEventListener('click', () => {
+      // Dieselbe Chip-Hinzufügen-/Dedup-Logik wie beim manuellen Code-Import (siehe importCode()
+      // oben) - KEIN zweiter Vergleichspfad, siehe Aufgabenstellung.
+      const name = entry.characterName || t().unnamed;
+      addOrUpdateGroupMember(name, learned);
+      renderGroup();
+      const browseStatusEl = document.getElementById('gfBrowseStatus');
+      browseStatusEl.className = 'status-msg ok';
+      browseStatusEl.textContent = t().addedToGroup(name);
+    });
+  });
+}
+
+function applyGroupFinderTexts() {
+  const s = t();
+  document.getElementById('txt_h2_groupfinder').textContent = s.h2GroupFinder;
+  document.getElementById('txt_gf_intro').textContent = s.gfIntro;
+  document.getElementById('txt_gf_myentry_header').textContent = s.gfMyEntryHeader;
+  document.getElementById('txt_gf_label_code').textContent = s.labelCode;
+  document.getElementById('txt_gf_label_world').textContent = s.gfLabelWorld;
+  document.getElementById('gfWorld').placeholder = s.gfWorldPlaceholder;
+  document.getElementById('txt_gf_visible').textContent = s.gfVisibleLabel;
+  AVAILABILITY_TAGS.forEach(tag => {
+    document.getElementById(`txt_gf_tag_${tag}`).textContent = s.gfTags[tag];
+  });
+  document.getElementById('txt_gf_label_note').textContent = s.gfLabelNote;
+  document.getElementById('txt_gf_label_wanted').textContent = s.gfLabelWantedCount;
+  document.getElementById('txt_gf_others_header').textContent = s.gfOthersHeader;
+  document.getElementById('txt_gf_label_dc').textContent = s.gfLabelDataCenter;
+  document.getElementById('txt_gf_dc_placeholder').textContent = s.gfDataCenterPlaceholder;
+  document.getElementById('btn_gfRefresh').textContent = s.btnGfRefresh;
+
+  // Aktualisiert Publish/Update-Button-Beschriftung + Vorschau in der neuen Sprache.
+  gfUpdateMyEntryPreview();
+  // Re-rendert die zuletzt geladene Browse-Liste mit übersetzten Tags, falls schon welche
+  // geladen wurden - ohne den Worker erneut abzufragen.
+  if (lastGfBrowseEntries) gfRenderBrowseResults(lastGfBrowseEntries);
+}
+
+document.getElementById('gfImportInput').addEventListener('input', gfUpdateMyEntryPreview);
+document.getElementById('gfWorld').addEventListener('input', gfUpdateMyEntryPreview);
+document.getElementById('gfDataCenter').addEventListener('change', gfBrowse);
+
 document.getElementById('langSwitch').addEventListener('change', (e) => {
   currentLang = e.target.value;
   applyStaticTexts();
@@ -972,7 +1486,7 @@ document.getElementById('langSwitch').addEventListener('change', (e) => {
 
 document.getElementById('langSwitch').value = currentLang;
 buildList('exportList', 'filterExport');
-applyStaticTexts();
+applyStaticTexts(); // ruft am Ende u.a. applyGroupFinderTexts() -> gfUpdateMyEntryPreview() mit auf.
 </script>
 </body>
 </html>

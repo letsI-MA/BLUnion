@@ -1015,17 +1015,19 @@ public sealed class MainWindow : Window, IDisposable
 
         ImGui.Separator();
 
-        // Eigenfilterung ("Andere Spieler" soll wirklich nur ANDERE zeigen) passiert BEWUSST erst
-        // hier beim Rendern, nicht in LiveSyncService.TriggerBrowseAsync: dort läuft der Code nach
-        // dem await auf einem Threadpool-Thread, und this.partyService.GetLocalPlayerName() ist
-        // eine Dalamud-Service-API (IObjectTable) mit Thread-Affinität - ein früherer Versuch,
-        // dort zu filtern, führte zur Laufzeit-Exception "Not on main thread!". Hier in Draw()
-        // läuft der Code garantiert auf dem Framework-Thread (siehe MainWindow.Draw()), der
-        // Zugriff auf partyService ist also unproblematisch. LiveSyncService.LastBrowseResults
-        // liefert deshalb absichtlich die ungefilterten Rohdaten (siehe dortiger Doc-Kommentar).
+        // Eigener Charakter wird jetzt MIT angezeigt (nicht mehr rausgefiltert) - sonst sähe man
+        // bei nur einem einzigen veröffentlichten Profil (dem eigenen) fälschlich eine leere
+        // Liste, obwohl der Gruppenfinder korrekt funktioniert. Der eigene Eintrag wird
+        // stattdessen unten optisch markiert (siehe isOwnEntry) und per OrderByDescending (stabil,
+        // siehe .NET-Doku zu Enumerable.OrderBy) immer an erster Stelle einsortiert - die übrige
+        // Reihenfolge (wie vom Worker geliefert) bleibt für alle anderen Einträge unverändert.
+        // this.partyService.GetLocalPlayerName() ist hier unproblematisch: DrawGroupFinderTab
+        // läuft garantiert auf dem Framework-Thread (siehe MainWindow.Draw()), im Unterschied zum
+        // asynchronen HTTP-Callback in LiveSyncService.TriggerBrowseAsync (siehe dortiger
+        // Cross-Thread-Kommentar).
         var localPlayerName = this.partyService.GetLocalPlayerName();
         var entries = this.liveSyncService.LastBrowseResults
-            .Where(entry => !string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal))
+            .OrderByDescending(entry => string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal))
             .ToList();
 
         if (entries.Count == 0)
@@ -1038,7 +1040,22 @@ public sealed class MainWindow : Window, IDisposable
 
         foreach (var entry in entries)
         {
-            ImGui.TextUnformatted($"{entry.CharacterName} ({entry.World})");
+            var isOwnEntry = string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal);
+
+            // Eigener Eintrag in derselben grünen Signalfarbe wie Erfolgsmeldungen (siehe
+            // SuccessMessageColor-Doc, KEINE neue Farbe definiert) - PushStyleColor statt
+            // einzelner TextColored-Aufrufe, damit Name, Fortschritt, Tags UND Notiz gemeinsam
+            // eingefärbt werden, nicht nur das "(Du)"-Label.
+            if (isOwnEntry)
+                ImGui.PushStyleColor(ImGuiCol.Text, SuccessMessageColor);
+
+            // "(Du)"-Suffix: gleiches Muster wie bei der bekannten-Spieler-Liste in DrawSyncTab
+            // (siehe UiStrings.Key.YouSuffix), hier wiederverwendet statt neu erfunden.
+            var nameText = $"{entry.CharacterName} ({entry.World})";
+            if (isOwnEntry)
+                nameText += UiStrings.Get(UiStrings.Key.YouSuffix, this.displayLanguage);
+
+            ImGui.TextUnformatted(nameText);
             ImGui.SameLine();
             ImGui.TextUnformatted(UiStrings.Format(
                 UiStrings.Key.GroupFinderProgressFormat, this.displayLanguage, entry.LearnedSpellIds.Count, totalSpellCount));
@@ -1057,7 +1074,12 @@ public sealed class MainWindow : Window, IDisposable
                 : entry.WantedPlayerCount.ToString();
             ImGui.TextUnformatted(UiStrings.Format(UiStrings.Key.GroupFinderWantedPlayerCountEntryFormat, this.displayLanguage, wantedPlayerCountText));
 
-            if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddToComparisonButton, this.displayLanguage)}##GroupFinderAdd{entry.CharacterName}"))
+            if (isOwnEntry)
+                ImGui.PopStyleColor();
+
+            // Sich selbst zum Vergleich hinzuzufügen ergibt keinen Sinn - Button nur für fremde
+            // Einträge.
+            if (!isOwnEntry && ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddToComparisonButton, this.displayLanguage)}##GroupFinderAdd{entry.CharacterName}"))
             {
                 var status = new PlayerSpellStatus
                 {

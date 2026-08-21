@@ -30,6 +30,28 @@ public enum LiveSyncEventKind
     /// werden (siehe LiveSyncService.PublishDevTestProfiles) - Detail nennt die betroffene(n)
     /// Fixture(n).</summary>
     DevTestProfilesFailed,
+
+    /// <summary>Phase 2 (Gruppenfinder-Publish-Flow, NICHT zu verwechseln mit PushSucceeded/der
+    /// Einzelprofil-Sichtbarkeit): PUT /group/:groupId für die eigene Gruppen-Listung erfolgreich
+    /// (Neuanlage ODER Update, siehe <see cref="LiveSyncService.PublishGroup"/>).</summary>
+    GroupPublishSucceeded,
+
+    /// <summary>Gegenstück zu <see cref="GroupPublishSucceeded"/> - Detail nennt den HTTP-/
+    /// Netzwerkfehler bzw. bei einer ungültigen Mitgliederauswahl den Validierungsgrund.</summary>
+    GroupPublishFailed,
+
+    /// <summary>DELETE /group/:groupId für die eigene Gruppen-Listung erfolgreich (siehe
+    /// <see cref="LiveSyncService.DeletePublishedGroup"/>).</summary>
+    GroupUnpublishSucceeded,
+
+    /// <summary>Gegenstück zu <see cref="GroupUnpublishSucceeded"/>.</summary>
+    GroupUnpublishFailed,
+
+    /// <summary>Phase 2 (Gruppenfinder, Anzeige FREMDER Gruppen): GET /groups/browse
+    /// fehlgeschlagen (siehe <see cref="LiveSyncService.TriggerGroupBrowse"/>/TriggerGroupBrowseAsync) -
+    /// analog zu <see cref="BrowseFailed"/> für Einzelprofile, aber ein eigener, paralleler
+    /// Datenpfad (siehe LastGroupBrowseResults-Doc).</summary>
+    GroupBrowseFailed,
 }
 
 /// <summary>
@@ -117,6 +139,14 @@ public sealed class LiveSyncService : IDisposable
     private volatile bool fetchInFlight;
     private volatile bool deleteInFlight;
 
+    /// <summary>Analog zu <see cref="pushInFlight"/>/<see cref="deleteInFlight"/>, aber für die
+    /// NEUE Gruppen-Veröffentlichung (siehe <see cref="PublishGroup"/>/<see cref="DeletePublishedGroup"/>) -
+    /// eigene Felder statt die bestehenden mitzubenutzen, weil beide Vorgänge unabhängig
+    /// voneinander (und potenziell gleichzeitig, z.B. Einzelprofil-Push durch TickPushDiff
+    /// während der Spieler auf "Gruppe veröffentlichen" klickt) laufen können.</summary>
+    private volatile bool groupPublishInFlight;
+    private volatile bool groupDeleteInFlight;
+
     private DateTimeOffset? lastLocalLearnedSpellCheckAt;
     private HashSet<uint>? lastPushedLearnedSpellIds;
 
@@ -140,6 +170,13 @@ public sealed class LiveSyncService : IDisposable
     private int? pendingWantedPlayerCount;
 
     private volatile bool browseInFlight;
+
+    /// <summary>Analog zu <see cref="browseInFlight"/>, aber für den EIGENSTÄNDIGEN, parallelen
+    /// Gruppen-Datenpfad (siehe <see cref="TriggerGroupBrowse"/>/<see cref="LastGroupBrowseResults"/>) -
+    /// eigenes Feld, damit ein Einzelprofil-Browse und ein Gruppen-Browse unabhängig voneinander
+    /// (und ggf. gleichzeitig, siehe MainWindow.Draw() - beide werden beim Öffnen des Tabs UND
+    /// über denselben "Aktualisieren"-Button gemeinsam ausgelöst) laufen können.</summary>
+    private volatile bool groupBrowseInFlight;
 
     /// <summary>DEV-ONLY (siehe <see cref="PublishDevTestProfiles"/>/MainWindow-Dev-Tool-Button):
     /// Edit-Tokens der drei DevTestFixtures-Testprofile, Key wie <see cref="BuildTokenKey"/>
@@ -173,6 +210,15 @@ public sealed class LiveSyncService : IDisposable
     /// "Not on main thread!"). Die Herausfilterung des eigenen Eintrags passiert stattdessen erst
     /// beim Rendern in MainWindow.DrawGroupFinderTab, dort garantiert auf dem Framework-Thread.</summary>
     public IReadOnlyList<GroupFinderEntry> LastBrowseResults { get; private set; } = Array.Empty<GroupFinderEntry>();
+
+    /// <summary>RAW/ungefilterte Rohdaten des letzten erfolgreichen <see cref="TriggerGroupBrowse()"/>-
+    /// Aufrufs (siehe TriggerGroupBrowseAsync) - leer, solange noch nie erfolgreich abgerufen
+    /// wurde. EIGENSTÄNDIGER, zu <see cref="LastBrowseResults"/> (Einzelprofile) PARALLELER
+    /// Datenpfad - Gruppen und Einzelprofile bleiben zwei getrennte Listen im UI (siehe
+    /// MainWindow.DrawGroupFinderTab), keine Zusammenführung. Kann Gruppen enthalten, die den
+    /// eigenen Charakter als Mitglied listen - wird hier bewusst NICHT herausgefiltert, aus
+    /// demselben Cross-Thread-Grund wie bei LastBrowseResults (siehe dortigen Kommentar).</summary>
+    public IReadOnlyList<GroupFinderGroupEntry> LastGroupBrowseResults { get; private set; } = Array.Empty<GroupFinderGroupEntry>();
 
     public LiveSyncService(
         PartyService partyService,
@@ -410,6 +456,7 @@ public sealed class LiveSyncService : IDisposable
                         CharacterName = member.Name,
                         LearnedSpellIds = learnedIds,
                         IsLocalPlayer = false,
+                        World = member.World,
                     };
 
                     // Dedupliziert automatisch nach CharacterName (letzter Stand gewinnt, siehe
@@ -434,38 +481,32 @@ public sealed class LiveSyncService : IDisposable
         }
     }
 
-    /// <summary>Setzt die gewünschte Gruppenfinder-Sichtbarkeit und pusht SOFORT (siehe
-    /// Aufgabenstellung: "bei Checkbox-Klick sofort", kein Debounce wie bei den Textfeldern) -
-    /// aufgerufen von MainWindow beim Klick auf die "Im Gruppenfinder sichtbar"-Checkbox.</summary>
+    /// <summary>Setzt NUR lokal die gewünschte Gruppenfinder-Sichtbarkeit (pendingVisibility) -
+    /// pusht NICHT mehr selbst, das übernimmt jetzt ausschließlich der explizite
+    /// "Jetzt veröffentlichen"-Button in MainWindow.DrawGroupFinderTab über <see cref="PushOwnProfile"/>.</summary>
     public void SetGroupFinderVisibility(bool visible)
     {
         this.pendingVisibility = visible ? "listed" : "unlisted";
-        this.PushOwnProfile();
     }
 
-    /// <summary>Setzt die gewünschten Verfügbarkeits-Tags (komplette Menge, nicht nur der
-    /// geänderte Tag - siehe MainWindow: einfacher, bei jedem Toggle-Klick den kompletten
-    /// aktuellen Auswahlstand zu übergeben, als ein Diff zu bilden) und pusht SOFORT, analog zu
-    /// <see cref="SetGroupFinderVisibility"/> (die Tags sind anklickbare Toggle-Buttons, kein
-    /// Textfeld - siehe Aufgabenstellung, dort nur für Textfelder ein Debounce gefordert).</summary>
+    /// <summary>Setzt NUR lokal die gewünschten Verfügbarkeits-Tags (komplette Menge, nicht nur
+    /// der geänderte Tag - siehe MainWindow: einfacher, bei jedem Toggle-Klick den kompletten
+    /// aktuellen Auswahlstand zu übergeben, als ein Diff zu bilden) - pusht NICHT mehr selbst,
+    /// analog zu <see cref="SetGroupFinderVisibility"/>: der Push passiert erst über den
+    /// "Jetzt veröffentlichen"-Button.</summary>
     public void SetGroupFinderAvailabilityTags(IReadOnlyCollection<AvailabilityTag> tags)
     {
         this.pendingAvailabilityTags = tags.Select(tag => tag.ToWireValue()).ToList();
-        this.PushOwnProfile();
     }
 
-    /// <summary>Setzt Notiz UND gewünschte Mitspieleranzahl gemeinsam und pusht - von MainWindow
-    /// NUR bei Fokusverlust eines der beiden Textfelder aufgerufen (ImGui.IsItemDeactivatedAfterEdit),
-    /// NIE bei jedem Tastendruck (siehe Aufgabenstellung, analoges Debounce-Denken wie beim
-    /// Auto-Share-Cooldown aus Feature 2). Beide Werte zusammen statt einzeln, weil ohnehin immer
-    /// beide lokal bekannt sind (MainWindow hält beide Puffer) - ein separater Push pro Feld
-    /// brächte hier keinen Vorteil, nur zusätzliche Race-Conditions zwischen zwei kurz
-    /// hintereinander ausgelösten Requests.</summary>
+    /// <summary>Setzt NUR lokal Notiz UND gewünschte Mitspieleranzahl gemeinsam - pusht NICHT
+    /// mehr selbst, das übernimmt jetzt ausschließlich der explizite "Jetzt veröffentlichen"-
+    /// Button. Beide Werte zusammen statt einzeln, weil ohnehin immer beide lokal bekannt sind
+    /// (MainWindow hält beide Puffer).</summary>
     public void SetGroupFinderNoteAndWantedPlayerCount(string note, int wantedPlayerCount)
     {
         this.pendingNote = note;
         this.pendingWantedPlayerCount = wantedPlayerCount;
-        this.PushOwnProfile();
     }
 
     /// <summary>Stößt einen Abruf aller aktuell im Gruppenfinder sichtbaren Profile auf dem
@@ -567,6 +608,105 @@ public sealed class LiveSyncService : IDisposable
         finally
         {
             this.browseInFlight = false;
+        }
+    }
+
+    /// <summary>Stößt einen Abruf aller aktuell im Gruppenfinder sichtbaren GRUPPEN-Listungen auf
+    /// dem eigenen Data Center an (fire-and-forget, siehe Klassendoc) - 1:1 nach dem Muster von
+    /// <see cref="TriggerBrowse"/> für Einzelprofile (gleiche in-flight-Absicherung, gleiches
+    /// dataCenter aus <see cref="LastKnownOwnProfile"/>), aber ein EIGENSTÄNDIGER, paralleler
+    /// Datenpfad (siehe <see cref="LastGroupBrowseResults"/>-Doc) - von MainWindow beim Öffnen des
+    /// Gruppenfinder-Tabs UND über denselben "Aktualisieren"-Button wie TriggerBrowse aufgerufen
+    /// (kein zweiter Button nötig). No-Op, solange LastKnownOwnProfile noch unbekannt ist, aus
+    /// demselben Grund wie bei TriggerBrowse.</summary>
+    public void TriggerGroupBrowse()
+    {
+        if (this.groupBrowseInFlight)
+            return;
+
+        var dataCenter = this.LastKnownOwnProfile?.DataCenter;
+        if (string.IsNullOrEmpty(dataCenter))
+            return;
+
+        this.groupBrowseInFlight = true;
+        _ = this.TriggerGroupBrowseAsync(dataCenter);
+    }
+
+    private async Task TriggerGroupBrowseAsync(string dataCenter)
+    {
+        try
+        {
+            var url = $"{WorkerBaseUrl}/groups/browse?dataCenter={Uri.EscapeDataString(dataCenter)}";
+            using var response = await this.httpClient.GetAsync(url).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                this.SetPendingResult(LiveSyncEventKind.GroupBrowseFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
+                return;
+            }
+
+            var entries = await response.Content.ReadFromJsonAsync<List<GroupBrowseResponseEntry>>(JsonOptions).ConfigureAwait(false)
+                ?? new List<GroupBrowseResponseEntry>();
+
+            var results = new List<GroupFinderGroupEntry>();
+
+            // Cross-Thread-Hinweis wie bei TriggerBrowseAsync oben (siehe dortigen Kommentar) -
+            // gilt hier identisch: kein Aufruf von partyService/anderen Dalamud-Service-APIs in
+            // dieser Methode. Ebenso pro Eintrag einzeln try/catch, damit eine einzelne kaputte
+            // Gruppen-Listung (z.B. korrupte Mitgliederdaten) nicht alle übrigen Treffer mit sich reißt.
+            foreach (var entry in entries)
+            {
+                if (string.IsNullOrEmpty(entry.GroupId))
+                    continue;
+
+                try
+                {
+                    var members = (entry.Members ?? new List<GroupBrowseResponseMember>())
+                        .Where(m => !string.IsNullOrEmpty(m.CharacterName) && !string.IsNullOrEmpty(m.World))
+                        .Select(m => new GroupFinderGroupMember
+                        {
+                            World = m.World!,
+                            CharacterName = m.CharacterName!,
+                            // null bleibt null (siehe GroupFinderGroupMember.LearnedSpellIds-Doc) -
+                            // NUR bei einem tatsächlich vorhandenen Bitmaskenstring dekodiert,
+                            // NICHT versucht zu dekodieren, wenn der Worker kein Einzelprofil zu
+                            // diesem Mitglied gefunden hat (siehe worker handleGroupsBrowse).
+                            LearnedSpellIds = string.IsNullOrEmpty(m.SpellBitmaskBase64)
+                                ? null
+                                : ManualCodeSyncProvider.DecodeBitmask(
+                                    this.spellDataService, ManualCodeSyncProvider.FromBase64Url(m.SpellBitmaskBase64)),
+                        })
+                        .ToList();
+
+                    results.Add(new GroupFinderGroupEntry
+                    {
+                        GroupId = entry.GroupId!,
+                        Members = members,
+                        AvailabilityTags = (entry.AvailabilityTags ?? new List<string>())
+                            .Select(AvailabilityTagExtensions.FromWireValue)
+                            .Where(tag => tag is not null)
+                            .Select(tag => tag!.Value)
+                            .ToList(),
+                        Note = entry.Note ?? string.Empty,
+                        WantedPlayerCount = entry.WantedPlayerCount ?? 0,
+                    });
+                }
+                catch (Exception exEntry)
+                {
+                    this.log.Debug(exEntry, $"LiveSyncService: Gruppen-Eintrag \"{entry.GroupId}\" übersprungen (ungültige Daten).");
+                }
+            }
+
+            this.LastGroupBrowseResults = results;
+        }
+        catch (Exception ex)
+        {
+            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Abrufen der Gruppen-Listungen.");
+            this.SetPendingResult(LiveSyncEventKind.GroupBrowseFailed, ex.Message);
+        }
+        finally
+        {
+            this.groupBrowseInFlight = false;
         }
     }
 
@@ -784,6 +924,213 @@ public sealed class LiveSyncService : IDisposable
         }
     }
 
+    /// <summary>Erlaubter Mitgliederbereich einer Gruppen-Listung (siehe <see cref="PublishGroup"/>) -
+    /// exakt dieselben Grenzen wie worker/src/index.ts GROUP_MEMBER_COUNT_MIN/MAX. Die UI
+    /// (siehe MainWindow.DrawGroupFinderTab) begrenzt die Auswahl bereits selbst auf diesen
+    /// Bereich (Button deaktiviert außerhalb davon) - diese Prüfung hier ist die zusätzliche,
+    /// defensive Absicherung direkt vor dem tatsächlichen Request.</summary>
+    private const int GroupMemberCountMin = 1;
+    private const int GroupMemberCountMax = 8;
+
+    /// <summary>Veröffentlicht/aktualisiert die EIGENE Gruppen-Listung (Phase 2 "Gruppenfinder",
+    /// PUT /group/:groupId, siehe worker/src/index.ts handleGroupPut) - ausschließlich bei
+    /// explizitem Klick auf "Gruppe veröffentlichen" aufgerufen (siehe MainWindow.DrawGroupFinderTab),
+    /// bewusst OHNE Debounce/Auto-Push (anders als PushOwnProfile/TickPushDiff): eine Gruppen-
+    /// Listung hat keinen automatischen Aktualisierungs-Trigger wie "neuer Spell gelernt", jede
+    /// Änderung bleibt bis zum nächsten Klick rein lokal.
+    ///
+    /// Erkennt Neuanlage vs. Update über <see cref="Configuration.GroupFinderOwnGroupIds"/>
+    /// (Key = eigener Charakter über <see cref="BuildTokenKey"/>): ist dort bereits eine groupId
+    /// hinterlegt, wird dieselbe Gruppe per PUT mit dem gespeicherten Edit-Token aktualisiert
+    /// (kein zweiter, paralleler Eintrag) - sonst wird eine neue groupId erzeugt und eine frische
+    /// Gruppe angelegt. GroupId + der vom Server zurückgegebene Edit-Token werden bei einer
+    /// Neuanlage BEIDE sofort persistiert (siehe Configuration.cs-Doc zu beiden Dictionaries) -
+    /// ohne das wäre die Gruppe nach einem Plugin-/Spiel-Neustart nicht mehr aktualisierbar/löschbar.</summary>
+    public void PublishGroup(
+        IReadOnlyList<(string World, string CharacterName)> members,
+        bool visible,
+        IReadOnlyCollection<AvailabilityTag> tags,
+        string note,
+        int wantedPlayerCount)
+    {
+        if (this.groupPublishInFlight)
+            return;
+
+        if (members.Count < GroupMemberCountMin || members.Count > GroupMemberCountMax)
+        {
+            this.SetPendingResult(
+                LiveSyncEventKind.GroupPublishFailed,
+                $"Mitgliederanzahl muss zwischen {GroupMemberCountMin} und {GroupMemberCountMax} liegen (aktuell {members.Count}).");
+            return;
+        }
+
+        // MUSS synchron HIER auf dem Framework-Thread ermittelt werden (Dalamud-Service-API über
+        // partyService, siehe Klassendoc "WICHTIG - Cross-Thread-Zugriff" sowie den bestehenden
+        // Bugfix an TriggerBrowseAsync/PublishDevTestProfiles) - NICHT erst im async-Callback
+        // weiter unten.
+        var localName = this.partyService.GetLocalPlayerName();
+        var localWorld = this.partyService.GetLocalPlayerWorld();
+        if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
+        {
+            this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, "kein eingeloggter Charakter erkannt");
+            return;
+        }
+
+        this.groupPublishInFlight = true;
+        _ = this.PublishGroupAsync(members, visible, tags, note, wantedPlayerCount, localName, localWorld);
+    }
+
+    private async Task PublishGroupAsync(
+        IReadOnlyList<(string World, string CharacterName)> members,
+        bool visible,
+        IReadOnlyCollection<AvailabilityTag> tags,
+        string note,
+        int wantedPlayerCount,
+        string localName,
+        string localWorld)
+    {
+        try
+        {
+            var tokenKey = BuildTokenKey(localName, localWorld);
+            var isUpdate = this.configuration.GroupFinderOwnGroupIds.TryGetValue(tokenKey, out var existingGroupId);
+            var groupId = isUpdate ? existingGroupId! : Guid.NewGuid().ToString();
+
+            // editToken nur bei einem UPDATE mitgeschickt (siehe worker/src/index.ts
+            // handleGroupPut: existing !== null erfordert einen passenden Token) - bei einer
+            // Neuanlage bleibt er null, der Worker generiert dann selbst einen neuen.
+            string? editToken = null;
+            if (isUpdate)
+                this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out editToken);
+
+            var requestBody = new PutGroupRequestBody(
+                members.Select(m => new GroupMemberWire(m.World, m.CharacterName)).ToList(),
+                editToken,
+                visible ? "listed" : "unlisted",
+                tags.Select(tag => tag.ToWireValue()).ToList(),
+                note,
+                wantedPlayerCount);
+
+            var url = BuildGroupUrl(groupId);
+            using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
+                this.log.Warning($"LiveSyncService: Gruppen-Publish fehlgeschlagen ({detail}) für groupId \"{groupId}\".");
+                this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, detail);
+                return;
+            }
+
+            var responseBody = await response.Content.ReadFromJsonAsync<PutGroupResponseBody>(JsonOptions).ConfigureAwait(false);
+
+            // groupId + editToken BEIDE persistieren (siehe Konfigurations-Doc/Methodendoc oben) -
+            // bei einem Update ist editToken in der Response bewusst leer (Server gibt den
+            // Klartext-Token nur einmal, bei der Neuanlage, zurück), dann bleibt der bereits
+            // gespeicherte Token unverändert stehen.
+            this.configuration.GroupFinderOwnGroupIds[tokenKey] = groupId;
+            if (!string.IsNullOrEmpty(responseBody?.EditToken))
+                this.configuration.GroupFinderGroupEditTokens[groupId] = responseBody!.EditToken!;
+            this.configuration.Save();
+
+            this.SetPendingResult(LiveSyncEventKind.GroupPublishSucceeded, null);
+        }
+        catch (Exception ex)
+        {
+            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Veröffentlichen der Gruppe.");
+            this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, ex.Message);
+        }
+        finally
+        {
+            this.groupPublishInFlight = false;
+        }
+    }
+
+    /// <summary>True, wenn für den aktuellen Charakter bereits eine Gruppen-Listung veröffentlicht
+    /// ist - steuert in MainWindow, ob der "Gruppe wieder löschen"-Button sichtbar/aktiv ist
+    /// (analog zu <see cref="HasEditTokenForLocalCharacter"/> für das Einzelprofil).</summary>
+    public bool HasPublishedGroup()
+    {
+        var localName = this.partyService.GetLocalPlayerName();
+        var localWorld = this.partyService.GetLocalPlayerWorld();
+        if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
+            return false;
+
+        return this.configuration.GroupFinderOwnGroupIds.ContainsKey(BuildTokenKey(localName, localWorld));
+    }
+
+    /// <summary>Löscht die EIGENE Gruppen-Listung (DELETE /group/:groupId, siehe
+    /// worker/src/index.ts handleGroupDelete) - analog zu <see cref="DeleteOwnProfile"/>. Kein
+    /// Request, wenn für den aktuellen Charakter keine groupId hinterlegt ist (die UI zeigt den
+    /// zugehörigen Button ohnehin nur an, wenn <see cref="HasPublishedGroup"/> true ist, siehe
+    /// MainWindow.DrawGroupFinderTab) - rührt NIE an den referenzierten Einzelprofilen der
+    /// Mitglieder (siehe worker-seitigen Referenz-statt-Kopie-Ansatz).</summary>
+    public void DeletePublishedGroup()
+    {
+        if (this.groupDeleteInFlight)
+            return;
+
+        var localName = this.partyService.GetLocalPlayerName();
+        var localWorld = this.partyService.GetLocalPlayerWorld();
+        if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
+        {
+            this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, null);
+            return;
+        }
+
+        var tokenKey = BuildTokenKey(localName, localWorld);
+        if (!this.configuration.GroupFinderOwnGroupIds.TryGetValue(tokenKey, out var groupId))
+            return; // Nichts zu löschen - siehe HasPublishedGroup/Methodendoc oben.
+
+        this.groupDeleteInFlight = true;
+        _ = this.DeletePublishedGroupAsync(tokenKey, groupId);
+    }
+
+    private async Task DeletePublishedGroupAsync(string tokenKey, string groupId)
+    {
+        try
+        {
+            if (!this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out var token))
+            {
+                // Sollte praktisch nicht vorkommen (eine hinterlegte groupId ohne zugehörigen
+                // Edit-Token wäre ein inkonsistenter lokaler Zustand) - defensiv trotzdem
+                // abgesichert, analog zu DeleteOwnProfileAsync.
+                this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, null);
+                return;
+            }
+
+            var url = BuildGroupUrl(groupId);
+            using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+            request.Headers.Add("X-Edit-Token", token);
+
+            using var response = await this.httpClient.SendAsync(request).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
+                return;
+            }
+
+            // BEIDE lokalen Einträge entfernen (siehe Configuration.cs-Doc) - sonst würde ein
+            // erneuter Klick auf "Gruppe veröffentlichen" versuchen, mit der jetzt serverseitig
+            // gelöschten groupId/dem verwaisten Token zu aktualisieren (409, da der Worker die
+            // Gruppe nicht mehr kennt).
+            this.configuration.GroupFinderOwnGroupIds.Remove(tokenKey);
+            this.configuration.GroupFinderGroupEditTokens.Remove(groupId);
+            this.configuration.Save();
+
+            this.SetPendingResult(LiveSyncEventKind.GroupUnpublishSucceeded, null);
+        }
+        catch (Exception ex)
+        {
+            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Löschen der eigenen Gruppen-Listung.");
+            this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, ex.Message);
+        }
+        finally
+        {
+            this.groupDeleteInFlight = false;
+        }
+    }
+
     /// <summary>Holt (und leert) den "Briefkasten" mit dem Ergebnis des zuletzt abgeschlossenen
     /// Push/Fetch/Delete-Vorgangs, falls seit dem letzten Aufruf ein neues vorliegt - von
     /// MainWindow.Draw() einmal pro Frame aufzurufen (siehe Klassendoc).</summary>
@@ -828,6 +1175,12 @@ public sealed class LiveSyncService : IDisposable
     private static string BuildProfileUrl(string world, string characterName) =>
         $"{WorkerBaseUrl}/profile/{Uri.EscapeDataString(world)}/{Uri.EscapeDataString(characterName)}";
 
+    /// <summary>Analog zu <see cref="BuildProfileUrl"/>, aber für Gruppen-Listungen - groupId ist
+    /// EIN einzelnes, vom Client generiertes Pfadsegment (siehe worker/src/index.ts GROUP_PATH),
+    /// trotzdem escaped (Guid.ToString() enthält zwar selbst keine URL-Sonderzeichen, aber es
+    /// gibt keinen Grund, sich implizit darauf zu verlassen).</summary>
+    private static string BuildGroupUrl(string groupId) => $"{WorkerBaseUrl}/group/{Uri.EscapeDataString(groupId)}";
+
     public void Dispose() => this.httpClient.Dispose();
 
     /// <summary>Visibility/AvailabilityTags/Note/WantedPlayerCount sind bewusst nullable (siehe
@@ -851,6 +1204,31 @@ public sealed class LiveSyncService : IDisposable
 
     private sealed record FetchResponseBody(string? SpellBitmaskBase64);
 
+    /// <summary>Ein einzelnes members[]-Element für PUT /group/:groupId (siehe
+    /// worker/src/index.ts isValidRawGroupMember) - NUR world+characterName, keine Bitmaske
+    /// (siehe PublishGroup-Doc: Gruppen-Listungen referenzieren bestehende Einzelprofile, statt
+    /// sie zu duplizieren).</summary>
+    private sealed record GroupMemberWire(string World, string CharacterName);
+
+    /// <summary>Body für PUT /group/:groupId - Visibility/AvailabilityTags/Note/WantedPlayerCount
+    /// bewusst nullable wie bei <see cref="PushRequestBody"/> (dieselbe JsonOptions-
+    /// WhenWritingNull-Begründung gilt hier genauso, siehe dortigen Kommentar), auch wenn
+    /// PublishGroup diese Felder aktuell bei jedem Aufruf tatsächlich mitschickt (kein "stiller"
+    /// Zwischenstand wie beim automatischen Einzelprofil-Diff-Push).</summary>
+    private sealed record PutGroupRequestBody(
+        List<GroupMemberWire> Members,
+        string? EditToken,
+        string? Visibility,
+        List<string>? AvailabilityTags,
+        string? Note,
+        int? WantedPlayerCount);
+
+    /// <summary>Response von PUT /group/:groupId (siehe worker/src/index.ts stripForGroupResponse) -
+    /// nur EditToken wird hier tatsächlich gebraucht (siehe PublishGroupAsync); die übrigen vom
+    /// Worker zurückgegebenen Felder (members/dataCenter/visibility/...) sind für den
+    /// Publish-Flow selbst ohne Bedeutung, da der Client den gesendeten Stand bereits kennt.</summary>
+    private sealed record PutGroupResponseBody(string? EditToken);
+
     /// <summary>Ein einzelner Eintrag aus der GET /profiles/browse-Antwort (siehe
     /// worker/src/index.ts stripForBrowseResponse) - bewusst alle Felder nullable/optional
     /// eingelesen, obwohl der Worker sie eigentlich immer mitschickt: ein robuster Client
@@ -865,4 +1243,21 @@ public sealed class LiveSyncService : IDisposable
         string? Note,
         int? WantedPlayerCount,
         string? UpdatedAt);
+
+    /// <summary>Ein einzelnes Mitglied innerhalb eines GET /groups/browse-Eintrags (siehe
+    /// worker/src/index.ts handleGroupsBrowse) - SpellBitmaskBase64 ist hier (anders als bei
+    /// <see cref="BrowseResponseEntry"/>) explizit optional/kann null sein: der Worker liefert
+    /// null, wenn er zu diesem Mitglied kein Einzelprofil (mehr) finden konnte.</summary>
+    private sealed record GroupBrowseResponseMember(string? World, string? CharacterName, string? SpellBitmaskBase64);
+
+    /// <summary>Ein einzelner Eintrag aus der GET /groups/browse-Antwort (siehe worker/src/index.ts
+    /// handleGroupsBrowse) - analog zu <see cref="BrowseResponseEntry"/>, aber für Gruppen-Listungen;
+    /// bewusst alle Felder nullable/optional eingelesen (siehe dortigen Kommentar zum robusten
+    /// Client, der der Gegenseite nicht blind vertraut).</summary>
+    private sealed record GroupBrowseResponseEntry(
+        string? GroupId,
+        List<GroupBrowseResponseMember>? Members,
+        List<string>? AvailabilityTags,
+        string? Note,
+        int? WantedPlayerCount);
 }

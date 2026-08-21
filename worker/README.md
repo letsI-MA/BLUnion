@@ -75,6 +75,83 @@ Aufrufer hat es selbst übergeben) und nie `editTokenHash`. Iteriert aktuell üb
 bei sehr vielen Profilen (>1000) sollte das durch einen echten Data-Center-Index ersetzt werden;
 für die bei Phase 2 zu erwartende Nutzerzahl ist das bewusst noch keine verfrühte Optimierung.
 
+## Gruppen-Listungen (Phase 2)
+
+Zusätzlich zu einzelnen Profilen lassen sich auch **Gruppen** im Gruppenfinder veröffentlichen -
+z.B. eine bereits bestehende Party, die gemeinsam auf Spell-Jagd geht. Eine Gruppen-Listung
+speichert dabei bewusst **NUR Referenzen** auf bereits existierende Einzelprofile (`world` +
+`characterName` je Mitglied), **KEINE eigene Kopie** der jeweiligen Spell-Bitmaske - die wird
+erst beim Browse-Request live aus den vorhandenen `profile:`-Einträgen nachgeladen und
+kombiniert. Ändert sich der Spell-Status eines Mitglieds (normaler Live-Sync-Push, siehe oben),
+taucht das automatisch in jeder Gruppen-Listung auf, die dieses Mitglied referenziert - ohne dass
+die Gruppen-Listung selbst angefasst werden muss.
+
+Eine Gruppen-Listung (KV-Value, JSON, KV-Key `group:<groupId>`) sieht so aus:
+
+```json
+{
+  "groupId": "3fa1c9d2-…",
+  "members": [
+    { "world": "Gilgamesh", "characterName": "Beispielname" },
+    { "world": "Gilgamesh", "characterName": "Zweite Person" }
+  ],
+  "editTokenHash": "…SHA-256-Hex, NIE der Klartext-Token…",
+  "visibility": "listed",
+  "availabilityTags": ["evening"],
+  "note": "Party sucht 2 weitere für Nachtjagd",
+  "wantedPlayerCount": 4,
+  "dataCenter": "Aether",
+  "createdAt": "2026-08-21T18:00:00.000Z",
+  "updatedAt": "2026-08-21T18:00:00.000Z"
+}
+```
+
+`groupId` ist ein vom Client beim Erstellen generierter, zufälliger String (z.B.
+`crypto.randomUUID()` im C#-Client) - anders als bei `world`+`characterName` gibt es hier keinen
+natürlichen Schlüssel, der Key wird deshalb auch NICHT lowercased. `members` enthält 1-8 Einträge.
+`dataCenter` wird - wie bei Einzelprofilen - server-seitig aus dem `world` des **ersten**
+Mitglieds hergeleitet, nicht vom Client übergeben. `visibility`/`availabilityTags`/`note`/
+`wantedPlayerCount` folgen exakt denselben Regeln wie bei Einzelprofilen (siehe oben).
+
+| Methode | Pfad | Auth | Zweck |
+|---|---|---|---|
+| `PUT` | `/group/:groupId` | `editToken` im Body (außer beim allerersten Anlegen) | Gruppen-Listung anlegen/aktualisieren |
+| `DELETE` | `/group/:groupId` | Header `X-Edit-Token` | Gruppen-Listung löschen |
+| `GET` | `/groups/browse?dataCenter=<DC>` | keine | Gruppen-Gruppenfinder: alle `listed`-Gruppen auf diesem Data Center |
+
+`PUT`-Body: `{ members: [{world, characterName}, …], visibility?, availabilityTags?, note?,
+wantedPlayerCount?, editToken? }` - `members` ist Pflicht, der Rest optional (gleiches
+"fehlt = bisheriger Wert bleibt"-Verhalten wie beim Einzelprofil-`PUT`). Jedes
+`members[].world` muss einer bekannten FFXIV-World entsprechen, sonst `400`.
+
+**Edit-Token-Besitzmodell (wichtig):** der `editToken` einer Gruppen-Listung identifiziert
+**ausschließlich deren Ersteller/Veröffentlicher** - **nicht** die referenzierten Mitglieder. Wer
+die Gruppe per `PUT` anlegt, ist der einzige, der sie später ändern/löschen kann; die Mitglieder
+selbst haben darüber keinen eigenen Zugriff (kein geteilter Zugriff für alle). Das ist eine
+bewusste Design-Entscheidung, kein Bug.
+
+`DELETE /group/:groupId` löscht **ausschließlich** den `group:`-Eintrag selbst (Mitgliederliste/
+Tags/Notiz) - rührt **nie** an den referenzierten `profile:`-Einträgen der Mitglieder, die bleiben
+davon unabhängig bestehen. Das ist der ganze Punkt des Referenz-statt-Kopie-Ansatzes.
+
+`GET /groups/browse` liefert je Treffer `{ groupId, members: [{world, characterName,
+spellBitmaskBase64}], availabilityTags, note, wantedPlayerCount }` (kein `dataCenter`/
+`visibility`/`editTokenHash`, analog zu `GET /profiles/browse`). `spellBitmaskBase64` ist dabei
+je Mitglied `null`, falls für dieses Mitglied kein (mehr) gültiges Einzelprofil existiert
+(gelöscht/abgelaufen/nie gepusht) - das Mitglied wird trotzdem aufgelistet, nur ohne Bitmaske,
+statt die ganze Gruppen-Listung aus dem Ergebnis zu verwerfen. Macht pro Gruppen-Treffer
+zusätzlich `N` Einzelprofil-Lookups (`N` = Mitgliederzahl) und verschärft damit die oben
+beschriebene Browse-Skalierungsgrenze zusätzlich - bewusst nicht optimiert, siehe Kommentar bei
+`handleGroupsBrowse` in `src/index.ts`.
+
+Wie bei Einzelprofilen läuft eine Gruppen-Listung nach der Standard-TTL von 90 Tagen automatisch
+ab (`ttlHours` im `PUT`-Body funktioniert genauso wie beim Einzelprofil-`PUT`, siehe unten). Im
+Unterschied zu Einzelprofilen gibt es für die Gruppen-Listung selbst (Mitgliederliste/Tags/Notiz)
+aber **keinen automatischen Refresh-Trigger** wie den Spell-Diff-Push aus Phase 1 - ohne ein
+erneutes `PUT` innerhalb der TTL verschwindet die Gruppen-Listung also automatisch aus dem
+Gruppenfinder, auch wenn die referenzierten Einzelprofile der Mitglieder selbst weiterhin aktiv
+gepusht werden und bestehen bleiben.
+
 Beim allerersten `PUT` für einen Charakter wird ein neuer `editToken` generiert und **einmalig**
 in der Response zurückgegeben (`response.editToken`) - danach existiert er serverseitig nur noch
 als Hash. Wer ihn verliert, kann das Profil nicht mehr bearbeiten/löschen und muss einfach ein
@@ -110,6 +187,16 @@ Lesevorgang aus KV läuft.
 Bewusst **nicht** durch einen Wechsel auf Cloudflare Durable Objects gelöst (dort wäre echte
 sofortige Konsistenz möglich) - der Zugewinn rechtfertigt bei der hier erwarteten Nutzerbasis-
 Größe nicht die deutlich höhere Infrastruktur-Komplexität.
+
+**Kurzzeit-Caching der Browse-Endpunkte:** `GET /profiles/browse` und `GET /groups/browse` werden
+serverseitig für 20 Sekunden gecached (Standard-Workers-Cache-API, `caches.default`, siehe
+`withCache` in `src/index.ts`) - Grund ist das Plugin, das den Gruppenfinder-Tab automatisch alle
+15 Sekunden neu abruft (`UI/MainWindow.cs` `GroupFinderAutoRefreshInterval`); ohne diesen Cache
+würde jeder offen gelassene Gruppenfinder-Tab mit der Nutzerzahl skalierend wiederholt über ALLE
+KV-Keys iterieren. `PUT`/`DELETE` bleiben davon komplett unberührt (nie gecached) - ein frisch
+veröffentlichtes oder gelöschtes Profil kann dadurch aber für bis zu 20 Sekunden noch leicht
+veraltet in den Browse-Ergebnissen erscheinen, zusätzlich zur oben beschriebenen KV-Verzögerung.
+Bewusster Kompromiss, kein Bug.
 
 ## Lokal testen
 

@@ -16,4 +16,15 @@ public sealed record PlayerSpellStatus
 
     /// <summary>True, wenn das der eigene Client ist (nicht per Sync empfangen).</summary>
     public bool IsLocalPlayer { get; init; }
+
+    /// <summary>World des Charakters - NICHT immer bekannt: der manuelle "BLU:"-Sync-Code
+    /// (siehe ManualCodeSyncProvider) trägt keine World-Info, ein daraus importierter oder aus
+    /// DevTestFixtures geladener Status hat dieses Feld daher immer null. Nur dort gesetzt, wo
+    /// die Quelle die World tatsächlich kennt: automatischer Party-Fetch über Live-Sync (siehe
+    /// LiveSyncService.FetchPartyMemberProfilesAsync, Quelle PartyService/PartyMemberInfo.World)
+    /// und "In Vergleich aufnehmen" im Gruppenfinder (siehe UI.MainWindow.DrawGroupFinderTab,
+    /// Quelle GroupFinderEntry.World). Wird für die neue Gruppen-Veröffentlichung gebraucht
+    /// (siehe LiveSyncService.PublishGroup) - nur Mitglieder mit bekannter World lassen sich in
+    /// eine Gruppen-Listung aufnehmen.</summary>
+    public string? World { get; init; }
 }

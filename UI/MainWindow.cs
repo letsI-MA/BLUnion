@@ -50,13 +50,14 @@ public sealed class MainWindow : Window, IDisposable
     /// Zwischenablage-Kopieren selbst zu verzögern (das läuft davon unabhängig bei jedem Klick).</summary>
     private static readonly TimeSpan AutoShareCooldown = TimeSpan.FromSeconds(10);
 
-    /// <summary>URL des Web Companion (siehe DrawWebCompanionTab) - dieselbe Adresse wie im
+    /// <summary>URL des Web Companion (siehe DrawSyncTab) - dieselbe Adresse wie im
     /// README-Abschnitt "Sync without a server" verlinkt.</summary>
     private const string WebCompanionUrl = "https://letsi-ma.github.io/BLUnion/";
 
     private string importCodeBuffer = string.Empty;
     private string comparisonFilterText = string.Empty;
     private string learningPlanFilterText = string.Empty;
+    private string spellbookFilterText = string.Empty;
     private string? lastError;
 
     /// <summary>Steuert NUR die Farbe, in der <see cref="lastError"/> angezeigt wird (siehe
@@ -103,6 +104,21 @@ public sealed class MainWindow : Window, IDisposable
     /// Öffnen des Tabs", NICHT bei jedem Draw-Call, während der Tab bereits offen ist).</summary>
     private bool groupFinderTabWasActive;
 
+    /// <summary>Wie oft der Gruppenfinder-Tab automatisch neu abgerufen wird, SOLANGE er offen
+    /// bleibt (siehe Draw()) - zusätzlich zum bestehenden "beim Öffnen"-Trigger oben. 15 Sekunden
+    /// ist bewusst kürzer als worker/src/index.ts BROWSE_CACHE_TTL_SECONDS (20s): der Worker
+    /// cached GET /profiles/browse und GET /groups/browse serverseitig kurzzeitig (siehe dortigen
+    /// Kommentar), sodass dieser Client-Poll-Takt NICHT mit der Nutzerzahl skaliert - mehrere
+    /// Clients treffen innerhalb der Cache-TTL denselben Server-seitigen Cache-Eintrag.</summary>
+    private static readonly TimeSpan GroupFinderAutoRefreshInterval = TimeSpan.FromSeconds(15);
+
+    /// <summary>Zeitpunkt des letzten (automatischen ODER manuellen) Gruppenfinder-Refreshs -
+    /// null, solange der Tab in dieser Session noch nie geöffnet wurde. Wird sowohl vom
+    /// Auto-Refresh in Draw() als auch vom manuellen "Aktualisieren"-Button in
+    /// DrawGroupFinderTab gesetzt, damit ein manueller Klick den nächsten Auto-Refresh nicht
+    /// unmittelbar danach unnötig erneut auslöst.</summary>
+    private DateTimeOffset? lastGroupFinderAutoRefreshAt;
+
     /// <summary>True, sobald <see cref="groupFinderVisible"/>/<see cref="groupFinderTags"/>/
     /// <see cref="groupFinderNoteBuffer"/>/<see cref="groupFinderWantedPlayerCountBuffer"/>
     /// einmalig aus <see cref="LiveSyncService.LastKnownOwnProfile"/> vorbelegt wurden (siehe
@@ -115,6 +131,57 @@ public sealed class MainWindow : Window, IDisposable
     private HashSet<AvailabilityTag> groupFinderTags = new();
     private string groupFinderNoteBuffer = string.Empty;
     private string groupFinderWantedPlayerCountBuffer = "0";
+
+    /// <summary>Woher die für "Gruppe veröffentlichen" (siehe <see cref="DrawGroupFinderTab"/>,
+    /// Abschnitt "Eigene Gruppe veröffentlichen") auswählbaren Mitglieder kommen - Party
+    /// (<see cref="PartyService.GetBlueMagePartyMembers"/>, World immer bekannt) oder Sync-Liste
+    /// (<see cref="ManualCodeSyncProvider.GetKnownPartyStatus"/>, World nur bei Einträgen bekannt,
+    /// die selbst über Live-Sync/Gruppenfinder bezogen wurden, siehe <see cref="PlayerSpellStatus.World"/>).
+    /// Bewusst ein eigenes, einfaches Enum statt der bestehenden Sprach-Radio-Button-Logik
+    /// (displayLanguage) 1:1 zu duplizieren - die beiden haben inhaltlich nichts miteinander zu
+    /// tun, nur dieselbe RadioButton-Optik.</summary>
+    private enum GroupMemberSource
+    {
+        Party,
+        SyncList,
+    }
+
+    private GroupMemberSource groupMemberSource = GroupMemberSource.Party;
+
+    /// <summary>Aktuell für die NEUE Gruppen-Veröffentlichung ausgewählte Mitglieder, Key
+    /// "CharacterName@World" (wie <see cref="LiveSyncService.PublishGroup"/> es auch erwartet) -
+    /// EIN gemeinsames Set für beide Quellen (Party/Sync-Liste), damit die Auswahl beim Wechsel
+    /// zwischen den beiden RadioButtons nicht verloren geht (ein Mitglied, das in beiden Listen
+    /// vorkommt, behält seinen Auswahlstatus).</summary>
+    private readonly HashSet<string> groupPublishSelectedMembers = new();
+
+    /// <summary>Sichtbarkeit/Tags/Notiz/Mitspieleranzahl für die NEUE Gruppen-Veröffentlichung -
+    /// bewusst eigene, von <see cref="groupFinderVisible"/>/<see cref="groupFinderTags"/>/
+    /// <see cref="groupFinderNoteBuffer"/>/<see cref="groupFinderWantedPlayerCountBuffer"/>
+    /// UNABHÄNGIGE Felder: das sind zwei verschiedene Listungen (eigenes Einzelprofil vs. eine
+    /// veröffentlichte Gruppe), keine geteilten Werte.</summary>
+    private bool groupPublishVisible;
+    private readonly HashSet<AvailabilityTag> groupPublishTags = new();
+    private string groupPublishNoteBuffer = string.Empty;
+    private string groupPublishWantedPlayerCountBuffer = "0";
+
+    /// <summary>Filtermodus für den Spellbook-Tab (siehe <see cref="DrawSpellbookTab"/>) - All
+    /// zeigt alle bekannten Spells ungefiltert, Learned nur die bereits über
+    /// <see cref="LocalSpellUnlockService.GetLearnedSpellIds"/> gelernten, Missing nur die noch
+    /// nicht gelernten.</summary>
+    private enum SpellbookFilterMode
+    {
+        All,
+        Learned,
+        Missing,
+    }
+
+    private SpellbookFilterMode spellbookFilterMode = SpellbookFilterMode.All;
+
+    /// <summary>Aktuell im Loadouts-Tab gewählter Content-Typ-Filter (siehe DrawLoadoutsTab) -
+    /// Default Masked Carnivale, wie in der Aufgabenstellung als erster der beiden RadioButtons
+    /// vorgegeben.</summary>
+    private LoadoutContentType loadoutContentTypeFilter = LoadoutContentType.MaskedCarnivale;
 
     public MainWindow(
         PartyService partyService,
@@ -197,12 +264,6 @@ public sealed class MainWindow : Window, IDisposable
             // Ohne den Suffix ändert sich bei jedem Sprachwechsel die ID ALLER Tabs gleichzeitig,
             // ImGui erkennt den bisher aktiven Tab dadurch nicht wieder und springt auf den
             // ersten zurück (siehe gemeldeter Bug: Sprung auf "Party" bei Sprachwechsel).
-            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabParty, this.displayLanguage) + "###TabParty"))
-            {
-                this.DrawPartyTab();
-                ImGui.EndTabItem();
-            }
-
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellComparison, this.displayLanguage) + "###TabSpellComparison"))
             {
                 this.DrawComparisonTab();
@@ -212,6 +273,12 @@ public sealed class MainWindow : Window, IDisposable
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLearningPlan, this.displayLanguage) + "###TabLearningPlan"))
             {
                 this.DrawLearningPlanTab();
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLoadouts, this.displayLanguage) + "###TabLoadouts"))
+            {
+                this.DrawLoadoutsTab();
                 ImGui.EndTabItem();
             }
 
@@ -228,8 +295,25 @@ public sealed class MainWindow : Window, IDisposable
             var groupFinderTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabGroupFinder, this.displayLanguage) + "###TabGroupFinder");
             if (groupFinderTabActiveThisFrame)
             {
-                if (!this.groupFinderTabWasActive)
+                // Zeit-basierter Auto-Refresh (siehe GroupFinderAutoRefreshInterval-Doc): löst
+                // SOWOHL beim frischen Öffnen des Tabs ALS AUCH danach alle
+                // GroupFinderAutoRefreshInterval erneut aus, solange der Tab offen bleibt - kein
+                // zusätzliches Locking nötig, TriggerBrowse/TriggerGroupBrowse haben bereits eigene
+                // in-flight-Absicherung (siehe dortige browseInFlight/groupBrowseInFlight-Felder),
+                // ein Aufruf während eine vorherige Anfrage noch läuft ist also ein sicherer No-Op.
+                var now = DateTimeOffset.UtcNow;
+                var justOpened = !this.groupFinderTabWasActive;
+                if (justOpened || this.lastGroupFinderAutoRefreshAt is null
+                    || now - this.lastGroupFinderAutoRefreshAt >= GroupFinderAutoRefreshInterval)
+                {
                     this.liveSyncService.TriggerBrowse();
+
+                    // Eigenständiger, paralleler Datenpfad zu TriggerBrowse (siehe
+                    // LiveSyncService.LastGroupBrowseResults-Doc) - läuft im selben Auto-Refresh-
+                    // Takt mit, kein separater Timer nötig.
+                    this.liveSyncService.TriggerGroupBrowse();
+                    this.lastGroupFinderAutoRefreshAt = now;
+                }
 
                 this.DrawGroupFinderTab();
                 ImGui.EndTabItem();
@@ -237,9 +321,9 @@ public sealed class MainWindow : Window, IDisposable
 
             this.groupFinderTabWasActive = groupFinderTabActiveThisFrame;
 
-            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabWebCompanion, this.displayLanguage) + "###TabWebCompanion"))
+            if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellbook, this.displayLanguage) + "###TabSpellbook"))
             {
-                this.DrawWebCompanionTab();
+                this.DrawSpellbookTab();
                 ImGui.EndTabItem();
             }
 
@@ -251,20 +335,6 @@ public sealed class MainWindow : Window, IDisposable
 
             ImGui.EndTabBar();
         }
-    }
-
-    private void DrawPartyTab()
-    {
-        var members = this.partyService.GetBlueMagePartyMembers();
-
-        if (members.Count == 0)
-        {
-            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoBlueMagesInParty, this.displayLanguage));
-            return;
-        }
-
-        foreach (var member in members)
-            ImGui.TextUnformatted(UiStrings.Format(UiStrings.Key.PartyMemberEntry, this.displayLanguage, member.Name, member.Level));
     }
 
     private void DrawComparisonTab()
@@ -489,6 +559,101 @@ public sealed class MainWindow : Window, IDisposable
         }
     }
 
+    /// <summary>Phase 4 "Loadouts": kuratierte Spell-Empfehlungen pro Content-Typ (siehe
+    /// Data/loadouts.json, Models/Loadout.cs) - bewusst UNABHÄNGIG von Party-/Sync-Daten wie der
+    /// Spellbook-Tab, zeigt nur den EIGENEN Lernstand, keine Vergleichsberechnung gegen andere
+    /// Spieler.</summary>
+    private void DrawLoadoutsTab()
+    {
+        this.DrawLastMessage();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.LoadoutContentTypeMaskedCarnivale, this.displayLanguage),
+                this.loadoutContentTypeFilter == LoadoutContentType.MaskedCarnivale))
+            this.loadoutContentTypeFilter = LoadoutContentType.MaskedCarnivale;
+
+        ImGui.SameLine();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.LoadoutContentTypeFates, this.displayLanguage),
+                this.loadoutContentTypeFilter == LoadoutContentType.Fates))
+            this.loadoutContentTypeFilter = LoadoutContentType.Fates;
+
+        ImGui.Separator();
+
+        var loadouts = this.spellDataService.Loadouts
+            .Where(l => l.ContentType == this.loadoutContentTypeFilter)
+            .ToList();
+
+        if (loadouts.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.LoadoutsNoneForType, this.displayLanguage));
+            return;
+        }
+
+        var learnedSpellIds = this.localSpellUnlockService.GetLearnedSpellIds();
+
+        foreach (var loadout in loadouts)
+        {
+            ImGui.TextUnformatted(this.GetLoadoutName(loadout));
+
+            // Zusammenfassung bewusst OBEN im Eintrag (direkt unter dem Namen, vor Quelle/
+            // Spell-Liste) - siehe Aufgabenstellung.
+            var learnedCount = loadout.SpellIds.Count(learnedSpellIds.Contains);
+            ImGui.TextUnformatted(UiStrings.Format(
+                UiStrings.Key.LoadoutProgressFormat, this.displayLanguage, learnedCount, loadout.SpellIds.Count));
+
+            if (!string.IsNullOrEmpty(loadout.SourceNote))
+            {
+                ImGui.TextWrapped(UiStrings.Format(UiStrings.Key.LoadoutSourceLabel, this.displayLanguage, loadout.SourceNote));
+
+                // SourceUrl NUR falls zusätzlich gesetzt als klickbarer Button - SourceNote kann
+                // auch ohne URL stehen (z.B. eine nicht verlinkbare Quelle), siehe Models/Loadout.cs.
+                if (!string.IsNullOrEmpty(loadout.SourceUrl))
+                {
+                    if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.LoadoutOpenSourceButton, this.displayLanguage)}##LoadoutSource{loadout.Id}"))
+                    {
+                        // Exakt dasselbe Process.Start/UseShellExecute/try-catch-Muster wie beim
+                        // Web-Companion-Link in DrawSyncTab ("Im Browser öffnen") - NICHT neu
+                        // erfunden, inkl. Wiederverwendung von BrowserOpenedMessage/GenericError.
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo(loadout.SourceUrl) { UseShellExecute = true });
+                            this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.BrowserOpenedMessage, this.displayLanguage));
+                        }
+                        catch (Exception ex)
+                        {
+                            this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
+                        }
+                    }
+                }
+            }
+
+            foreach (var spellId in loadout.SpellIds)
+            {
+                var hasSpell = this.spellDataService.Spells.TryGetValue(spellId, out var spell);
+                var name = hasSpell ? this.GetSpellName(spell!) : UiStrings.Format(UiStrings.Key.SpellFallback, this.displayLanguage, spellId);
+
+                this.DrawSpellIcon(hasSpell ? spell!.IconId : 0u);
+                ImGui.SameLine();
+
+                // Nur bei bereits gelerntem Spell TextColored statt TextUnformatted - analog zum
+                // Gelernt-Status im Spellbook-Tab (siehe DrawSpellbookTab), kein PushStyleColor
+                // nötig, da hier immer nur GENAU eine Zeile eingefärbt wird.
+                if (learnedSpellIds.Contains(spellId))
+                    ImGui.TextColored(SuccessMessageColor, name);
+                else
+                    ImGui.TextUnformatted(name);
+            }
+
+            ImGui.Separator();
+        }
+    }
+
+    /// <summary>Analog <see cref="GetSpellName"/>/<see cref="GetMonsterName"/>, nur für
+    /// Loadout-Namen (siehe DrawLoadoutsTab).</summary>
+    private string GetLoadoutName(Loadout loadout) => loadout.GetName(this.displayLanguage);
+
     /// <summary>Rendert ein 24x24-Spell-Icon aus den lokalen Spieldateien über
     /// <see cref="ITextureProvider"/>. Wenn keine IconId bekannt ist, das Icon (noch) nicht
     /// geladen werden konnte oder das Laden fehlschlägt, wird stattdessen nur ein leerer
@@ -574,6 +739,20 @@ public sealed class MainWindow : Window, IDisposable
 
     private void DrawSyncTab()
     {
+        var members = this.partyService.GetBlueMagePartyMembers();
+
+        if (members.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoBlueMagesInParty, this.displayLanguage));
+        }
+        else
+        {
+            foreach (var member in members)
+                ImGui.TextUnformatted(UiStrings.Format(UiStrings.Key.PartyMemberEntry, this.displayLanguage, member.Name, member.Level));
+        }
+
+        ImGui.Separator();
+
         // Zeigt insbesondere die Erfolgsmeldung nach dem Export-Button an (siehe unten) - vorher
         // stand dieser Aufruf hier NICHT, wodurch "Code in Zwischenablage kopiert." erst sichtbar
         // wurde, wenn man danach zufällig in den Comparison- oder Web-Companion-Tab wechselte
@@ -701,6 +880,37 @@ public sealed class MainWindow : Window, IDisposable
         // ohne einen dritten echten Mitspieler testen zu können.
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.DevPublishTestProfilesButton, this.displayLanguage)))
             this.liveSyncService.PublishDevTestProfiles();
+
+        ImGui.Separator();
+
+        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.WebCompanionIntro, this.displayLanguage));
+        ImGui.Separator();
+
+        // Als reiner Text angezeigt (nicht nur über die Buttons erreichbar), damit man die URL
+        // notfalls auch von Hand abschreiben oder screenshotten kann - siehe Aufgabenstellung.
+        ImGui.TextUnformatted(WebCompanionUrl);
+        ImGui.Separator();
+
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.OpenInBrowserButton, this.displayLanguage)))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(WebCompanionUrl) { UseShellExecute = true });
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.BrowserOpenedMessage, this.displayLanguage));
+            }
+            catch (Exception ex)
+            {
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.CopyLinkButton, this.displayLanguage)))
+        {
+            ImGui.SetClipboardText(WebCompanionUrl);
+            this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LinkCopiedMessage, this.displayLanguage));
+        }
     }
 
     /// <summary>Lädt einen der Dev-Test-Charaktere aus <see cref="DevTestFixtures"/> und
@@ -785,11 +995,26 @@ public sealed class MainWindow : Window, IDisposable
             case LiveSyncEventKind.BrowseFailed:
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncBrowseFailed, this.displayLanguage, detail ?? "?"));
                 break;
+            case LiveSyncEventKind.GroupBrowseFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GroupBrowseFailed, this.displayLanguage, detail ?? "?"));
+                break;
             case LiveSyncEventKind.DevTestProfilesPublished:
                 this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.DevTestProfilesPublished, this.displayLanguage, detail ?? "?"));
                 break;
             case LiveSyncEventKind.DevTestProfilesFailed:
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.DevTestProfilesFailed, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.GroupPublishSucceeded:
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupPublishSucceededMessage, this.displayLanguage));
+                break;
+            case LiveSyncEventKind.GroupPublishFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GroupPublishFailedMessage, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.GroupUnpublishSucceeded:
+                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupUnpublishSucceededMessage, this.displayLanguage));
+                break;
+            case LiveSyncEventKind.GroupUnpublishFailed:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GroupUnpublishFailedMessage, this.displayLanguage, detail ?? "?"));
                 break;
         }
     }
@@ -871,6 +1096,195 @@ public sealed class MainWindow : Window, IDisposable
         }
     }
 
+    /// <summary>Phase 3 "Spellbook": Übersicht ALLER bekannten Spells (nicht nur der bei einem
+    /// Vergleich gemeinsam fehlenden wie im Comparison-Tab) mit dem EIGENEN Lernstand. Bewusst
+    /// KOMPLETT unabhängig von Party-/Sync-Daten (kein <see cref="ManualCodeSyncProvider"/>-Zugriff)
+    /// - funktioniert also auch ganz ohne geladene Mitspieler, anders als Comparison-/Lernplan-Tab.</summary>
+    private void DrawSpellbookTab()
+    {
+        var learnedSpellIds = this.localSpellUnlockService.GetLearnedSpellIds();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.SpellbookFilterAll, this.displayLanguage), this.spellbookFilterMode == SpellbookFilterMode.All))
+            this.spellbookFilterMode = SpellbookFilterMode.All;
+
+        ImGui.SameLine();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.SpellbookFilterLearned, this.displayLanguage), this.spellbookFilterMode == SpellbookFilterMode.Learned))
+            this.spellbookFilterMode = SpellbookFilterMode.Learned;
+
+        ImGui.SameLine();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.SpellbookFilterMissing, this.displayLanguage), this.spellbookFilterMode == SpellbookFilterMode.Missing))
+            this.spellbookFilterMode = SpellbookFilterMode.Missing;
+
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint(
+            "##SpellbookFilter", UiStrings.Get(UiStrings.Key.SpellFilterHint, this.displayLanguage), ref this.spellbookFilterText, 128);
+        ImGui.Separator();
+
+        // Sortierung nach SpellbookOrder passiert VOR beiden Filtern (Modus + Text) - beide
+        // Where-Aufrufe blenden nur Zeilen der bereits sortierten Liste aus, ändern also nichts
+        // an der Reihenfolge der verbleibenden Zeilen.
+        var rows = this.spellDataService.Spells.Values
+            .OrderBy(s => s.SpellbookOrder)
+            .Where(s => this.spellbookFilterMode switch
+            {
+                SpellbookFilterMode.Learned => learnedSpellIds.Contains(s.Id),
+                SpellbookFilterMode.Missing => !learnedSpellIds.Contains(s.Id),
+                _ => true,
+            })
+            .Where(s => SpellFilter.Matches(this.GetSpellName(s), s.SpellbookOrder, this.spellbookFilterText))
+            .ToList();
+
+        if (rows.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.SpellbookNoResults, this.displayLanguage));
+            return;
+        }
+
+        const ImGuiTableFlags tableFlags = ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp;
+
+        if (ImGui.BeginTable("SpellbookTable", 6, tableFlags))
+        {
+            ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 28);
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnNumber, this.displayLanguage), ImGuiTableColumnFlags.WidthFixed, 40);
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnSpell, this.displayLanguage));
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnStars, this.displayLanguage), ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnLearned, this.displayLanguage), ImGuiTableColumnFlags.WidthFixed, 60);
+            ImGui.TableSetupColumn(UiStrings.Get(UiStrings.Key.ColumnSources, this.displayLanguage));
+            ImGui.TableHeadersRow();
+
+            foreach (var spell in rows)
+            {
+                var isLearned = learnedSpellIds.Contains(spell.Id);
+
+                // excludeTotems bewusst fest false (kein Toggle in diesem Tab, siehe Aufgabenstellung) -
+                // das Spellbook soll jeden Spell mit ALLEN bekannten Quellen zeigen, unabhängig vom
+                // "Totems ausblenden"-Filter der Comparison-/Lernplan-Tabs.
+                var sources = this.spellDataService.GetSourcesForSpell(spell.Id, excludeTotems: false).ToList();
+
+                ImGui.TableNextRow();
+
+                ImGui.TableSetColumnIndex(0);
+                this.DrawSpellIcon(spell.IconId);
+
+                ImGui.TableSetColumnIndex(1);
+                ImGui.TextUnformatted($"#{spell.SpellbookOrder:D3}");
+
+                ImGui.TableSetColumnIndex(2);
+                ImGui.Selectable(this.GetSpellName(spell), false, ImGuiSelectableFlags.SpanAllColumns);
+
+                // Tooltip nur zeichnen, wenn es tatsächlich etwas zu zeigen gibt (Description
+                // und/oder mindestens eine Quelle) - sonst würde ein leerer Tooltip-Rahmen
+                // aufblitzen, siehe Aufgabenstellung ("kein leerer Absatz").
+                if (ImGui.IsItemHovered() && (spell.Description is not null || sources.Count > 0))
+                {
+                    ImGui.BeginTooltip();
+
+                    if (spell.Description is not null)
+                    {
+                        // Description ist bisher nur auf Deutsch gepflegt (siehe Models/Spell.cs) -
+                        // wird trotzdem in jeder Sprache angezeigt, aber mit Hinweis, falls die
+                        // aktuelle Anzeigesprache nicht Deutsch ist.
+                        ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35);
+                        ImGui.TextUnformatted(spell.Description);
+
+                        if (this.displayLanguage != DisplayLanguage.German)
+                            ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.SpellbookDescriptionGermanOnlyHint, this.displayLanguage));
+
+                        ImGui.PopTextWrapPos();
+
+                        if (sources.Count > 0)
+                            ImGui.Separator();
+                    }
+
+                    foreach (var (monster, location, method) in sources)
+                    {
+                        ImGui.TextUnformatted(UiStrings.Format(
+                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
+                    }
+
+                    ImGui.EndTooltip();
+                }
+
+                ImGui.TableSetColumnIndex(3);
+                ImGui.TextUnformatted(new string('★', spell.Stars) + new string('☆', Math.Max(0, 5 - spell.Stars)));
+
+                ImGui.TableSetColumnIndex(4);
+                if (isLearned)
+                    ImGui.TextColored(SuccessMessageColor, "✓");
+                else
+                    ImGui.TextColored(new System.Numerics.Vector4(0.6f, 0.6f, 0.6f, 1), "–");
+
+                ImGui.TableSetColumnIndex(5);
+                ImGui.TextUnformatted(this.FormatSourceSummary(sources));
+            }
+
+            ImGui.EndTable();
+        }
+    }
+
+    /// <summary>Rendert <paramref name="items"/> als responsives Karten-Grid statt einer
+    /// gestapelten Liste (siehe DrawGroupFinderTab "Andere Spieler"-/"Gruppen"-Bereich) - jede
+    /// Karte ein eigenes, umrandetes BeginChild fester Größe, <paramref name="drawCardContent"/>
+    /// zeichnet NUR den Karteninhalt selbst. Spaltenzahl ergibt sich aus der aktuell verfügbaren
+    /// Breite (<see cref="ImGui.GetContentRegionAvail"/>) - bei einem schmaleren/breiteren Fenster
+    /// passt sich die Spaltenzahl beim nächsten Frame automatisch an, ganz ohne eigene
+    /// Resize-Erkennung. Generisch über <typeparamref name="T"/>, damit sowohl
+    /// <see cref="GroupFinderEntry"/>- als auch <see cref="GroupFinderGroupEntry"/>-Listen
+    /// dieselbe Methode nutzen können. cardHeight ist bewusst FEST (kein Auto-Grow) - siehe
+    /// Aufgabenstellung: einzelne Karten notfalls per angepasstem cardHeight-Wert lösen, kein
+    /// verschachtelter Scroll-Container pro Karte.
+    ///
+    /// <paramref name="gridId"/> MUSS zwischen verschiedenen DrawCardGrid-Aufrufen innerhalb
+    /// DESSELBEN Fensters eindeutig sein: ImGui identifiziert (und cached Scroll-Position/Größe
+    /// von) Child-Fenster ausschließlich über die ID-Zeichenkette. Zwei Aufrufe, die beide bei
+    /// i=0 anfangen und beide nur "Card0", "Card1", ... verwenden würden, erzeugen für ImGui
+    /// DIESELBE Kind-Fenster-Identität für inhaltlich völlig unterschiedliche Karten (z.B. Karte 0
+    /// des Gruppen-Grids und Karte 0 des Andere-Spieler-Grids) - beobachtetes Symptom: Inhalt/
+    /// Scroll-Zustand der einen Karte "blutet" optisch in die andere hinein (Button einer Karte
+    /// erscheint über/in der jeweils anderen).</summary>
+    private void DrawCardGrid<T>(
+        string gridId,
+        IReadOnlyList<T> items,
+        Action<T> drawCardContent,
+        float cardWidth = 220f,
+        float cardHeight = 160f)
+    {
+        var availableWidth = ImGui.GetContentRegionAvail().X;
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
+        var columns = Math.Max(1, (int)((availableWidth + spacing) / (cardWidth + spacing)));
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            ImGui.BeginChild($"{gridId}Card{i}", new System.Numerics.Vector2(cardWidth, cardHeight), true);
+            drawCardContent(items[i]);
+            ImGui.EndChild();
+
+            if ((i + 1) % columns != 0 && i < items.Count - 1)
+                ImGui.SameLine();
+        }
+    }
+
+    /// <summary>Schiebt den Zeichen-Cursor an den unteren Rand des aktuell offenen Child-Fensters
+    /// (einer Karte, siehe <see cref="DrawCardGrid{T}"/>), damit ein direkt danach gezeichnetes
+    /// Element (hier: der "In Vergleich aufnehmen"-/"Gruppe zum Vergleich hinzufügen"-Button)
+    /// UNABHÄNGIG von der Höhe des darüber gezeichneten Karteninhalts immer an derselben Position
+    /// sitzt - sonst stünden die Buttons benachbarter Karten je nach vorhandenen Tags/Notiz
+    /// unterschiedlich hoch. Bewusst kein Effekt (Cursor bleibt stehen), falls der bisherige
+    /// Karteninhalt bereits mehr Platz braucht als die Karte hoch ist - dann reicht der
+    /// cardHeight-Wert der jeweiligen DrawCardGrid-Aufrufstelle nicht mehr aus.</summary>
+    private static void AlignCursorToCardBottom()
+    {
+        var remainingHeight = ImGui.GetContentRegionAvail().Y;
+        var buttonHeight = ImGui.GetFrameHeight();
+        if (remainingHeight > buttonHeight)
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + remainingHeight - buttonHeight);
+    }
+
     /// <summary>Phase 2 "Live-Sync": öffentlicher Gruppenfinder. KEIN separates Profil/Login
     /// (siehe Aufgabenstellung) - erweitert nur das bestehende Live-Sync-Profil um Sichtbarkeit/
     /// Verfügbarkeit/Notiz/gewünschte Mitspieleranzahl, daher die Sperre auf
@@ -909,16 +1323,18 @@ public sealed class MainWindow : Window, IDisposable
         ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.GroupFinderMyEntryHeader, this.displayLanguage));
         ImGui.Separator();
 
-        // Checkbox pusht SOFORT bei Klick (siehe LiveSyncService.SetGroupFinderVisibility-Doc) -
-        // kein Debounce, anders als bei den Textfeldern weiter unten.
+        // Checkbox ändert NUR NOCH den lokalen Zustand (siehe LiveSyncService.SetGroupFinderVisibility-
+        // Doc) - kein Push mehr bei Klick, der passiert erst über den "Jetzt veröffentlichen"-Button
+        // weiter unten. Gilt für BEIDE Richtungen (ON wie OFF), derselbe Button pusht in beide.
         if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupFinderVisibleToggle, this.displayLanguage), ref this.groupFinderVisible))
             this.liveSyncService.SetGroupFinderVisibility(this.groupFinderVisible);
 
         // Fünf anklickbare Tags, Mehrfachauswahl möglich (siehe Aufgabenstellung) - jeder Klick
-        // pusht sofort den kompletten aktuellen Auswahlstand (Toggle-Buttons, keine
-        // Tastatureingabe, daher kein Debounce - siehe LiveSyncService.SetGroupFinderAvailabilityTags-Doc).
-        // Enum.GetValues<T>() liefert die Werte in Deklarationsreihenfolge (dasselbe Muster wie
-        // bei den Sprach-Radio-Buttons in DrawSettingsTab) - stabile, vorhersehbare Anzeigereihenfolge.
+        // setzt nur noch lokal den kompletten aktuellen Auswahlstand (siehe
+        // LiveSyncService.SetGroupFinderAvailabilityTags-Doc), gepusht wird auch hier erst über
+        // den "Jetzt veröffentlichen"-Button. Enum.GetValues<T>() liefert die Werte in
+        // Deklarationsreihenfolge (dasselbe Muster wie bei den Sprach-Radio-Buttons in
+        // DrawSettingsTab) - stabile, vorhersehbare Anzeigereihenfolge.
         foreach (var tag in Enum.GetValues<AvailabilityTag>())
         {
             var selected = this.groupFinderTags.Contains(tag);
@@ -937,27 +1353,25 @@ public sealed class MainWindow : Window, IDisposable
 
         ImGui.NewLine();
 
-        // Notiz UND Mitspieleranzahl werden NICHT bei jedem Tastendruck gepusht, sondern erst bei
-        // Fokusverlust (siehe Aufgabenstellung, analoges Debounce-Denken wie beim
-        // Auto-Share-Cooldown aus Feature 2) - IsItemDeactivatedAfterEdit() feuert genau einmal,
-        // im Frame des Fokusverlusts NACH einer tatsächlichen Änderung (kein Push bei Fokusverlust
-        // ohne Änderung).
+        // Notiz UND Mitspieleranzahl setzen bei JEDER Änderung nur noch lokal (kein Push mehr
+        // dabei, siehe LiveSyncService.SetGroupFinderNoteAndWantedPlayerCount-Doc) - das bisherige
+        // IsItemDeactivatedAfterEdit-Debounce entfällt daher, es diente nur dazu, den früheren
+        // sofortigen Push nicht bei jedem Tastendruck auszulösen. Gepusht wird erst gesammelt über
+        // den "Jetzt veröffentlichen"-Button weiter unten.
         ImGui.SetNextItemWidth(-1);
-        ImGui.InputText(UiStrings.Get(UiStrings.Key.GroupFinderNoteLabel, this.displayLanguage), ref this.groupFinderNoteBuffer, 60);
-        var notePushNeeded = ImGui.IsItemDeactivatedAfterEdit();
+        var noteChanged = ImGui.InputText(UiStrings.Get(UiStrings.Key.GroupFinderNoteLabel, this.displayLanguage), ref this.groupFinderNoteBuffer, 60);
 
         // ImGuiInputTextFlags.CharsDecimal filtert bereits die meisten Nicht-Ziffern beim Tippen
         // heraus (siehe Aufgabenstellung "nur Ziffern akzeptieren") - der anschließende
         // int.TryParse-Fallback unten fängt den ImGui-seitig weiterhin erlaubten Rest ('.', '+',
-        // '-') zusätzlich ab, damit daraus nie ein für den Worker ungültiger Wert gepusht wird
+        // '-') zusätzlich ab, damit daraus nie ein für den Worker ungültiger Wert gesetzt wird
         // (siehe worker/src/index.ts isValidWantedPlayerCount: lehnt Nicht-Ganzzahlen mit 400 ab).
         ImGui.SetNextItemWidth(80);
-        ImGui.InputText(
+        var wantedPlayerCountChanged = ImGui.InputText(
             UiStrings.Get(UiStrings.Key.GroupFinderWantedPlayerCountLabel, this.displayLanguage),
             ref this.groupFinderWantedPlayerCountBuffer, 2, ImGuiInputTextFlags.CharsDecimal);
-        var wantedPlayerCountPushNeeded = ImGui.IsItemDeactivatedAfterEdit();
 
-        if (notePushNeeded || wantedPlayerCountPushNeeded)
+        if (noteChanged || wantedPlayerCountChanged)
         {
             if (!int.TryParse(this.groupFinderWantedPlayerCountBuffer, out var wantedPlayerCount))
                 wantedPlayerCount = 0;
@@ -966,6 +1380,16 @@ public sealed class MainWindow : Window, IDisposable
             this.groupFinderWantedPlayerCountBuffer = wantedPlayerCount.ToString();
 
             this.liveSyncService.SetGroupFinderNoteAndWantedPlayerCount(this.groupFinderNoteBuffer, wantedPlayerCount);
+        }
+
+        // Expliziter Veröffentlichen-Button (siehe Aufgabenstellung Variante A): pusht den
+        // GESAMMELTEN lokalen Stand (Sichtbarkeit, Tags, Notiz, Mitspieleranzahl - alle oben nur
+        // noch lokal über die "stillen" Setter gesetzt) in EINEM Schritt, egal ob Sichtbarkeit
+        // dabei ON oder OFF geschaltet wird - derselbe Button für beide Richtungen.
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderPublishButton, this.displayLanguage)))
+        {
+            this.liveSyncService.PushOwnProfile();
+            this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupFinderPublishedMessage, this.displayLanguage));
         }
 
         // Sichtbare Bestätigung, dass "Im Gruppenfinder sichtbar" tatsächlich funktioniert hat -
@@ -992,6 +1416,14 @@ public sealed class MainWindow : Window, IDisposable
 
         ImGui.Separator();
 
+        this.DrawGroupPublishSection();
+
+        ImGui.Separator();
+
+        this.DrawGroupBrowseSection();
+
+        ImGui.Separator();
+
         // Data Center kommt AUSSCHLIESSLICH aus der zuletzt bekannten eigenen Profil-Antwort
         // (siehe LiveSyncService.LastKnownOwnProfile-Doc), NICHT erneut lokal aus der World
         // hergeleitet (siehe Aufgabenstellung: würde die World->DC-Zuordnung aus
@@ -1009,9 +1441,18 @@ public sealed class MainWindow : Window, IDisposable
 
         // Manueller Refresh zusätzlich zum automatischen Abruf beim Öffnen des Tabs (siehe
         // Draw()/groupFinderTabWasActive) - beides zusammen deckt "nicht bei jedem Draw-Call"
-        // aus der Aufgabenstellung ab.
+        // aus der Aufgabenstellung ab. Aktualisiert BEIDE parallelen Datenpfade (Einzelprofile
+        // UND Gruppen, siehe LiveSyncService.LastGroupBrowseResults-Doc) - kein zweiter,
+        // eigener Refresh-Button für den Gruppen-Abschnitt nötig.
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderRefreshButton, this.displayLanguage)))
+        {
             this.liveSyncService.TriggerBrowse();
+            this.liveSyncService.TriggerGroupBrowse();
+
+            // Verhindert, dass der zeitbasierte Auto-Refresh in Draw() unmittelbar nach diesem
+            // manuellen Klick nochmal unnötig nachfeuert (siehe GroupFinderAutoRefreshInterval-Doc).
+            this.lastGroupFinderAutoRefreshAt = DateTimeOffset.UtcNow;
+        }
 
         ImGui.Separator();
 
@@ -1038,7 +1479,12 @@ public sealed class MainWindow : Window, IDisposable
 
         var totalSpellCount = this.spellDataService.Spells.Count;
 
-        foreach (var entry in entries)
+        // Kartenraster statt gestapelter Liste (siehe DrawCardGrid-Doc) - reine Layout-Änderung,
+        // der Karteninhalt je Eintrag entspricht inhaltlich exakt der vorherigen Zeilendarstellung.
+        // Eigener gridId-Präfix ("GroupFinderEntry"), damit sich die Karten-IDs NICHT mit denen
+        // des separaten Gruppen-Grids in DrawGroupBrowseSection überschneiden (siehe dortigen
+        // gridId-Kommentar an DrawCardGrid).
+        this.DrawCardGrid("GroupFinderEntry", entries, entry =>
         {
             var isOwnEntry = string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal);
 
@@ -1050,20 +1496,22 @@ public sealed class MainWindow : Window, IDisposable
                 ImGui.PushStyleColor(ImGuiCol.Text, SuccessMessageColor);
 
             // "(Du)"-Suffix: gleiches Muster wie bei der bekannten-Spieler-Liste in DrawSyncTab
-            // (siehe UiStrings.Key.YouSuffix), hier wiederverwendet statt neu erfunden.
+            // (siehe UiStrings.Key.YouSuffix), hier wiederverwendet statt neu erfunden. TextWrapped
+            // statt TextUnformatted für Name UND Tags (statt wie bisher SameLine dahinter) - beides
+            // muss innerhalb der festen Kartenbreite umbrechen können, statt am Kartenrand
+            // abgeschnitten zu werden.
             var nameText = $"{entry.CharacterName} ({entry.World})";
             if (isOwnEntry)
                 nameText += UiStrings.Get(UiStrings.Key.YouSuffix, this.displayLanguage);
 
-            ImGui.TextUnformatted(nameText);
-            ImGui.SameLine();
+            ImGui.TextWrapped(nameText);
             ImGui.TextUnformatted(UiStrings.Format(
                 UiStrings.Key.GroupFinderProgressFormat, this.displayLanguage, entry.LearnedSpellIds.Count, totalSpellCount));
 
             if (entry.AvailabilityTags.Count > 0)
             {
                 var tagLabels = entry.AvailabilityTags.Select(tag => UiStrings.Get(GetAvailabilityTagLabelKey(tag), this.displayLanguage));
-                ImGui.TextUnformatted(string.Join(", ", tagLabels));
+                ImGui.TextWrapped(string.Join(", ", tagLabels));
             }
 
             if (!string.IsNullOrEmpty(entry.Note))
@@ -1078,28 +1526,382 @@ public sealed class MainWindow : Window, IDisposable
                 ImGui.PopStyleColor();
 
             // Sich selbst zum Vergleich hinzuzufügen ergibt keinen Sinn - Button nur für fremde
-            // Einträge.
-            if (!isOwnEntry && ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddToComparisonButton, this.displayLanguage)}##GroupFinderAdd{entry.CharacterName}"))
+            // Einträge, wie bisher. AlignCursorToCardBottom sorgt dafür, dass er trotz
+            // unterschiedlich langer Tags/Notiz bei allen Karten auf derselben Höhe sitzt.
+            if (!isOwnEntry)
+            {
+                AlignCursorToCardBottom();
+                if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddToComparisonButton, this.displayLanguage)}##GroupFinderAdd{entry.CharacterName}"))
+                {
+                    var status = new PlayerSpellStatus
+                    {
+                        CharacterName = entry.CharacterName,
+                        LearnedSpellIds = entry.LearnedSpellIds,
+                        IsLocalPlayer = false,
+                        World = entry.World,
+                    };
+
+                    // Dieselbe Merge-/Dedup-Logik wie beim Live-Sync-Party-Fetch (siehe
+                    // LiveSyncService.FetchPartyMemberProfilesAsync) - bewusst hier direkt über
+                    // syncProvider.PublishLocalStatus wiederverwendet statt eines zweiten,
+                    // eigenständigen Merge-Pfads, damit Party-Auto-Sync und Gruppenfinder-Funde im
+                    // selben Comparison-Tab-Datenbestand zusammenlaufen und sich bei gleichem
+                    // Namen nicht duplizieren.
+                    this.syncProvider.PublishLocalStatus(status);
+                    this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.GroupFinderAddedToComparisonMessage, this.displayLanguage, entry.CharacterName));
+                }
+            }
+        });
+    }
+
+    /// <summary>Phase 2 "Gruppenfinder", Abschnitt "Eigene Gruppe veröffentlichen" (siehe
+    /// DrawGroupFinderTab) - veröffentlicht/aktualisiert/löscht eine eigene Gruppen-Listung
+    /// (PUT/DELETE /group/:groupId, siehe LiveSyncService.PublishGroup/DeletePublishedGroup).
+    /// EIGENSTÄNDIG von der Einzelprofil-Sichtbarkeit oberhalb dieses Abschnitts - reines
+    /// Veröffentlichen/Aktualisieren/Löschen der eigenen Listung, das Anzeigen/Durchsuchen
+    /// FREMDER Gruppen kommt erst in einem späteren Schritt. KEIN Debounce/Auto-Push: jede
+    /// Änderung an Auswahl/Sichtbarkeit/Tags/Notiz/Mitspieleranzahl bleibt rein lokal, nur der
+    /// "Gruppe veröffentlichen"-Klick pusht (siehe Aufgabenstellung, Variante A, konsistent zum
+    /// Einzelprofil-Umbau oberhalb).</summary>
+    private void DrawGroupPublishSection()
+    {
+        ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.GroupPublishHeader, this.displayLanguage));
+        ImGui.Separator();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.GroupPublishSourceParty, this.displayLanguage),
+                this.groupMemberSource == GroupMemberSource.Party))
+            this.groupMemberSource = GroupMemberSource.Party;
+
+        ImGui.SameLine();
+
+        if (ImGui.RadioButton(
+                UiStrings.Get(UiStrings.Key.GroupPublishSourceSyncList, this.displayLanguage),
+                this.groupMemberSource == GroupMemberSource.SyncList))
+            this.groupMemberSource = GroupMemberSource.SyncList;
+
+        if (this.groupMemberSource == GroupMemberSource.Party)
+            this.DrawGroupPublishPartyMemberList();
+        else
+            this.DrawGroupPublishSyncListMemberList();
+
+        ImGui.Separator();
+
+        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupPublishVisibleToggle, this.displayLanguage), ref this.groupPublishVisible);
+
+        // Fünf anklickbare Tags, exakt dasselbe Widget-Muster wie beim Einzelprofil oben (siehe
+        // dortigen Kommentar zu Enum.GetValues<T>()) - eigener ID-Suffix ("GroupPublishTag"
+        // statt "GroupFinderTag"), damit ImGui die Checkboxen trotz gleichen sichtbaren Textes
+        // nicht mit denen der Einzelprofil-Sichtbarkeit verwechselt.
+        foreach (var tag in Enum.GetValues<AvailabilityTag>())
+        {
+            var selected = this.groupPublishTags.Contains(tag);
+            if (ImGui.Checkbox($"{UiStrings.Get(GetAvailabilityTagLabelKey(tag), this.displayLanguage)}##GroupPublishTag{tag}", ref selected))
+            {
+                if (selected)
+                    this.groupPublishTags.Add(tag);
+                else
+                    this.groupPublishTags.Remove(tag);
+            }
+
+            ImGui.SameLine();
+        }
+
+        ImGui.NewLine();
+
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputText(UiStrings.Get(UiStrings.Key.GroupPublishNoteLabel, this.displayLanguage), ref this.groupPublishNoteBuffer, 60);
+
+        // ImGuiInputTextFlags.CharsDecimal + nachgelagerter Clamp, exakt wie beim Einzelprofil
+        // oben (siehe dortigen Kommentar zu isValidWantedPlayerCount).
+        ImGui.SetNextItemWidth(80);
+        ImGui.InputText(
+            UiStrings.Get(UiStrings.Key.GroupPublishWantedPlayerCountLabel, this.displayLanguage),
+            ref this.groupPublishWantedPlayerCountBuffer, 2, ImGuiInputTextFlags.CharsDecimal);
+
+        var selectedCount = this.groupPublishSelectedMembers.Count;
+        var canPublish = selectedCount is >= 1 and <= 8;
+
+        ImGui.BeginDisabled(!canPublish);
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupPublishButton, this.displayLanguage)))
+        {
+            if (!int.TryParse(this.groupPublishWantedPlayerCountBuffer, out var wantedPlayerCount))
+                wantedPlayerCount = 0;
+
+            wantedPlayerCount = Math.Clamp(wantedPlayerCount, 0, 8);
+            this.groupPublishWantedPlayerCountBuffer = wantedPlayerCount.ToString();
+
+            // Schlüssel wieder in (World, CharacterName) zurückzerlegen (siehe
+            // groupPublishSelectedMembers-Doc: Key-Format "CharacterName@World", identisch zu
+            // LiveSyncService.BuildTokenKey) - Charakternamen enthalten kein '@', daher reicht
+            // der erste Trenner.
+            var members = this.groupPublishSelectedMembers
+                .Select(key =>
+                {
+                    var atIndex = key.IndexOf('@');
+                    return (World: key[(atIndex + 1)..], CharacterName: key[..atIndex]);
+                })
+                .ToList();
+
+            this.liveSyncService.PublishGroup(
+                members, this.groupPublishVisible, this.groupPublishTags, this.groupPublishNoteBuffer, wantedPlayerCount);
+        }
+
+        ImGui.EndDisabled();
+
+        if (this.liveSyncService.HasPublishedGroup())
+        {
+            ImGui.SameLine();
+            if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupUnpublishButton, this.displayLanguage)))
+                this.liveSyncService.DeletePublishedGroup();
+        }
+    }
+
+    /// <summary>Mitgliederauswahl aus der aktuellen Party (siehe DrawGroupPublishSection) - jeder
+    /// Eintrag hat World bereits garantiert (<see cref="PartyMemberInfo.World"/>), daher keine
+    /// deaktivierten Checkboxen nötig (anders als <see cref="DrawGroupPublishSyncListMemberList"/>).</summary>
+    private void DrawGroupPublishPartyMemberList()
+    {
+        var partyMembers = this.partyService.GetBlueMagePartyMembers();
+
+        if (partyMembers.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoBlueMagesInParty, this.displayLanguage));
+            return;
+        }
+
+        foreach (var member in partyMembers)
+            this.DrawGroupPublishMemberCheckbox(member.Name, member.World);
+    }
+
+    /// <summary>Mitgliederauswahl aus der bekannten Sync-Liste (siehe DrawGroupPublishSection) -
+    /// NUR Einträge mit bekannter World (<see cref="PlayerSpellStatus.World"/>) sind auswählbar;
+    /// Einträge ohne World (z.B. per manuellem "BLU:"-Code importiert) werden deaktiviert mit
+    /// Hinweistext angezeigt, da eine Gruppen-Listung zwingend world+characterName je Mitglied
+    /// braucht (siehe worker/src/index.ts isValidRawGroupMember).</summary>
+    private void DrawGroupPublishSyncListMemberList()
+    {
+        var knownStatus = this.syncProvider.GetKnownPartyStatus();
+
+        if (knownStatus.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.NoPlayerDataLoadedShort, this.displayLanguage));
+            return;
+        }
+
+        foreach (var status in knownStatus)
+        {
+            if (status.World is null)
+            {
+                ImGui.BeginDisabled();
+                var disabledSelected = false;
+                ImGui.Checkbox($"{status.CharacterName}##GroupPublishMemberUnknownWorld{status.CharacterName}", ref disabledSelected);
+                ImGui.EndDisabled();
+
+                // Hinweis-Tooltip bewusst an einem SEPARATEN, NICHT deaktivierten "(?)"-Marker
+                // statt an der Checkbox selbst - ImGui.IsItemHovered() erkennt Hover auf einem per
+                // BeginDisabled() deaktivierten Item standardmäßig nicht zuverlässig, das übliche
+                // ImGui-"Hilfe-Marker"-Muster umgeht das.
+                ImGui.SameLine();
+                ImGui.TextDisabled("(?)");
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip(UiStrings.Get(UiStrings.Key.GroupFinderUnknownWorldHint, this.displayLanguage));
+
+                continue;
+            }
+
+            this.DrawGroupPublishMemberCheckbox(status.CharacterName, status.World);
+        }
+    }
+
+    /// <summary>Eine einzelne auswählbare Mitglieder-Checkbox für <see cref="DrawGroupPublishPartyMemberList"/>/
+    /// <see cref="DrawGroupPublishSyncListMemberList"/> - hält <see cref="groupPublishSelectedMembers"/>
+    /// aktuell (Key "CharacterName@World", siehe dortigen Felddoc).</summary>
+    private void DrawGroupPublishMemberCheckbox(string characterName, string world)
+    {
+        var key = $"{characterName}@{world}";
+        var selected = this.groupPublishSelectedMembers.Contains(key);
+
+        if (ImGui.Checkbox($"{characterName} ({world})##GroupPublishMember{key}", ref selected))
+        {
+            if (selected)
+                this.groupPublishSelectedMembers.Add(key);
+            else
+                this.groupPublishSelectedMembers.Remove(key);
+        }
+    }
+
+    /// <summary>Phase 2 "Gruppenfinder", Abschnitt "Gruppen" (siehe DrawGroupFinderTab) - zeigt
+    /// die über GET /groups/browse abgerufenen fremden Gruppen-Listungen
+    /// (<see cref="LiveSyncService.LastGroupBrowseResults"/>) inklusive Vergleich gegen den
+    /// eigenen Spell-Stand. EIGENSTÄNDIGER, zu den Einzelprofil-Einträgen ("Andere Spieler auf
+    /// {0}") PARALLELER Datenpfad/Abschnitt - beide bleiben zwei getrennte Listen, keine
+    /// Zusammenführung. Abschnittsüberschrift bleibt IMMER sichtbar, auch bei 0 Treffern (siehe
+    /// GroupFinderNoGroups-Hinweistext) - Konsistenz mit dem "Andere Spieler"-Bereich, der bei
+    /// 0 Einträgen ebenso verfährt.</summary>
+    private void DrawGroupBrowseSection()
+    {
+        ImGui.TextUnformatted(UiStrings.Get(UiStrings.Key.GroupFinderGroupsHeader, this.displayLanguage));
+        ImGui.Separator();
+
+        var groups = this.liveSyncService.LastGroupBrowseResults;
+        if (groups.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderNoGroups, this.displayLanguage));
+            return;
+        }
+
+        var allSpellIds = this.spellDataService.Spells.Keys;
+
+        // Kartenraster statt gestapelter Liste (siehe DrawCardGrid-Doc) - analog zum "Andere
+        // Spieler"-Bereich oben. Eigener gridId-Präfix ("GroupBrowseGroup", siehe dortigen
+        // gridId-Kommentar an DrawCardGrid) - OHNE diesen würden sich die Karten-IDs mit denen des
+        // Andere-Spieler-Grids überschneiden (beide würden bei "Card0" anfangen), was dazu führte,
+        // dass ImGui Scroll-Zustand/Inhalt zwischen völlig unterschiedlichen Karten vermischte.
+        //
+        // cardHeight bewusst höher als der DrawCardGrid-Default (220 statt 160): eine Gruppenkarte
+        // zeigt strukturell mehr Zeilen als eine Einzelprofil-Karte (mehrzeilige Mitgliederliste +
+        // Tags/Notiz + Mitspieleranzahl + ZWEI Vergleichszeilen + Button) - beim Default-Wert lief
+        // der Karteninhalt über und ImGui blendete automatisch einen Scrollbalken ein, der
+        // zusätzlich die letzte Zeile rechts abschnitt.
+        this.DrawCardGrid("GroupBrowseGroup", groups, group => this.DrawGroupBrowseEntry(group, allSpellIds), cardHeight: 220f);
+    }
+
+    /// <summary>Ein einzelner Gruppen-Eintrag innerhalb <see cref="DrawGroupBrowseSection"/> -
+    /// Kopfzeile (Mitglieder+World), Tags/Notiz/Mitspieleranzahl (exakt dasselbe Rendering wie
+    /// bei Einzelprofil-Einträgen), Vergleich gegen den eigenen Stand ("gemeinsam fehlend" NUR
+    /// unter Mitgliedern mit bekanntem Spell-Stand) und der "Gruppe zum Vergleich hinzufügen"-
+    /// Button.</summary>
+    private void DrawGroupBrowseEntry(GroupFinderGroupEntry group, IEnumerable<uint> allSpellIds)
+    {
+        this.DrawGroupMemberHeader(group.Members);
+
+        // b) Tags/Notiz/gewünschte Mitspieleranzahl - exakt dasselbe Rendering wie bei den
+        // bestehenden Einzelprofil-Einträgen weiter unten in DrawGroupFinderTab (jetzt beide in
+        // der Kartenansicht: TextWrapped statt TextUnformatted für die Tags, damit sie innerhalb
+        // der festen Kartenbreite umbrechen statt abgeschnitten zu werden).
+        if (group.AvailabilityTags.Count > 0)
+        {
+            var tagLabels = group.AvailabilityTags.Select(tag => UiStrings.Get(GetAvailabilityTagLabelKey(tag), this.displayLanguage));
+            ImGui.TextWrapped(string.Join(", ", tagLabels));
+        }
+
+        if (!string.IsNullOrEmpty(group.Note))
+            ImGui.TextWrapped(group.Note);
+
+        var wantedPlayerCountText = group.WantedPlayerCount == 0
+            ? UiStrings.Get(UiStrings.Key.GroupFinderWantedPlayerCountAny, this.displayLanguage)
+            : group.WantedPlayerCount.ToString();
+
+        // TextWrapped statt TextUnformatted (auch für die beiden Vergleichszeilen unten) - falls
+        // eine Karte doch mal knapp wird (z.B. Scrollbalken durch ungewöhnlich viele Mitglieder),
+        // soll der Text an der Kartenkante umbrechen statt rechts hart abgeschnitten zu werden.
+        ImGui.TextWrapped(UiStrings.Format(UiStrings.Key.GroupFinderWantedPlayerCountEntryFormat, this.displayLanguage, wantedPlayerCountText));
+
+        // c) Vergleich gegen eigenen Stand - Mitglieder mit UNBEKANNTEM Spell-Stand (LearnedSpellIds
+        // == null, siehe GroupFinderGroupMember-Doc) werden hier komplett AUSGESCHLOSSEN statt mit
+        // einer leeren Menge eingerechnet, sonst würde ein fehlendes Profil fälschlich als "kennt
+        // nichts" in die Berechnung eingehen und alles als "gemeinsam fehlend" markieren.
+        var availableMembers = group.Members.Where(m => m.LearnedSpellIds is not null).ToList();
+
+        if (availableMembers.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderGroupNoAvailableProfiles, this.displayLanguage));
+        }
+        else
+        {
+            var partyStatus = availableMembers
+                .Select(m => new PlayerSpellStatus
+                {
+                    CharacterName = m.CharacterName,
+                    LearnedSpellIds = m.LearnedSpellIds!,
+                    IsLocalPlayer = false,
+                    World = m.World,
+                })
+                .ToList();
+
+            // "Der Gruppe gemeinsam fehlend" = fehlt WIRKLICH allen übrig gebliebenen (gefilterten)
+            // Mitgliedern, nicht nur irgendeinem - GetCommonlyMissingSpells liefert PRO Spell die
+            // Liste der Spieler, denen er fehlt, hier auf PlayersMissingIt.Count == partyStatus.Count
+            // gefiltert.
+            var commonlyMissingSpellIds = this.comparisonService.GetCommonlyMissingSpells(allSpellIds, partyStatus)
+                .Where(m => m.PlayersMissingIt.Count == partyStatus.Count)
+                .Select(m => m.SpellId)
+                .ToHashSet();
+
+            var ownLearnedIds = this.localSpellUnlockService.GetLearnedSpellIds();
+            var contributableCount = commonlyMissingSpellIds.Count(ownLearnedIds.Contains);
+            var stillMissingForYouCount = commonlyMissingSpellIds.Count - contributableCount;
+
+            ImGui.TextWrapped(UiStrings.Format(UiStrings.Key.GroupFinderYouWouldContribute, this.displayLanguage, contributableCount));
+            ImGui.TextWrapped(UiStrings.Format(UiStrings.Key.GroupFinderYouWouldStillMiss, this.displayLanguage, stillMissingForYouCount));
+        }
+
+        // d) "Gruppe zum Vergleich hinzufügen" - analog zum bestehenden "In Vergleich aufnehmen"
+        // bei Einzelprofilen (dieselbe Merge-/Dedup-Logik über syncProvider.PublishLocalStatus,
+        // NICHT neu erfunden), aber für ALLE Mitglieder MIT bekanntem Spell-Stand auf einmal.
+        // Deaktiviert, wenn es (siehe oben) gar keine gibt - ein Klick hätte dann ohnehin keinen
+        // Effekt. AlignCursorToCardBottom sorgt dafür, dass er trotz unterschiedlich langer
+        // Mitgliederlisten/Tags/Notiz bei allen Karten auf derselben Höhe sitzt.
+        AlignCursorToCardBottom();
+        ImGui.BeginDisabled(availableMembers.Count == 0);
+        if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddGroupToComparisonButton, this.displayLanguage)}##GroupBrowseAdd{group.GroupId}"))
+        {
+            foreach (var member in availableMembers)
             {
                 var status = new PlayerSpellStatus
                 {
-                    CharacterName = entry.CharacterName,
-                    LearnedSpellIds = entry.LearnedSpellIds,
+                    CharacterName = member.CharacterName,
+                    LearnedSpellIds = member.LearnedSpellIds!,
                     IsLocalPlayer = false,
+                    World = member.World,
                 };
 
-                // Dieselbe Merge-/Dedup-Logik wie beim Live-Sync-Party-Fetch (siehe
-                // LiveSyncService.FetchPartyMemberProfilesAsync) - bewusst hier direkt über
-                // syncProvider.PublishLocalStatus wiederverwendet statt eines zweiten,
-                // eigenständigen Merge-Pfads, damit Party-Auto-Sync und Gruppenfinder-Funde im
-                // selben Comparison-Tab-Datenbestand zusammenlaufen und sich bei gleichem Namen
-                // nicht duplizieren.
                 this.syncProvider.PublishLocalStatus(status);
-                this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.GroupFinderAddedToComparisonMessage, this.displayLanguage, entry.CharacterName));
             }
 
-            ImGui.Separator();
+            this.SetSuccessMessage(UiStrings.Format(
+                UiStrings.Key.GroupFinderGroupAddedToComparisonMessage, this.displayLanguage, availableMembers.Count));
         }
+
+        ImGui.EndDisabled();
+    }
+
+    /// <summary>Kopfzeile eines Gruppen-Eintrags (siehe DrawGroupBrowseEntry, Punkt a) - z.B.
+    /// "Alice, Bob, Charles (Raiden)", wenn alle Mitglieder dieselbe World teilen; haben sie
+    /// unterschiedliche Worlds, wird stattdessen JEDE einzeln in Klammern angehängt
+    /// ("Alice (Raiden), Bob (Excalibur)"). Mitglieder mit unbekanntem Spell-Stand
+    /// (LearnedSpellIds == null) bekommen zusätzlich ein "(?)"-Suffix.
+    ///
+    /// Baut bewusst EINEN zusammenhängenden Text auf und zeichnet ihn über EIN ImGui.TextWrapped
+    /// statt (wie vor der Kartenansicht) einer Kette einzelner Segmente per SameLine(0, 0): eine
+    /// SameLine-Kette bricht innerhalb der festen Kartenbreite (siehe DrawCardGrid) NICHT um,
+    /// sondern würde am Kartenrand einfach abgeschnitten - bei vielen Mitgliedern soll die Zeile
+    /// laut Aufgabenstellung aber mehrzeilig umbrechen können. Der frühere, hoverbare Tooltip PRO
+    /// "(?)"-Marker weicht dadurch einem einzigen gemeinsamen Tooltip über die gesamte Kopfzeile,
+    /// sobald mindestens ein Mitglied betroffen ist - eine reine Layout-Anpassung, kein
+    /// inhaltlicher Verlust (derselbe Hinweistext, nur nicht mehr pro Marker einzeln).</summary>
+    private void DrawGroupMemberHeader(IReadOnlyList<GroupFinderGroupMember> members)
+    {
+        if (members.Count == 0)
+            return;
+
+        var sameWorld = members.Select(m => m.World).Distinct().Count() <= 1;
+
+        var memberTexts = members.Select(member =>
+        {
+            var nameText = sameWorld ? member.CharacterName : $"{member.CharacterName} ({member.World})";
+            return member.LearnedSpellIds is null ? $"{nameText} (?)" : nameText;
+        });
+
+        var headerText = string.Join(", ", memberTexts);
+        if (sameWorld)
+            headerText += $" ({members[0].World})";
+
+        ImGui.TextWrapped(headerText);
+
+        if (members.Any(m => m.LearnedSpellIds is null) && ImGui.IsItemHovered())
+            ImGui.SetTooltip(UiStrings.Get(UiStrings.Key.GroupFinderGroupMemberProfileUnavailableHint, this.displayLanguage));
     }
 
     /// <summary>Zentrale Zuordnung AvailabilityTag -> UiStrings.Key (siehe DrawGroupFinderTab,
@@ -1115,43 +1917,6 @@ public sealed class MainWindow : Window, IDisposable
         AvailabilityTag.Flexible => UiStrings.Key.GroupFinderTagFlexible,
         _ => throw new ArgumentOutOfRangeException(nameof(tag), tag, null),
     };
-
-    /// <summary>Verweis auf die Browser-Version des Sync-Codes (siehe README-Abschnitt "Sync
-    /// without a server") - erlaubt Freunden ohne installiertes Plugin, ihren Status trotzdem
-    /// als Code zu exportieren/importieren, ganz ohne laufendes FFXIV.</summary>
-    private void DrawWebCompanionTab()
-    {
-        this.DrawLastMessage();
-
-        ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.WebCompanionIntro, this.displayLanguage));
-        ImGui.Separator();
-
-        // Als reiner Text angezeigt (nicht nur über die Buttons erreichbar), damit man die URL
-        // notfalls auch von Hand abschreiben oder screenshotten kann - siehe Aufgabenstellung.
-        ImGui.TextUnformatted(WebCompanionUrl);
-        ImGui.Separator();
-
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.OpenInBrowserButton, this.displayLanguage)))
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo(WebCompanionUrl) { UseShellExecute = true });
-                this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.BrowserOpenedMessage, this.displayLanguage));
-            }
-            catch (Exception ex)
-            {
-                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
-            }
-        }
-
-        ImGui.SameLine();
-
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.CopyLinkButton, this.displayLanguage)))
-        {
-            ImGui.SetClipboardText(WebCompanionUrl);
-            this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LinkCopiedMessage, this.displayLanguage));
-        }
-    }
 
     private void DrawSettingsTab()
     {

@@ -28,11 +28,9 @@ public static class UiStrings
     public enum Key
     {
         WindowTitle,
-        TabParty,
         TabSpellComparison,
         TabLearningPlan,
         TabSync,
-        TabWebCompanion,
         TabSettings,
         NoBlueMagesInParty,
         PartyMemberEntry,
@@ -114,6 +112,8 @@ public static class UiStrings
         GroupFinderNoteLabel,
         GroupFinderWantedPlayerCountLabel,
         GroupFinderWantedPlayerCountAny,
+        GroupFinderPublishButton,
+        GroupFinderPublishedMessage,
         GroupFinderOthersHeader,
         GroupFinderDeterminingDataCenter,
         GroupFinderRefreshButton,
@@ -122,6 +122,60 @@ public static class UiStrings
         GroupFinderNoEntries,
         GroupFinderProgressFormat,
         GroupFinderWantedPlayerCountEntryFormat,
+
+        // Phase 2: "Eigene Gruppe veröffentlichen"-Abschnitt (siehe UI/MainWindow.cs
+        // DrawGroupPublishSection) - NUR das Veröffentlichen/Aktualisieren/Löschen der eigenen
+        // Gruppen-Listung, eigenständig von der Einzelprofil-Sichtbarkeit oberhalb (siehe
+        // GroupFinder*-Keys weiter oben).
+        GroupPublishHeader,
+        GroupPublishSourceParty,
+        GroupPublishSourceSyncList,
+        GroupFinderUnknownWorldHint,
+        GroupPublishVisibleToggle,
+        GroupPublishNoteLabel,
+        GroupPublishWantedPlayerCountLabel,
+        GroupPublishButton,
+        GroupUnpublishButton,
+        GroupPublishSucceededMessage,
+        GroupPublishFailedMessage,
+        GroupUnpublishSucceededMessage,
+        GroupUnpublishFailedMessage,
+
+        // Phase 2: "Gruppen"-Abschnitt (siehe UI/MainWindow.cs DrawGroupBrowseSection) - Anzeige
+        // FREMDER Gruppen-Listungen (GET /groups/browse) inkl. Vergleich gegen den eigenen
+        // Spell-Stand. Eigenständiger, zu den GroupFinder*-Einzelprofil-Keys weiter oben
+        // PARALLELER Satz an Keys.
+        GroupFinderGroupsHeader,
+        GroupFinderNoGroups,
+        GroupFinderGroupMemberProfileUnavailableHint,
+        GroupFinderGroupNoAvailableProfiles,
+        GroupFinderYouWouldContribute,
+        GroupFinderYouWouldStillMiss,
+        GroupFinderAddGroupToComparisonButton,
+        GroupFinderGroupAddedToComparisonMessage,
+        GroupBrowseFailed,
+
+        // Phase 3: Spellbook-Tab (siehe UI/MainWindow.cs DrawSpellbookTab) - zeigt ALLE Spells
+        // mit dem eigenen Lernstand, unabhängig von Party-/Sync-Daten (funktioniert also auch
+        // ganz ohne geladene Mitspieler).
+        TabSpellbook,
+        SpellbookFilterAll,
+        SpellbookFilterLearned,
+        SpellbookFilterMissing,
+        SpellbookNoResults,
+        SpellbookDescriptionGermanOnlyHint,
+        ColumnStars,
+        ColumnLearned,
+
+        // Phase 4: Loadouts-Tab (siehe UI/MainWindow.cs DrawLoadoutsTab) - kuratierte
+        // Spell-Empfehlungen pro Content-Typ aus Data/loadouts.json.
+        TabLoadouts,
+        LoadoutContentTypeMaskedCarnivale,
+        LoadoutContentTypeFates,
+        LoadoutsNoneForType,
+        LoadoutSourceLabel,
+        LoadoutProgressFormat,
+        LoadoutOpenSourceButton,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -135,13 +189,6 @@ public static class UiStrings
             [DisplayLanguage.English] = "BLUnion",
             [DisplayLanguage.French] = "BLUnion",
             [DisplayLanguage.Japanese] = "BLUnion",
-        },
-        [Key.TabParty] = new()
-        {
-            [DisplayLanguage.German] = "Party",
-            [DisplayLanguage.English] = "Party",
-            [DisplayLanguage.French] = "Groupe",
-            [DisplayLanguage.Japanese] = "パーティ",
         },
         [Key.TabSpellComparison] = new()
         {
@@ -163,13 +210,6 @@ public static class UiStrings
             [DisplayLanguage.English] = "Sync",
             [DisplayLanguage.French] = "Synchro",
             [DisplayLanguage.Japanese] = "同期",
-        },
-        [Key.TabWebCompanion] = new()
-        {
-            [DisplayLanguage.German] = "Web Companion",
-            [DisplayLanguage.English] = "Web Companion",
-            [DisplayLanguage.French] = "Web Companion",
-            [DisplayLanguage.Japanese] = "Web Companion",
         },
         [Key.TabSettings] = new()
         {
@@ -843,6 +883,20 @@ public static class UiStrings
             [DisplayLanguage.French] = "peu importe",
             [DisplayLanguage.Japanese] = "人数指定なし",
         },
+        [Key.GroupFinderPublishButton] = new()
+        {
+            [DisplayLanguage.German] = "Jetzt veröffentlichen",
+            [DisplayLanguage.English] = "Publish now",
+            [DisplayLanguage.French] = "Publier maintenant",
+            [DisplayLanguage.Japanese] = "今すぐ公開",
+        },
+        [Key.GroupFinderPublishedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Gruppenfinder-Eintrag aktualisiert.",
+            [DisplayLanguage.English] = "Group Finder entry updated.",
+            [DisplayLanguage.French] = "Entrée du chercheur de groupe mise à jour.",
+            [DisplayLanguage.Japanese] = "グループファインダーの登録内容を更新しました。",
+        },
         // {0} = Data Center (siehe LiveSyncService.LastKnownOwnProfile).
         [Key.GroupFinderOthersHeader] = new()
         {
@@ -905,6 +959,295 @@ public static class UiStrings
             [DisplayLanguage.English] = "Looking for: {0}",
             [DisplayLanguage.French] = "Recherché : {0}",
             [DisplayLanguage.Japanese] = "募集: {0}",
+        },
+
+        // Phase 2: "Eigene Gruppe veröffentlichen"-Abschnitt (siehe UI/MainWindow.cs
+        // DrawGroupPublishSection).
+        [Key.GroupPublishHeader] = new()
+        {
+            [DisplayLanguage.German] = "Eigene Gruppe veröffentlichen",
+            [DisplayLanguage.English] = "Publish own group",
+            [DisplayLanguage.French] = "Publier mon groupe",
+            [DisplayLanguage.Japanese] = "自分のグループを公開",
+        },
+        [Key.GroupPublishSourceParty] = new()
+        {
+            [DisplayLanguage.German] = "Party",
+            [DisplayLanguage.English] = "Party",
+            [DisplayLanguage.French] = "Groupe",
+            [DisplayLanguage.Japanese] = "パーティ",
+        },
+        [Key.GroupPublishSourceSyncList] = new()
+        {
+            [DisplayLanguage.German] = "Sync-Liste",
+            [DisplayLanguage.English] = "Sync list",
+            [DisplayLanguage.French] = "Liste de synchro",
+            [DisplayLanguage.Japanese] = "同期リスト",
+        },
+        // Tooltip/Hinweistext für deaktivierte Sync-Listen-Einträge ohne bekannte World (siehe
+        // DrawGroupPublishSyncListMemberList) - erklärt, warum diese Einträge hier nicht
+        // auswählbar sind.
+        [Key.GroupFinderUnknownWorldHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "World unbekannt - nur über Party oder Gruppenfinder bezogene Mitglieder können " +
+                "in eine Gruppe aufgenommen werden.",
+            [DisplayLanguage.English] =
+                "World unknown - only members obtained via party or group finder can be added to " +
+                "a group.",
+            [DisplayLanguage.French] =
+                "Monde inconnu - seuls les membres obtenus via le groupe ou la recherche de groupe " +
+                "peuvent être ajoutés à une groupe.",
+            [DisplayLanguage.Japanese] =
+                "ワールド不明 - パーティまたはグループファインダー経由で取得したメンバーのみ" +
+                "グループに追加できます。",
+        },
+        [Key.GroupPublishVisibleToggle] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe im Gruppenfinder sichtbar",
+            [DisplayLanguage.English] = "Group visible in group finder",
+            [DisplayLanguage.French] = "Groupe visible dans la recherche de groupe",
+            [DisplayLanguage.Japanese] = "グループをグループファインダーに表示する",
+        },
+        [Key.GroupPublishNoteLabel] = new()
+        {
+            [DisplayLanguage.German] = "Notiz für die Gruppe (max. 60 Zeichen)",
+            [DisplayLanguage.English] = "Note for the group (max. 60 characters)",
+            [DisplayLanguage.French] = "Note pour le groupe (60 caractères max.)",
+            [DisplayLanguage.Japanese] = "グループのメモ (最大60文字)",
+        },
+        [Key.GroupPublishWantedPlayerCountLabel] = new()
+        {
+            [DisplayLanguage.German] = "Gewünschte Mitspieleranzahl für die Gruppe (0 = egal)",
+            [DisplayLanguage.English] = "Desired player count for the group (0 = any)",
+            [DisplayLanguage.French] = "Nombre de coéquipiers souhaité pour le groupe (0 = peu importe)",
+            [DisplayLanguage.Japanese] = "グループの希望人数 (0 = 指定なし)",
+        },
+        [Key.GroupPublishButton] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe veröffentlichen",
+            [DisplayLanguage.English] = "Publish group",
+            [DisplayLanguage.French] = "Publier le groupe",
+            [DisplayLanguage.Japanese] = "グループを公開",
+        },
+        [Key.GroupUnpublishButton] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe wieder löschen",
+            [DisplayLanguage.English] = "Delete group",
+            [DisplayLanguage.French] = "Supprimer le groupe",
+            [DisplayLanguage.Japanese] = "グループを削除",
+        },
+        [Key.GroupPublishSucceededMessage] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe veröffentlicht/aktualisiert.",
+            [DisplayLanguage.English] = "Group published/updated.",
+            [DisplayLanguage.French] = "Groupe publié/mis à jour.",
+            [DisplayLanguage.Japanese] = "グループを公開/更新しました。",
+        },
+        [Key.GroupPublishFailedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Veröffentlichen der Gruppe fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Failed to publish group ({0})",
+            [DisplayLanguage.French] = "Échec de la publication du groupe ({0})",
+            [DisplayLanguage.Japanese] = "グループの公開に失敗しました ({0})",
+        },
+        [Key.GroupUnpublishSucceededMessage] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe gelöscht.",
+            [DisplayLanguage.English] = "Group deleted.",
+            [DisplayLanguage.French] = "Groupe supprimé.",
+            [DisplayLanguage.Japanese] = "グループを削除しました。",
+        },
+        [Key.GroupUnpublishFailedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Löschen der Gruppe fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Failed to delete group ({0})",
+            [DisplayLanguage.French] = "Échec de la suppression du groupe ({0})",
+            [DisplayLanguage.Japanese] = "グループの削除に失敗しました ({0})",
+        },
+
+        // Phase 2: "Gruppen"-Abschnitt (siehe UI/MainWindow.cs DrawGroupBrowseSection).
+        [Key.GroupFinderGroupsHeader] = new()
+        {
+            [DisplayLanguage.German] = "Gruppen",
+            [DisplayLanguage.English] = "Groups",
+            [DisplayLanguage.French] = "Groupes",
+            [DisplayLanguage.Japanese] = "グループ",
+        },
+        [Key.GroupFinderNoGroups] = new()
+        {
+            [DisplayLanguage.German] = "Aktuell keine veröffentlichten Gruppen im Gruppenfinder auf diesem Data Center.",
+            [DisplayLanguage.English] = "Currently no published groups in the group finder on this data center.",
+            [DisplayLanguage.French] = "Actuellement aucun groupe publié dans la recherche de groupe sur ce data center.",
+            [DisplayLanguage.Japanese] = "現在このデータセンターのグループファインダーに公開されているグループはありません。",
+        },
+        // Tooltip für den "(?)"-Marker neben einem Gruppenmitglied, dessen Einzelprofil der
+        // Worker beim Browse nicht (mehr) finden konnte (siehe GroupFinderGroupMember.LearnedSpellIds-Doc).
+        [Key.GroupFinderGroupMemberProfileUnavailableHint] = new()
+        {
+            [DisplayLanguage.German] = "Profil dieses Mitglieds nicht verfügbar (gelöscht oder abgelaufen) - wird beim Vergleich nicht berücksichtigt.",
+            [DisplayLanguage.English] = "This member's profile is unavailable (deleted or expired) - not considered in the comparison.",
+            [DisplayLanguage.French] = "Le profil de ce membre n'est pas disponible (supprimé ou expiré) - non pris en compte dans la comparaison.",
+            [DisplayLanguage.Japanese] = "このメンバーのプロフィールは利用できません(削除または期限切れ) - 比較には含まれません。",
+        },
+        [Key.GroupFinderGroupNoAvailableProfiles] = new()
+        {
+            [DisplayLanguage.German] = "Kein Vergleich möglich - für keines der Mitglieder dieser Gruppe ist aktuell ein Profil verfügbar.",
+            [DisplayLanguage.English] = "No comparison possible - none of this group's members currently have an available profile.",
+            [DisplayLanguage.French] = "Comparaison impossible - aucun membre de ce groupe n'a actuellement de profil disponible.",
+            [DisplayLanguage.Japanese] = "比較できません - このグループのメンバーの中に利用可能なプロフィールがありません。",
+        },
+        // {0} = Anzahl Spells, die der Gruppe gemeinsam fehlen, DU aber selbst schon kennst.
+        [Key.GroupFinderYouWouldContribute] = new()
+        {
+            [DisplayLanguage.German] = "Du würdest beitragen: {0} Spells",
+            [DisplayLanguage.English] = "You would contribute: {0} spells",
+            [DisplayLanguage.French] = "Tu apporterais : {0} sorts",
+            [DisplayLanguage.Japanese] = "あなたが貢献できる: {0}スペル",
+        },
+        // {0} = Anzahl Spells, die der Gruppe gemeinsam fehlen und DIR ebenfalls fehlen.
+        [Key.GroupFinderYouWouldStillMiss] = new()
+        {
+            [DisplayLanguage.German] = "Dir würde weiterhin fehlen: {0} Spells",
+            [DisplayLanguage.English] = "You would still be missing: {0} spells",
+            [DisplayLanguage.French] = "Il te manquerait encore : {0} sorts",
+            [DisplayLanguage.Japanese] = "あなたにまだ不足している: {0}スペル",
+        },
+        [Key.GroupFinderAddGroupToComparisonButton] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe zum Vergleich hinzufügen",
+            [DisplayLanguage.English] = "Add group to comparison",
+            [DisplayLanguage.French] = "Ajouter le groupe à la comparaison",
+            [DisplayLanguage.Japanese] = "グループを比較に追加",
+        },
+        // {0} = Anzahl hinzugefügter Mitglieder (siehe MainWindow.DrawGroupBrowseEntry).
+        [Key.GroupFinderGroupAddedToComparisonMessage] = new()
+        {
+            [DisplayLanguage.German] = "{0} Gruppenmitglied(er) wurden in den Spell-Vergleich aufgenommen.",
+            [DisplayLanguage.English] = "{0} group member(s) were added to the spell comparison.",
+            [DisplayLanguage.French] = "{0} membre(s) du groupe ont été ajoutés à la comparaison des sorts.",
+            [DisplayLanguage.Japanese] = "{0}人のグループメンバーをスペル比較に追加しました。",
+        },
+        [Key.GroupBrowseFailed] = new()
+        {
+            [DisplayLanguage.German] = "Gruppenfinder: Abrufen anderer Gruppen fehlgeschlagen ({0})",
+            [DisplayLanguage.English] = "Group finder: failed to fetch other groups ({0})",
+            [DisplayLanguage.French] = "Recherche de groupe : échec de la récupération des autres groupes ({0})",
+            [DisplayLanguage.Japanese] = "グループファインダー: 他グループの取得に失敗しました ({0})",
+        },
+
+        // Phase 3: Spellbook-Tab.
+        [Key.TabSpellbook] = new()
+        {
+            [DisplayLanguage.German] = "Spellbook",
+            [DisplayLanguage.English] = "Spellbook",
+            [DisplayLanguage.French] = "Grimoire",
+            [DisplayLanguage.Japanese] = "スペルブック",
+        },
+        [Key.SpellbookFilterAll] = new()
+        {
+            [DisplayLanguage.German] = "Alle",
+            [DisplayLanguage.English] = "All",
+            [DisplayLanguage.French] = "Tous",
+            [DisplayLanguage.Japanese] = "すべて",
+        },
+        [Key.SpellbookFilterLearned] = new()
+        {
+            [DisplayLanguage.German] = "Gelernt",
+            [DisplayLanguage.English] = "Learned",
+            [DisplayLanguage.French] = "Appris",
+            [DisplayLanguage.Japanese] = "習得済み",
+        },
+        [Key.SpellbookFilterMissing] = new()
+        {
+            [DisplayLanguage.German] = "Fehlend",
+            [DisplayLanguage.English] = "Missing",
+            [DisplayLanguage.French] = "Manquants",
+            [DisplayLanguage.Japanese] = "未習得",
+        },
+        [Key.SpellbookNoResults] = new()
+        {
+            [DisplayLanguage.German] = "Keine Spells entsprechen dem aktuellen Filter.",
+            [DisplayLanguage.English] = "No spells match the current filter.",
+            [DisplayLanguage.French] = "Aucun sort ne correspond au filtre actuel.",
+            [DisplayLanguage.Japanese] = "現在のフィルターに一致するスペルはありません。",
+        },
+        // Hinweis im Zeilen-Tooltip (siehe DrawSpellbookTab), NUR wenn displayLanguage != German
+        // UND eine Description vorhanden ist - Spell.Description ist bisher ausschließlich auf
+        // Deutsch gepflegt (siehe Models/Spell.cs).
+        [Key.SpellbookDescriptionGermanOnlyHint] = new()
+        {
+            [DisplayLanguage.German] = "(nur auf Deutsch verfügbar)",
+            [DisplayLanguage.English] = "(only available in German)",
+            [DisplayLanguage.French] = "(disponible uniquement en allemand)",
+            [DisplayLanguage.Japanese] = "(ドイツ語のみ利用可能)",
+        },
+        [Key.ColumnStars] = new()
+        {
+            [DisplayLanguage.German] = "Sterne",
+            [DisplayLanguage.English] = "Stars",
+            [DisplayLanguage.French] = "Étoiles",
+            [DisplayLanguage.Japanese] = "★",
+        },
+        [Key.ColumnLearned] = new()
+        {
+            [DisplayLanguage.German] = "Gelernt",
+            [DisplayLanguage.English] = "Learned",
+            [DisplayLanguage.French] = "Appris",
+            [DisplayLanguage.Japanese] = "習得",
+        },
+
+        // Phase 4: Loadouts-Tab.
+        [Key.TabLoadouts] = new()
+        {
+            [DisplayLanguage.German] = "Loadouts",
+            [DisplayLanguage.English] = "Loadouts",
+            [DisplayLanguage.French] = "Sets de sorts",
+            [DisplayLanguage.Japanese] = "ロードアウト",
+        },
+        [Key.LoadoutContentTypeMaskedCarnivale] = new()
+        {
+            [DisplayLanguage.German] = "Maskenkarneval",
+            [DisplayLanguage.English] = "Masked Carnivale",
+            [DisplayLanguage.French] = "Carnaval masqué",
+            [DisplayLanguage.Japanese] = "仮面舞踏会",
+        },
+        [Key.LoadoutContentTypeFates] = new()
+        {
+            [DisplayLanguage.German] = "FATEs",
+            [DisplayLanguage.English] = "FATEs",
+            [DisplayLanguage.French] = "ALÉAS",
+            [DisplayLanguage.Japanese] = "FATE",
+        },
+        [Key.LoadoutsNoneForType] = new()
+        {
+            [DisplayLanguage.German] = "Noch keine Loadouts für diesen Content-Typ hinterlegt.",
+            [DisplayLanguage.English] = "No loadouts for this content type yet.",
+            [DisplayLanguage.French] = "Aucun set de sorts pour ce type de contenu pour l'instant.",
+            [DisplayLanguage.Japanese] = "このコンテンツタイプのロードアウトはまだ登録されていません。",
+        },
+        // {0} = SourceNote (freier Text, siehe Models/Loadout.cs).
+        [Key.LoadoutSourceLabel] = new()
+        {
+            [DisplayLanguage.German] = "Quelle: {0}",
+            [DisplayLanguage.English] = "Source: {0}",
+            [DisplayLanguage.French] = "Source : {0}",
+            [DisplayLanguage.Japanese] = "出典: {0}",
+        },
+        // {0} = Anzahl bereits gelernter Spells aus diesem Loadout, {1} = Gesamtanzahl Spells im Loadout.
+        [Key.LoadoutProgressFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0}/{1} bereits gelernt",
+            [DisplayLanguage.English] = "{0}/{1} already learned",
+            [DisplayLanguage.French] = "{0}/{1} déjà appris",
+            [DisplayLanguage.Japanese] = "{0}/{1} 習得済み",
+        },
+        [Key.LoadoutOpenSourceButton] = new()
+        {
+            [DisplayLanguage.German] = "Quelle öffnen",
+            [DisplayLanguage.English] = "Open source",
+            [DisplayLanguage.French] = "Ouvrir la source",
+            [DisplayLanguage.Japanese] = "出典を開く",
         },
     };
 

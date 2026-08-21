@@ -33,6 +33,12 @@ public sealed class SpellDataService
     public IReadOnlyDictionary<uint, Location> Locations { get; private set; } = new Dictionary<uint, Location>();
     public IReadOnlyList<SpellSource> Sources { get; private set; } = new List<SpellSource>();
 
+    /// <summary>Kuratierte Spell-Empfehlungen pro Content-Typ (siehe UI/MainWindow.cs
+    /// DrawLoadoutsTab). Anders als Spells/Monster/Orte/Quellen bewusst NICHT automatisiert
+    /// befüllt - Data/loadouts.json wird manuell vom Projektinhaber gepflegt, siehe dortigen
+    /// Kommentar.</summary>
+    public IReadOnlyList<Loadout> Loadouts { get; private set; } = new List<Loadout>();
+
     /// <summary>Alle bekannten Spell-Ids, AUFSTEIGEND nach Id sortiert (nicht SpellbookOrder) -
     /// die kanonische Bit-Reihenfolge für das kompakte "BLU:"-Sync-Codeformat (Bit-Index 0 =
     /// kleinste Id, siehe <see cref="ManualCodeSyncProvider"/>). Export UND Import müssen beide
@@ -46,6 +52,7 @@ public sealed class SpellDataService
         this.Monsters = this.LoadDictionary<Monster>(Path.Combine(dataDirectory, "monsters.json"), m => m.Id);
         this.Locations = this.LoadDictionary<Location>(Path.Combine(dataDirectory, "locations.json"), l => l.Id);
         this.Sources = this.LoadList<SpellSource>(Path.Combine(dataDirectory, "sources.json"));
+        this.Loadouts = this.LoadList<Loadout>(Path.Combine(dataDirectory, "loadouts.json"));
         this.OrderedSpellIds = this.Spells.Keys.OrderBy(id => id).ToList();
 
         // Bewusst als Information geloggt (nicht nur bei Fehlern): eine leere Zahl
@@ -54,7 +61,7 @@ public sealed class SpellDataService
         this.log.Information(
             $"SpellDataService.Load(\"{dataDirectory}\"): {this.Spells.Count} Spells, " +
             $"{this.Monsters.Count} Monster, {this.Locations.Count} Orte, " +
-            $"{this.Sources.Count} Quellen geladen.");
+            $"{this.Sources.Count} Quellen, {this.Loadouts.Count} Loadouts geladen.");
     }
 
     /// <summary>Alle bekannten Quellen (Monster + Fundort) für einen Spell, sofern vorhanden.

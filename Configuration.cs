@@ -39,6 +39,25 @@ public sealed class Configuration : IPluginConfiguration
     /// bearbeitbar oder löschbar, bis es nach 90 Tagen von selbst abläuft).</summary>
     public Dictionary<string, string> LiveSyncEditTokens { get; set; } = new();
 
+    /// <summary>Die groupId der eigenen, zuletzt veröffentlichten Gruppen-Listung (Phase 2
+    /// "Gruppenfinder", siehe LiveSyncService.PublishGroup/worker/src/index.ts PUT /group/:groupId),
+    /// Key "CharakterName@World" des VERÖFFENTLICHENDEN Charakters (über BuildTokenKey - siehe
+    /// LiveSyncEditTokens-Doc oben zur Begründung: mehrere Charaktere pro Config-Datei möglich,
+    /// dasselbe Dalamud-Profil kann von mehreren Charakteren auf demselben PC genutzt werden).
+    /// Value ist die groupId selbst, NICHT der Edit-Token (der steht getrennt in
+    /// <see cref="GroupFinderGroupEditTokens"/>) - so lässt sich bei einem erneuten Klick auf
+    /// "Gruppe veröffentlichen" prüfen, ob für den aktuellen Charakter bereits eine Gruppe
+    /// existiert (dann PUT-Update auf dieselbe groupId) oder ob eine neue angelegt werden muss.</summary>
+    public Dictionary<string, string> GroupFinderOwnGroupIds { get; set; } = new();
+
+    /// <summary>Edit-Tokens der eigenen veröffentlichten Gruppen-Listungen, Key die groupId
+    /// (nicht "CharakterName@World" wie bei <see cref="LiveSyncEditTokens"/>/<see cref="GroupFinderOwnGroupIds"/> -
+    /// die groupId ist bereits eindeutig, ein zusätzlicher Charakter-Bezug im Key wäre hier
+    /// redundant), Value der Klartext-Token (siehe LiveSyncEditTokens-Doc: der SERVER speichert
+    /// nie den Klartext, nur dessen Hash - hier lokal ist der Klartext der einzige Weg, die
+    /// Gruppen-Listung später noch zu aktualisieren oder zu löschen).</summary>
+    public Dictionary<string, string> GroupFinderGroupEditTokens { get; set; } = new();
+
     [NonSerialized]
     private IDalamudPluginInterface? pluginInterface;
 

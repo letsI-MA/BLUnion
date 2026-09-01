@@ -2,29 +2,8 @@ using BLUnion.Models;
 
 namespace BLUnion.Services;
 
-/// <summary>
-/// Zentrale Stelle für sämtliche festen UI-Texte des Plugins, in allen 4 unterstützten
-/// Sprachen (siehe <see cref="DisplayLanguage"/>). Bewusst NICHT die Texte direkt in den
-/// ImGui-Aufrufen in UI/MainWindow.cs übersetzt (unübersichtlich, schwer wartbar) - stattdessen
-/// hier ein zentrales Dictionary, aus dem MainWindow über <see cref="Get"/>/<see cref="Format"/>
-/// liest.
-///
-/// Werte mit "{0}"/"{1}" usw. sind Format-Strings für <see cref="string.Format(string, object?[])"/>
-/// (siehe <see cref="Format"/>) - die Platzhalter-REIHENFOLGE kann pro Sprache abweichen (falls
-/// die Satzstellung das erfordert), die ANZAHL der Platzhalter muss aber für alle 4 Sprachen
-/// gleich bleiben, da der Aufrufer in MainWindow dieselben Argumente für alle Sprachen übergibt.
-///
-/// Neue Sprache hinzufügen: neuer <see cref="DisplayLanguage"/>-Enum-Wert + hier pro
-/// <see cref="Key"/> einen weiteren Eintrag ergänzen. Neuer Text: neuer <see cref="Key"/>-Wert +
-/// Eintrag mit allen 4 Übersetzungen hier + Verwendung in MainWindow über <see cref="Get"/>/
-/// <see cref="Format"/>. Eine fehlende Übersetzung fällt dank des Konsistenz-Checks im statischen
-/// Konstruktor SOFORT beim Plugin-Start als Exception auf, nicht erst als leerer/englischer Text
-/// mitten in der Session.
-/// </summary>
 public static class UiStrings
 {
-    /// <summary>Ein einzelner UI-Text. Absichtlich als Enum statt roher String-Konstanten -
-    /// Tippfehler in einem Key fallen so schon beim Compilieren auf, nicht erst zur Laufzeit.</summary>
     public enum Key
     {
         WindowTitle,
@@ -32,6 +11,22 @@ public static class UiStrings
         TabLearningPlan,
         TabSync,
         TabSettings,
+        TabCategoryProgress,
+        TabCategorySyncGroups,
+        TabCategoryReference,
+        TabDashboard,
+        DashboardProgressFormat,
+        DashboardPartyFormat,
+        DashboardLiveSyncEnabled,
+        DashboardLiveSyncDisabled,
+        DashboardDataCenterFormat,
+        DashboardGoToProgressButton,
+        DashboardGoToSyncGroupsButton,
+        DashboardGoToReferenceButton,
+        StatusBarSeparator,
+        StatusBarProgressFormat,
+        StatusBarLiveSyncActive,
+        StatusBarLiveSyncInactive,
         NoBlueMagesInParty,
         PartyMemberEntry,
         NoPlayerDataLoaded,
@@ -96,8 +91,9 @@ public static class UiStrings
         DevTestProfilesPublished,
         DevTestProfilesFailed,
 
-        // Phase 2: Gruppenfinder-Tab (siehe UI/MainWindow.cs DrawGroupFinderTab).
         TabGroupFinder,
+        GroupFinderPublishSubTab,
+        GroupFinderBrowseSubTab,
         GroupFinderInactiveHint,
         GroupFinderGoToSettingsButton,
         GroupFinderGoToSettingsMessage,
@@ -123,10 +119,6 @@ public static class UiStrings
         GroupFinderProgressFormat,
         GroupFinderWantedPlayerCountEntryFormat,
 
-        // Phase 2: "Eigene Gruppe veröffentlichen"-Abschnitt (siehe UI/MainWindow.cs
-        // DrawGroupPublishSection) - NUR das Veröffentlichen/Aktualisieren/Löschen der eigenen
-        // Gruppen-Listung, eigenständig von der Einzelprofil-Sichtbarkeit oberhalb (siehe
-        // GroupFinder*-Keys weiter oben).
         GroupPublishHeader,
         GroupPublishSourceParty,
         GroupPublishSourceSyncList,
@@ -141,10 +133,6 @@ public static class UiStrings
         GroupUnpublishSucceededMessage,
         GroupUnpublishFailedMessage,
 
-        // Phase 2: "Gruppen"-Abschnitt (siehe UI/MainWindow.cs DrawGroupBrowseSection) - Anzeige
-        // FREMDER Gruppen-Listungen (GET /groups/browse) inkl. Vergleich gegen den eigenen
-        // Spell-Stand. Eigenständiger, zu den GroupFinder*-Einzelprofil-Keys weiter oben
-        // PARALLELER Satz an Keys.
         GroupFinderGroupsHeader,
         GroupFinderNoGroups,
         GroupFinderGroupMemberProfileUnavailableHint,
@@ -155,9 +143,6 @@ public static class UiStrings
         GroupFinderGroupAddedToComparisonMessage,
         GroupBrowseFailed,
 
-        // Phase 3: Spellbook-Tab (siehe UI/MainWindow.cs DrawSpellbookTab) - zeigt ALLE Spells
-        // mit dem eigenen Lernstand, unabhängig von Party-/Sync-Daten (funktioniert also auch
-        // ganz ohne geladene Mitspieler).
         TabSpellbook,
         SpellbookFilterAll,
         SpellbookFilterLearned,
@@ -167,8 +152,6 @@ public static class UiStrings
         ColumnStars,
         ColumnLearned,
 
-        // Phase 4: Loadouts-Tab (siehe UI/MainWindow.cs DrawLoadoutsTab) - kuratierte
-        // Spell-Empfehlungen pro Content-Typ aus Data/loadouts.json.
         TabLoadouts,
         LoadoutContentTypeMaskedCarnivale,
         LoadoutContentTypeFates,
@@ -180,9 +163,6 @@ public static class UiStrings
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
     {
-        // "BLUnion" ist der Produktname, wird bewusst NICHT übersetzt (wie z.B. Firefox/Discord
-        // auch in jeder Sprache "Firefox"/"Discord" heißen) - läuft trotzdem über Get(), damit
-        // der Fenstertitel konsistent über denselben Mechanismus wie alles andere gesetzt wird.
         [Key.WindowTitle] = new()
         {
             [DisplayLanguage.German] = "BLUnion",
@@ -218,6 +198,118 @@ public static class UiStrings
             [DisplayLanguage.French] = "Paramètres",
             [DisplayLanguage.Japanese] = "設定",
         },
+        [Key.TabCategoryProgress] = new()
+        {
+            [DisplayLanguage.German] = "Fortschritt",
+            [DisplayLanguage.English] = "Progress",
+            [DisplayLanguage.French] = "Progression",
+            [DisplayLanguage.Japanese] = "進捗",
+        },
+        [Key.TabCategorySyncGroups] = new()
+        {
+            [DisplayLanguage.German] = "Sync & Gruppen",
+            [DisplayLanguage.English] = "Sync & Groups",
+            [DisplayLanguage.French] = "Synchro et groupes",
+            [DisplayLanguage.Japanese] = "同期とグループ",
+        },
+        [Key.TabCategoryReference] = new()
+        {
+            [DisplayLanguage.German] = "Referenz",
+            [DisplayLanguage.English] = "Reference",
+            [DisplayLanguage.French] = "Référence",
+            [DisplayLanguage.Japanese] = "リファレンス",
+        },
+        [Key.TabDashboard] = new()
+        {
+            [DisplayLanguage.German] = "Übersicht",
+            [DisplayLanguage.English] = "Overview",
+            [DisplayLanguage.French] = "Aperçu",
+            [DisplayLanguage.Japanese] = "概要",
+        },
+        [Key.DashboardProgressFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0} von {1} Spells gelernt ({2}%)",
+            [DisplayLanguage.English] = "{0} of {1} spells learned ({2}%)",
+            [DisplayLanguage.French] = "{0} sorts appris sur {1} ({2} %)",
+            [DisplayLanguage.Japanese] = "{1}個中{0}個のスペルを習得済み（{2}%）",
+        },
+        [Key.DashboardPartyFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0} Blue Mages in der aktuellen Party",
+            [DisplayLanguage.English] = "{0} Blue Mages in the current party",
+            [DisplayLanguage.French] = "{0} Mages bleus dans le groupe actuel",
+            [DisplayLanguage.Japanese] = "現在のパーティに青魔道士が{0}人",
+        },
+        [Key.DashboardLiveSyncEnabled] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: aktiviert",
+            [DisplayLanguage.English] = "Live sync: enabled",
+            [DisplayLanguage.French] = "Synchro en direct : activée",
+            [DisplayLanguage.Japanese] = "ライブ同期：有効",
+        },
+        [Key.DashboardLiveSyncDisabled] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync: deaktiviert",
+            [DisplayLanguage.English] = "Live sync: disabled",
+            [DisplayLanguage.French] = "Synchro en direct : désactivée",
+            [DisplayLanguage.Japanese] = "ライブ同期：無効",
+        },
+        [Key.DashboardDataCenterFormat] = new()
+        {
+            [DisplayLanguage.German] = "Rechenzentrum: {0}",
+            [DisplayLanguage.English] = "Data center: {0}",
+            [DisplayLanguage.French] = "Centre de données : {0}",
+            [DisplayLanguage.Japanese] = "データセンター：{0}",
+        },
+        [Key.DashboardGoToProgressButton] = new()
+        {
+            [DisplayLanguage.German] = "Zu Fortschritt",
+            [DisplayLanguage.English] = "Go to Progress",
+            [DisplayLanguage.French] = "Aller à Progression",
+            [DisplayLanguage.Japanese] = "進捗へ",
+        },
+        [Key.DashboardGoToSyncGroupsButton] = new()
+        {
+            [DisplayLanguage.German] = "Zu Sync & Gruppen",
+            [DisplayLanguage.English] = "Go to Sync & Groups",
+            [DisplayLanguage.French] = "Aller à Synchro et groupes",
+            [DisplayLanguage.Japanese] = "同期とグループへ",
+        },
+        [Key.DashboardGoToReferenceButton] = new()
+        {
+            [DisplayLanguage.German] = "Zu Referenz",
+            [DisplayLanguage.English] = "Go to Reference",
+            [DisplayLanguage.French] = "Aller à Référence",
+            [DisplayLanguage.Japanese] = "リファレンスへ",
+        },
+        [Key.StatusBarSeparator] = new()
+        {
+            [DisplayLanguage.German] = " · ",
+            [DisplayLanguage.English] = " · ",
+            [DisplayLanguage.French] = " · ",
+            [DisplayLanguage.Japanese] = " · ",
+        },
+        [Key.StatusBarProgressFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0}/{1} Spells",
+            [DisplayLanguage.English] = "{0}/{1} spells",
+            [DisplayLanguage.French] = "{0}/{1} sorts",
+            [DisplayLanguage.Japanese] = "スペル {0}/{1}",
+        },
+        [Key.StatusBarLiveSyncActive] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync aktiv",
+            [DisplayLanguage.English] = "Live sync active",
+            [DisplayLanguage.French] = "Synchro en direct active",
+            [DisplayLanguage.Japanese] = "ライブ同期：有効",
+        },
+        [Key.StatusBarLiveSyncInactive] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync inaktiv",
+            [DisplayLanguage.English] = "Live sync inactive",
+            [DisplayLanguage.French] = "Synchro en direct inactive",
+            [DisplayLanguage.Japanese] = "ライブ同期：無効",
+        },
         [Key.NoBlueMagesInParty] = new()
         {
             [DisplayLanguage.German] = "Keine Blue Mages in der aktuellen Party gefunden.",
@@ -232,8 +324,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "{0}  (Niveau {1})",
             [DisplayLanguage.Japanese] = "{0}  (レベル{1})",
         },
-        // {0} = Name des Sync-Tabs (siehe TabSync) - so bleibt der Hinweis auch dann korrekt,
-        // wenn sich die Übersetzung des Tab-Namens mal ändert.
         [Key.NoPlayerDataLoaded] = new()
         {
             [DisplayLanguage.German] =
@@ -305,8 +395,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Manque à : {0}",
             [DisplayLanguage.Japanese] = "未習得者: {0}",
         },
-        // {0} = Monstername (Eigenname, nicht übersetzt), {1} = Method aus sources.json
-        // (datengetrieben, ebenfalls nicht Teil dieser Aufgabe), {2} = FormatLocation()-Ergebnis.
         [Key.TooltipSourceLine] = new()
         {
             [DisplayLanguage.German] = "Quelle: {0} ({1}) — {2}",
@@ -469,8 +557,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Outil dev (pas une vraie fonction de groupe) :",
             [DisplayLanguage.Japanese] = "開発用ツール (実際のパーティ機能ではありません):",
         },
-        // "Alice"/"Bob"/"Charles" sind Eigennamen der Dev-Test-Fixtures (siehe
-        // Services/DevTestFixtures.cs) - bleiben unübersetzt.
         [Key.DevLoadAliceButton] = new()
         {
             [DisplayLanguage.German] = "Dev: Alice laden",
@@ -499,8 +585,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Outil dev : « {0} » chargé avec {1} sorts.",
             [DisplayLanguage.Japanese] = "開発用ツール: 「{0}」を{1}スペルで読み込みました。",
         },
-        // Bewusst NICHT mehr "...für Spell-Namen" wie vor dieser Aufgabe - die Auswahl steuert
-        // jetzt die komplette Oberfläche, nicht mehr nur die Spell-Namen.
         [Key.DisplayLanguageHeader] = new()
         {
             [DisplayLanguage.German] = "Anzeigesprache:",
@@ -533,9 +617,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Masquer les totems",
             [DisplayLanguage.Japanese] = "トーテムを非表示",
         },
-        // Kürzere Zusammenfassung des README-Abschnitts "Sync without a server" - erklärt die
-        // Browser-Version des Sync-Codes (Punkt 1 & 3 der Aufgabenstellung: OHNE laufendes FFXIV
-        // nutzbar, gedacht für Freunde ohne installiertes Plugin).
         [Key.WebCompanionIntro] = new()
         {
             [DisplayLanguage.German] =
@@ -583,10 +664,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Lien copié dans le presse-papiers.",
             [DisplayLanguage.Japanese] = "リンクをクリップボードにコピーしました。",
         },
-        // Ersetzt ClipboardCopiedMessage, wenn der Code zusätzlich automatisch in den Party-Chat
-        // gepostet wurde (siehe MainWindow.TryAutoShareToPartyChat) - NICHT verwendet, wenn der
-        // Post wegen des 10-Sekunden-Cooldowns übersprungen wurde (dann weiterhin die normale
-        // ClipboardCopiedMessage, damit es sich nicht wie ein Fehlschlag anfühlt).
         [Key.ClipboardCopiedAndSharedMessage] = new()
         {
             [DisplayLanguage.German] = "Status in Zwischenablage kopiert und in den Party-Chat gepostet.",
@@ -638,7 +715,6 @@ public static class UiStrings
                 "すべてのチャットチャンネルを「BLU:...」形式のコードについて検索します。自分自身の" +
                 "コードは再インポートされません。",
         },
-        // {0} = Name des Spielers, dessen Code automatisch übernommen wurde (Feature 3).
         [Key.AutoImportedMessage] = new()
         {
             [DisplayLanguage.German] = "Automatisch importiert: {0}",
@@ -653,9 +729,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Activer la synchro en direct",
             [DisplayLanguage.Japanese] = "ライブ同期を有効にする",
         },
-        // Transparenz-Hinweis (siehe Aufgabenstellung): erklärt bewusst, dass der eigene Status
-        // auf einem externen Server landet und dort OHNE Authentifizierung per Name+World lesbar
-        // ist - der Nutzer soll das vor dem Aktivieren wissen, nicht erst hinterher entdecken.
         [Key.LiveSyncEnabledHint] = new()
         {
             [DisplayLanguage.German] =
@@ -727,9 +800,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Recherche de groupe : échec de la récupération des autres joueurs ({0})",
             [DisplayLanguage.Japanese] = "グループファインダー: 他プレイヤーの取得に失敗しました ({0})",
         },
-        // Dev-Tool (siehe UI/MainWindow.cs DrawSyncTab, neben den bestehenden Dev-Fixture-
-        // Buttons) - veröffentlicht Alice/Bob/Charles als echte Testprofile beim Live-Sync-Worker,
-        // um den Gruppenfinder ohne echte Mitspieler testen zu können.
         [Key.DevPublishTestProfilesButton] = new()
         {
             [DisplayLanguage.German] = "Dev: Testprofile im Gruppenfinder veröffentlichen",
@@ -737,7 +807,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Dev : publier des profils de test dans la recherche de groupe",
             [DisplayLanguage.Japanese] = "開発: テストプロフィールをグループファインダーに公開",
         },
-        // {0} = Anzahl erfolgreich veröffentlichter Testprofile (siehe LiveSyncService.PublishDevTestProfilesAsync).
         [Key.DevTestProfilesPublished] = new()
         {
             [DisplayLanguage.German] = "Dev: {0} Testprofile im Gruppenfinder veröffentlicht.",
@@ -745,7 +814,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Dev : {0} profils de test publiés dans la recherche de groupe.",
             [DisplayLanguage.Japanese] = "開発: {0}件のテストプロフィールをグループファインダーに公開しました。",
         },
-        // {0} = betroffene Fixture(n) + Fehlergrund (siehe LiveSyncService.PublishDevTestProfilesAsync).
         [Key.DevTestProfilesFailed] = new()
         {
             [DisplayLanguage.German] = "Dev: Veröffentlichen der Testprofile fehlgeschlagen ({0})",
@@ -754,7 +822,6 @@ public static class UiStrings
             [DisplayLanguage.Japanese] = "開発: テストプロフィールの公開に失敗しました ({0})",
         },
 
-        // Phase 2: Gruppenfinder-Tab.
         [Key.TabGroupFinder] = new()
         {
             [DisplayLanguage.German] = "Gruppenfinder",
@@ -762,8 +829,20 @@ public static class UiStrings
             [DisplayLanguage.French] = "Recherche de groupe",
             [DisplayLanguage.Japanese] = "グループファインダー",
         },
-        // Erklärt die Voraussetzung aus der Aufgabenstellung: der Gruppenfinder ist KEIN
-        // separates Profil/Login, sondern setzt zwingend aktives Live-Sync voraus.
+        [Key.GroupFinderPublishSubTab] = new()
+        {
+            [DisplayLanguage.German] = "Veröffentlichen",
+            [DisplayLanguage.English] = "Publish",
+            [DisplayLanguage.French] = "Publier",
+            [DisplayLanguage.Japanese] = "公開",
+        },
+        [Key.GroupFinderBrowseSubTab] = new()
+        {
+            [DisplayLanguage.German] = "Durchsuchen",
+            [DisplayLanguage.English] = "Browse",
+            [DisplayLanguage.French] = "Parcourir",
+            [DisplayLanguage.Japanese] = "検索",
+        },
         [Key.GroupFinderInactiveHint] = new()
         {
             [DisplayLanguage.German] =
@@ -800,10 +879,10 @@ public static class UiStrings
         },
         [Key.GroupFinderMyEntryHeader] = new()
         {
-            [DisplayLanguage.German] = "Mein Eintrag",
-            [DisplayLanguage.English] = "My entry",
-            [DisplayLanguage.French] = "Mon entrée",
-            [DisplayLanguage.Japanese] = "自分の登録内容",
+            [DisplayLanguage.German] = "Mein Eintrag:",
+            [DisplayLanguage.English] = "My entry:",
+            [DisplayLanguage.French] = "Mon entrée :",
+            [DisplayLanguage.Japanese] = "自分の登録内容:",
         },
         [Key.GroupFinderVisibleToggle] = new()
         {
@@ -812,14 +891,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Visible dans la recherche de groupe",
             [DisplayLanguage.Japanese] = "グループファインダーに表示する",
         },
-        // {0} = Verfügbarkeits-Tags (bereits übersetzt+kommagetrennt, oder "–"), {1} = Notiz in
-        // Anführungszeichen (oder "–"), {2} = gewünschte Mitspieleranzahl (oder
-        // GroupFinderWantedPlayerCountAny) - alle drei bereits fertig aufbereitet von
-        // MainWindow.DrawGroupFinderTab übergeben, siehe dort. Zeigt IMMER den zuletzt vom Worker
-        // bestätigten Stand (LastKnownOwnProfile), nicht die ggf. noch ungespeicherten
-        // Eingabefelder - einzige sichtbare Bestätigung, dass "Im Gruppenfinder sichtbar"
-        // tatsächlich funktioniert hat (der eigene Eintrag wird aus der "Andere Spieler"-Liste
-        // bewusst herausgefiltert, siehe dort).
         [Key.GroupFinderOwnVisibleConfirmation] = new()
         {
             [DisplayLanguage.German] = "Dein Profil ist im Gruppenfinder sichtbar ({0}, {1}, gesucht: {2}).",
@@ -897,17 +968,13 @@ public static class UiStrings
             [DisplayLanguage.French] = "Entrée du chercheur de groupe mise à jour.",
             [DisplayLanguage.Japanese] = "グループファインダーの登録内容を更新しました。",
         },
-        // {0} = Data Center (siehe LiveSyncService.LastKnownOwnProfile).
         [Key.GroupFinderOthersHeader] = new()
         {
-            [DisplayLanguage.German] = "Andere Spieler auf {0}",
-            [DisplayLanguage.English] = "Other players on {0}",
-            [DisplayLanguage.French] = "Autres joueurs sur {0}",
-            [DisplayLanguage.Japanese] = "{0}の他プレイヤー",
+            [DisplayLanguage.German] = "Andere Spieler auf {0}:",
+            [DisplayLanguage.English] = "Other players on {0}:",
+            [DisplayLanguage.French] = "Autres joueurs sur {0} :",
+            [DisplayLanguage.Japanese] = "{0}の他プレイヤー:",
         },
-        // Platzhalter, solange LiveSyncService.LastKnownOwnProfile noch null ist (siehe
-        // Aufgabenstellung: "kurz 'wird ermittelt...' anzeigen statt eines leeren/falschen
-        // Zustands").
         [Key.GroupFinderDeterminingDataCenter] = new()
         {
             [DisplayLanguage.German] = "Data Center wird ermittelt...",
@@ -929,7 +996,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Ajouter à la comparaison",
             [DisplayLanguage.Japanese] = "比較に追加",
         },
-        // {0} = Charaktername (siehe MainWindow.DrawGroupFinderTab).
         [Key.GroupFinderAddedToComparisonMessage] = new()
         {
             [DisplayLanguage.German] = "'{0}' wurde in den Spell-Vergleich aufgenommen.",
@@ -944,7 +1010,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Actuellement aucun autre joueur visible dans la recherche de groupe sur ce data center.",
             [DisplayLanguage.Japanese] = "現在このデータセンターのグループファインダーに他の表示中プレイヤーはいません。",
         },
-        // {0} = Anzahl gelernter Spells, {1} = Gesamtanzahl bekannter Spells.
         [Key.GroupFinderProgressFormat] = new()
         {
             [DisplayLanguage.German] = "{0}/{1} gelernt",
@@ -952,7 +1017,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "{0}/{1} appris",
             [DisplayLanguage.Japanese] = "{0}/{1} 習得済み",
         },
-        // {0} = entweder die Zahl der gewünschten Mitspieler oder GroupFinderWantedPlayerCountAny.
         [Key.GroupFinderWantedPlayerCountEntryFormat] = new()
         {
             [DisplayLanguage.German] = "Gesucht: {0}",
@@ -961,14 +1025,12 @@ public static class UiStrings
             [DisplayLanguage.Japanese] = "募集: {0}",
         },
 
-        // Phase 2: "Eigene Gruppe veröffentlichen"-Abschnitt (siehe UI/MainWindow.cs
-        // DrawGroupPublishSection).
         [Key.GroupPublishHeader] = new()
         {
-            [DisplayLanguage.German] = "Eigene Gruppe veröffentlichen",
-            [DisplayLanguage.English] = "Publish own group",
-            [DisplayLanguage.French] = "Publier mon groupe",
-            [DisplayLanguage.Japanese] = "自分のグループを公開",
+            [DisplayLanguage.German] = "Eigene Gruppe veröffentlichen:",
+            [DisplayLanguage.English] = "Publish own group:",
+            [DisplayLanguage.French] = "Publier mon groupe :",
+            [DisplayLanguage.Japanese] = "自分のグループを公開:",
         },
         [Key.GroupPublishSourceParty] = new()
         {
@@ -984,9 +1046,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Liste de synchro",
             [DisplayLanguage.Japanese] = "同期リスト",
         },
-        // Tooltip/Hinweistext für deaktivierte Sync-Listen-Einträge ohne bekannte World (siehe
-        // DrawGroupPublishSyncListMemberList) - erklärt, warum diese Einträge hier nicht
-        // auswählbar sind.
         [Key.GroupFinderUnknownWorldHint] = new()
         {
             [DisplayLanguage.German] =
@@ -1066,13 +1125,12 @@ public static class UiStrings
             [DisplayLanguage.Japanese] = "グループの削除に失敗しました ({0})",
         },
 
-        // Phase 2: "Gruppen"-Abschnitt (siehe UI/MainWindow.cs DrawGroupBrowseSection).
         [Key.GroupFinderGroupsHeader] = new()
         {
-            [DisplayLanguage.German] = "Gruppen",
-            [DisplayLanguage.English] = "Groups",
-            [DisplayLanguage.French] = "Groupes",
-            [DisplayLanguage.Japanese] = "グループ",
+            [DisplayLanguage.German] = "Gruppen:",
+            [DisplayLanguage.English] = "Groups:",
+            [DisplayLanguage.French] = "Groupes :",
+            [DisplayLanguage.Japanese] = "グループ:",
         },
         [Key.GroupFinderNoGroups] = new()
         {
@@ -1081,8 +1139,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Actuellement aucun groupe publié dans la recherche de groupe sur ce data center.",
             [DisplayLanguage.Japanese] = "現在このデータセンターのグループファインダーに公開されているグループはありません。",
         },
-        // Tooltip für den "(?)"-Marker neben einem Gruppenmitglied, dessen Einzelprofil der
-        // Worker beim Browse nicht (mehr) finden konnte (siehe GroupFinderGroupMember.LearnedSpellIds-Doc).
         [Key.GroupFinderGroupMemberProfileUnavailableHint] = new()
         {
             [DisplayLanguage.German] = "Profil dieses Mitglieds nicht verfügbar (gelöscht oder abgelaufen) - wird beim Vergleich nicht berücksichtigt.",
@@ -1097,7 +1153,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Comparaison impossible - aucun membre de ce groupe n'a actuellement de profil disponible.",
             [DisplayLanguage.Japanese] = "比較できません - このグループのメンバーの中に利用可能なプロフィールがありません。",
         },
-        // {0} = Anzahl Spells, die der Gruppe gemeinsam fehlen, DU aber selbst schon kennst.
         [Key.GroupFinderYouWouldContribute] = new()
         {
             [DisplayLanguage.German] = "Du würdest beitragen: {0} Spells",
@@ -1105,7 +1160,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Tu apporterais : {0} sorts",
             [DisplayLanguage.Japanese] = "あなたが貢献できる: {0}スペル",
         },
-        // {0} = Anzahl Spells, die der Gruppe gemeinsam fehlen und DIR ebenfalls fehlen.
         [Key.GroupFinderYouWouldStillMiss] = new()
         {
             [DisplayLanguage.German] = "Dir würde weiterhin fehlen: {0} Spells",
@@ -1120,7 +1174,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Ajouter le groupe à la comparaison",
             [DisplayLanguage.Japanese] = "グループを比較に追加",
         },
-        // {0} = Anzahl hinzugefügter Mitglieder (siehe MainWindow.DrawGroupBrowseEntry).
         [Key.GroupFinderGroupAddedToComparisonMessage] = new()
         {
             [DisplayLanguage.German] = "{0} Gruppenmitglied(er) wurden in den Spell-Vergleich aufgenommen.",
@@ -1136,7 +1189,6 @@ public static class UiStrings
             [DisplayLanguage.Japanese] = "グループファインダー: 他グループの取得に失敗しました ({0})",
         },
 
-        // Phase 3: Spellbook-Tab.
         [Key.TabSpellbook] = new()
         {
             [DisplayLanguage.German] = "Spellbook",
@@ -1172,9 +1224,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Aucun sort ne correspond au filtre actuel.",
             [DisplayLanguage.Japanese] = "現在のフィルターに一致するスペルはありません。",
         },
-        // Hinweis im Zeilen-Tooltip (siehe DrawSpellbookTab), NUR wenn displayLanguage != German
-        // UND eine Description vorhanden ist - Spell.Description ist bisher ausschließlich auf
-        // Deutsch gepflegt (siehe Models/Spell.cs).
         [Key.SpellbookDescriptionGermanOnlyHint] = new()
         {
             [DisplayLanguage.German] = "(nur auf Deutsch verfügbar)",
@@ -1197,7 +1246,6 @@ public static class UiStrings
             [DisplayLanguage.Japanese] = "習得",
         },
 
-        // Phase 4: Loadouts-Tab.
         [Key.TabLoadouts] = new()
         {
             [DisplayLanguage.German] = "Loadouts",
@@ -1226,7 +1274,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Aucun set de sorts pour ce type de contenu pour l'instant.",
             [DisplayLanguage.Japanese] = "このコンテンツタイプのロードアウトはまだ登録されていません。",
         },
-        // {0} = SourceNote (freier Text, siehe Models/Loadout.cs).
         [Key.LoadoutSourceLabel] = new()
         {
             [DisplayLanguage.German] = "Quelle: {0}",
@@ -1234,7 +1281,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Source : {0}",
             [DisplayLanguage.Japanese] = "出典: {0}",
         },
-        // {0} = Anzahl bereits gelernter Spells aus diesem Loadout, {1} = Gesamtanzahl Spells im Loadout.
         [Key.LoadoutProgressFormat] = new()
         {
             [DisplayLanguage.German] = "{0}/{1} bereits gelernt",
@@ -1251,10 +1297,6 @@ public static class UiStrings
         },
     };
 
-    /// <summary>Prüft beim ersten Zugriff auf die Klasse (statischer Konstruktor läuft genau
-    /// einmal), dass wirklich für JEDEN <see cref="Key"/> und JEDE <see cref="DisplayLanguage"/>
-    /// ein Text hinterlegt ist - eine vergessene Übersetzung fällt so sofort beim Plugin-Start
-    /// als Exception auf statt erst zur Laufzeit als Lücke im UI.</summary>
     static UiStrings()
     {
         foreach (var key in Enum.GetValues<Key>())
@@ -1270,11 +1312,8 @@ public static class UiStrings
         }
     }
 
-    /// <summary>Liefert einen UI-Text unverändert (für Keys ohne Platzhalter).</summary>
     public static string Get(Key key, DisplayLanguage language) => Strings[key][language];
 
-    /// <summary>Liefert einen UI-Text mit über <see cref="string.Format(string, object?[])"/>
-    /// eingesetzten Platzhaltern (für dynamische Texte wie Spieleranzahl/Spellnamen).</summary>
     public static string Format(Key key, DisplayLanguage language, params object[] args) =>
         string.Format(Get(key, language), args);
 }

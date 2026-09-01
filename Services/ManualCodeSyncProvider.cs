@@ -5,41 +5,12 @@ using BLUnion.Models;
 
 namespace BLUnion.Services;
 
-/// <summary>
-/// Sync-Option A: Spieler exportieren ihren Status als kurzen Text-Code (z.B. über
-/// Discord/Chat geteilt), andere importieren ihn per Copy/Paste. Kein Server, kein
-/// Netzwerkzugriff des Plugins nötig.
-///
-/// AKTUELLES Exportformat "BLU:" (siehe <see cref="ExportToCode"/>) - festes Bitmasken-Layout,
-/// byte-genau abgestimmt mit der Web-Companion-Implementierung (letsi-ma.github.io/BLUnion):
-///   Byte 0:      Länge des Namens in UTF-8-Bytes (max. 255)
-///   Byte 1..N:   Name als UTF-8
-///   danach 16 Bytes: Bitmaske (128 Bits, aktuell 124 genutzt) über
-///                <see cref="SpellDataService.OrderedSpellIds"/> (aufsteigend nach Spell-Id,
-///                Bit-Index 0 = kleinste Id); Bit-Position: bitmask[idx >> 3] |= 1 << (idx % 8),
-///                gesetzt = Spell gelernt.
-///   Kodierung:   Base64 URL-safe OHNE Padding ('-'/'_' statt '+'/'/' , kein '=' am Ende).
-/// Kein gzip mehr - eine Bitmaske komprimiert kaum, der gzip-Overhead würde den Code eher
-/// verlängern als verkürzen.
-///
-/// ALTES Format "BLU1:" (gzip-komprimiertes JSON von <see cref="PlayerSpellStatus"/>) wird beim
-/// Import weiterhin automatisch erkannt und gelesen (Codes/Web-Companion-Versionen von vor
-/// diesem Format-Wechsel), aber nicht mehr exportiert.
-/// </summary>
 public sealed class ManualCodeSyncProvider : ISyncProvider
 {
-    /// <summary>Präfix des aktuellen Codeformats (siehe Klassendoc) - bewusst public: dient
-    /// MainWindow.OnChatMessage (Feature "Gruppenanführer" - automatisches Einlesen von im Chat
-    /// gefundenen Sync-Codes) als EINZIGE Quelle für den zu suchenden Teilstring, statt das
-    /// Literal "BLU:" ein zweites Mal an anderer Stelle zu duplizieren.</summary>
     public const string CurrentPrefix = "BLU:";
 
     private const string LegacyPrefix = "BLU1:";
 
-    /// <summary>Feste Größe der Bitmaske im "BLU:"-Format (128 Bits, siehe Klassendoc). Internal
-    /// (nicht mehr private): <see cref="LiveSyncService"/> nutzt dasselbe Bit-Mapping für das
-    /// Live-Sync-Worker-Backend (dort OHNE das Namens-Präfixbyte dieser Klasse hier, siehe
-    /// worker/README.md) und muss die Größe kennen, um sie NICHT zu duplizieren.</summary>
     internal const int BitmaskBytes = 16;
 
     private readonly Dictionary<string, PlayerSpellStatus> known = new();
@@ -54,15 +25,11 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
 
     public void PublishLocalStatus(PlayerSpellStatus localStatus)
     {
-        // Bei Option A bedeutet "Publish" nur: lokal für die eigene Anzeige merken.
-        // Das eigentliche Teilen passiert über ExportToCode() + Discord/Chat.
         this.known[localStatus.CharacterName] = localStatus;
     }
 
     public void RemovePlayer(string characterName) => this.known.Remove(characterName);
 
-    /// <summary>Erzeugt einen kompakten, teilbaren Code aus einem Status - immer im aktuellen
-    /// "BLU:"-Bitmaskenformat (siehe Klassendoc).</summary>
     public string ExportToCode(PlayerSpellStatus status)
     {
         var nameBytes = Encoding.UTF8.GetBytes(status.CharacterName);
@@ -83,9 +50,6 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
         return CurrentPrefix + ToBase64Url(payload);
     }
 
-    /// <summary>Importiert einen von einem anderen Spieler geteilten Code - erkennt anhand des
-    /// Präfixes automatisch, ob es sich um das aktuelle "BLU:"-Bitmaskenformat oder das alte
-    /// "BLU1:"-Format (gzip+JSON) handelt.</summary>
     public void ImportCode(string code)
     {
         PlayerSpellStatus status;
@@ -148,9 +112,6 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
             ?? throw new FormatException("Code konnte nicht als Spellstatus gelesen werden.");
     }
 
-    /// <summary>Wirft statt eines stillen Bit-/Indexfehlers eine klare Exception, falls die
-    /// bekannten Spell-Daten jemals über die Kapazität des festen 16-Byte-Bitmaskenformats
-    /// (128 Bits) hinauswachsen sollten.</summary>
     private static void EnsureBitmaskCapacity(int knownSpellCount)
     {
         if (knownSpellCount > BitmaskBytes * 8)
@@ -162,11 +123,6 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
         }
     }
 
-    /// <summary>Kodiert eine Menge gelernter Spell-Ids als 16-Byte-Bitmaske - DIE kanonische
-    /// Bit-Mapping-Implementierung (aufsteigend nach <see cref="SpellDataService.OrderedSpellIds"/>,
-    /// siehe Klassendoc), von <see cref="ExportToCode"/> UND von <see cref="LiveSyncService"/>
-    /// (Worker-Backend) genutzt - bewusst hier zentralisiert statt zweimal eigenständig
-    /// implementiert, damit beide Sync-Wege garantiert dieselben Bits meinen.</summary>
     internal static byte[] EncodeBitmask(SpellDataService spellDataService, IReadOnlySet<uint> learnedSpellIds)
     {
         var orderedIds = spellDataService.OrderedSpellIds;
@@ -182,10 +138,6 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
         return bitmask;
     }
 
-    /// <summary>Kehrt <see cref="EncodeBitmask"/> um. <paramref name="bitmask"/> darf länger sein
-    /// als <see cref="BitmaskBytes"/> (überzählige Bytes werden ignoriert) - aber NICHT kürzer,
-    /// da sonst ein vom Server/Import gelieferter, korrupt gekürzter Wert stillschweigend falsche
-    /// (fehlende) Spells ergäbe statt eines klaren Fehlers.</summary>
     internal static HashSet<uint> DecodeBitmask(SpellDataService spellDataService, byte[] bitmask)
     {
         if (bitmask.Length < BitmaskBytes)
@@ -208,9 +160,6 @@ public sealed class ManualCodeSyncProvider : ISyncProvider
         return learnedIds;
     }
 
-    /// <summary>Internal (nicht mehr private): <see cref="LiveSyncService"/> braucht dieselbe
-    /// Base64-URL-safe-ohne-Padding-Kodierung für die an den Worker gesendete/von ihm empfangene
-    /// Bitmaske (siehe worker/README.md) - keine zweite Implementierung dafür.</summary>
     internal static string ToBase64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 

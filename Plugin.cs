@@ -6,9 +6,6 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using ECommons;
 
-// IUnlockState wird hier nur als Konstruktor-Parametertyp durchgereicht (siehe
-// LocalSpellUnlockService für den eigentlichen, kommentierten Einsatz) - ist aber
-// selbst als "experimental" markiert, daher auch hier die Warnung unterdrücken.
 #pragma warning disable Dalamud001
 
 namespace BLUnion;
@@ -46,11 +43,6 @@ public sealed class Plugin : IDalamudPlugin
         this.pluginInterface = pluginInterface;
         this.commandManager = commandManager;
 
-        // Muss vor jeder Nutzung von ECommons-Funktionalität laufen (hier: ECommons.Automation.
-        // Chat.SendMessage in MainWindow.TryAutoShareToPartyChat, siehe csproj-Kommentar zur
-        // PackageReference) - initialisiert u.a. ECommons' eigene Svc-Service-Zugriffe intern.
-        // Keine Module angefordert (params Module[] leer gelassen): Chat.SendMessage braucht
-        // keines der optionalen ECommons-Module (VfxTracking, ObjectFunctions, ...).
         ECommonsMain.Init(pluginInterface, this);
 
         this.partyService = new PartyService(partyList, objectTable);
@@ -59,9 +51,6 @@ public sealed class Plugin : IDalamudPlugin
         this.localSpellUnlockService = new LocalSpellUnlockService(log, dataManager, unlockState, objectTable);
         this.syncProvider = new ManualCodeSyncProvider(this.spellDataService);
 
-        // Erstes Projekt-Feature mit persistenter Konfiguration (siehe Configuration.cs) - alle
-        // bisherigen UI-Zustände waren bewusst nur In-Memory. GetPluginConfig() liefert beim
-        // allerersten Start null, dann eine frische Configuration mit den dortigen Defaults.
         this.configuration = this.pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         this.configuration.Initialize(this.pluginInterface);
 
@@ -73,7 +62,6 @@ public sealed class Plugin : IDalamudPlugin
             this.configuration,
             log);
 
-        // Statische Spell-/Monster-/Source-/Location-Daten liegen neben der Plugin-DLL.
         var dataDir = Path.Combine(this.pluginInterface.AssemblyLocation.DirectoryName!, "Data");
         log.Information($"Lade Spell-/Monster-/Source-/Location-Daten aus \"{dataDir}\".");
         this.spellDataService.Load(dataDir);
@@ -107,19 +95,12 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         this.pluginInterface.UiBuilder.Draw -= this.windowSystem.Draw;
-        // Vor RemoveAllWindows: meldet u.a. den Feature-3-Chat-Hook ab (siehe MainWindow.Dispose),
-        // falls "Als Gruppenanführer..." noch aktiviert war - sonst Speicherleck/doppeltes Feuern
-        // bei einem Plugin-Reload.
         this.mainWindow.Dispose();
         this.windowSystem.RemoveAllWindows();
         this.commandManager.RemoveHandler(CommandName);
 
-        // Entsorgt den internen HttpClient (siehe LiveSyncService.Dispose) - sonst bliebe er nach
-        // einem Plugin-Reload als offener Handle bestehen.
         this.liveSyncService.Dispose();
 
-        // Als Letztes: ECommonsMain.Init() lief zuerst im Konstruktor, .Dispose() räumt
-        // entsprechend als Letztes wieder auf (u.a. die von ECommons intern gesetzten Hooks).
         ECommonsMain.Dispose();
     }
 }

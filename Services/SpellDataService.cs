@@ -5,19 +5,11 @@ using Dalamud.Plugin.Services;
 
 namespace BLUnion.Services;
 
-/// <summary>
-/// Lädt die kuratierten Spell/Monster/Source/Location-Daten aus den mit dem
-/// Plugin ausgelieferten JSON-Dateien (Data/*.json). Diese sind bewusst
-/// getrennt von den Nutzer-Settings (siehe Machbarkeitsanalyse Punkt 6).
-/// </summary>
 public sealed class SpellDataService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        // SpellSource.Method ist als Enum (SourceMethod) modelliert, sources.json enthält den
-        // Namen als String (z.B. "OpenWorld") - ohne diesen Converter würde Deserialize hier
-        // scheitern.
         Converters = { new JsonStringEnumConverter() },
     };
 
@@ -33,17 +25,8 @@ public sealed class SpellDataService
     public IReadOnlyDictionary<uint, Location> Locations { get; private set; } = new Dictionary<uint, Location>();
     public IReadOnlyList<SpellSource> Sources { get; private set; } = new List<SpellSource>();
 
-    /// <summary>Kuratierte Spell-Empfehlungen pro Content-Typ (siehe UI/MainWindow.cs
-    /// DrawLoadoutsTab). Anders als Spells/Monster/Orte/Quellen bewusst NICHT automatisiert
-    /// befüllt - Data/loadouts.json wird manuell vom Projektinhaber gepflegt, siehe dortigen
-    /// Kommentar.</summary>
     public IReadOnlyList<Loadout> Loadouts { get; private set; } = new List<Loadout>();
 
-    /// <summary>Alle bekannten Spell-Ids, AUFSTEIGEND nach Id sortiert (nicht SpellbookOrder) -
-    /// die kanonische Bit-Reihenfolge für das kompakte "BLU:"-Sync-Codeformat (Bit-Index 0 =
-    /// kleinste Id, siehe <see cref="ManualCodeSyncProvider"/>). Export UND Import müssen beide
-    /// über diese Property gehen, sonst laufen die Bitmasken zwischen beiden auseinander - und
-    /// sie muss byte-genau mit der Sortierung der Web-Companion-Implementierung übereinstimmen.</summary>
     public IReadOnlyList<uint> OrderedSpellIds { get; private set; } = new List<uint>();
 
     public void Load(string dataDirectory)
@@ -55,20 +38,12 @@ public sealed class SpellDataService
         this.Loadouts = this.LoadList<Loadout>(Path.Combine(dataDirectory, "loadouts.json"));
         this.OrderedSpellIds = this.Spells.Keys.OrderBy(id => id).ToList();
 
-        // Bewusst als Information geloggt (nicht nur bei Fehlern): eine leere Zahl
-        // hier ist der schnellste Hinweis darauf, dass z.B. der Comparison-Tab leer
-        // bleibt, weil keine Spells geladen wurden - statt darüber rätseln zu müssen.
         this.log.Information(
             $"SpellDataService.Load(\"{dataDirectory}\"): {this.Spells.Count} Spells, " +
             $"{this.Monsters.Count} Monster, {this.Locations.Count} Orte, " +
             $"{this.Sources.Count} Quellen, {this.Loadouts.Count} Loadouts geladen.");
     }
 
-    /// <summary>Alle bekannten Quellen (Monster + Fundort) für einen Spell, sofern vorhanden.
-    /// Mit <paramref name="excludeTotems"/> = true werden alle totem-bezogenen Quellen
-    /// (<see cref="SourceMethodExtensions.IsTotemRelated"/>) ausgelassen - für den
-    /// "Totems ausblenden"-Filter in Comparison-/Lernplan-Tab. Ein Spell, der NUR über ein
-    /// Totem lernbar ist, liefert dann eine leere Quellenliste (siehe MainWindow.FormatSourceSummary).</summary>
     public IEnumerable<(Monster Monster, Location? Location, SourceMethod Method)> GetSourcesForSpell(uint spellId, bool excludeTotems = false)
     {
         foreach (var source in this.Sources.Where(s => s.SpellId == spellId))
@@ -84,12 +59,6 @@ public sealed class SpellDataService
         }
     }
 
-    /// <summary>True, wenn ein Spell zwar (ohne Totem-Filter) mindestens eine bekannte Quelle
-    /// hat, aber ALLE davon totem-bezogen sind (<see cref="SourceMethodExtensions.IsTotemRelated"/>)
-    /// - der Spell also nur über ein Totem lernbar ist. Spells OHNE jegliche bekannte Quelle
-    /// (unabhängig vom Totem-Filter, z.B. Datenlücken) liefern hier bewusst false - das ist ein
-    /// anderer Fall (fehlende Daten) und soll vom "Totems ausblenden"-Filter NICHT betroffen
-    /// sein, siehe MainWindow.DrawComparisonTab.</summary>
     public bool IsOnlyLearnableViaTotem(uint spellId) =>
         this.GetSourcesForSpell(spellId).Any() && !this.GetSourcesForSpell(spellId, excludeTotems: true).Any();
 
@@ -121,12 +90,6 @@ public sealed class SpellDataService
         }
         catch (JsonException ex)
         {
-            // Passiert derzeit übergangsweise für spells.json: Models/Spell.cs wurde schon auf
-            // NameDe/NameEn/NameFr/NameJa umgestellt, die ausgelieferte spells.json hat aber noch
-            // das alte "Name"-Feld, bis sie manuell (siehe TEMP-Export-Command) aktualisiert wird.
-            // Bewusst NICHT das ganze Plugin daran abstürzen lassen (JsonException aus
-            // Deserialize würde sonst ungefangen bis in den Plugin-Konstruktor durchschlagen) -
-            // stattdessen hier klar loggen und mit leerer Liste weitermachen.
             this.log.Error(
                 ex,
                 $"SpellDataService: \"{path}\" passt nicht zum aktuellen {typeof(T).Name}-Modell " +

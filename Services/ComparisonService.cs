@@ -4,18 +4,8 @@ namespace BLUnion.Services;
 
 public sealed record MissingSpellInfo(uint SpellId, IReadOnlyList<string> PlayersMissingIt);
 
-/// <summary>
-/// Reiner Vergleichs-/Planungsalgorithmus. Bewusst unabhängig davon, WIE die
-/// PlayerSpellStatus-Objekte zustande kamen (lokal ermittelt, importiert oder
-/// gesynct) - siehe ISyncProvider.
-/// </summary>
 public sealed class ComparisonService
 {
-    /// <summary>
-    /// Für jeden Spell (über alle bekannten Spells), der mindestens einem
-    /// Spieler fehlt: welche Spieler ihn nicht haben. Absteigend sortiert
-    /// nach Anzahl betroffener Spieler (Prioritätsregel 1 aus dem Konzept).
-    /// </summary>
     public IReadOnlyList<MissingSpellInfo> GetCommonlyMissingSpells(
         IEnumerable<uint> allKnownSpellIds,
         IReadOnlyList<PlayerSpellStatus> partyStatus)
@@ -36,14 +26,6 @@ public sealed class ComparisonService
         return result.OrderByDescending(r => r.PlayersMissingIt.Count).ToList();
     }
 
-    /// <summary>
-    /// Gruppiert fehlende Spells nach Monster, um "ein Monster besuchen,
-    /// mehrere Spells gleichzeitig lernen"-Kombinationen sichtbar zu machen
-    /// (Konzept Punkt 5). Erfordert die Source-Daten aus SpellDataService.
-    /// Mit <paramref name="excludeTotems"/> = true werden totem-bezogene Quellen bei der
-    /// Gruppierung nicht berücksichtigt (siehe SpellDataService.GetSourcesForSpell) - ein Spell,
-    /// der NUR über ein Totem lernbar ist, taucht dann in keiner Monster-Gruppe auf.
-    /// </summary>
     public IReadOnlyList<(uint MonsterId, IReadOnlyList<uint> CoveredMissingSpellIds)> GroupMissingSpellsByMonster(
         IReadOnlyList<MissingSpellInfo> missingSpells,
         SpellDataService dataService,

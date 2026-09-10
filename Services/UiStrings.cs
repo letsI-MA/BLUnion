@@ -32,6 +32,7 @@ public static class UiStrings
         NoPlayerDataLoaded,
         CommonlyMissingHeader,
         AllSpellsKnownByAll,
+        ComparisonUrgencyLegend,
         SpellFilterHint,
         ColumnNumber,
         ColumnSpell,
@@ -58,6 +59,8 @@ public static class UiStrings
         NoPlayerDataLoadedShort,
         PlayerSpellCount,
         YouSuffix,
+        PlayerLastUpdatedJustNow,
+        PlayerLastUpdatedMinutesAgoFormat,
         RemoveButton,
         DevToolHeader,
         DevLoadAliceButton,
@@ -125,7 +128,12 @@ public static class UiStrings
         GroupFinderUnknownWorldHint,
         GroupPublishVisibleToggle,
         GroupPublishNoteLabel,
+        CharCountFormat,
         GroupPublishWantedPlayerCountLabel,
+        GroupPublishTargetSpellHeader,
+        GroupPublishTargetSpellScopeOnlyMissing,
+        GroupPublishTargetSpellScopeAll,
+        GroupPublishTargetSpellCountFormat,
         GroupPublishButton,
         GroupUnpublishButton,
         GroupPublishSucceededMessage,
@@ -141,6 +149,8 @@ public static class UiStrings
         GroupFinderYouWouldStillMiss,
         GroupFinderAddGroupToComparisonButton,
         GroupFinderGroupAddedToComparisonMessage,
+        GroupFinderShowTargetSpellsButton,
+        GroupTargetSpellPopupHeader,
         GroupBrowseFailed,
 
         TabSpellbook,
@@ -353,6 +363,13 @@ public static class UiStrings
             [DisplayLanguage.French] = "Tous les sorts connus sont déjà appris par tous les joueurs chargés.",
             [DisplayLanguage.Japanese] = "既知のスペルはすべて、読み込んだプレイヤー全員が習得済みです。",
         },
+        [Key.ComparisonUrgencyLegend] = new()
+        {
+            [DisplayLanguage.German] = "Zeilenfarbe: Rot = fehlt der gesamten Party, Gelb = fehlt der Mehrheit.",
+            [DisplayLanguage.English] = "Row color: red = missing for the whole party, yellow = missing for the majority.",
+            [DisplayLanguage.French] = "Couleur de ligne : rouge = manque à tout le groupe, jaune = manque à la majorité.",
+            [DisplayLanguage.Japanese] = "行の色：赤＝パーティ全員が未修得、黄＝過半数が未修得。",
+        },
         [Key.SpellFilterHint] = new()
         {
             [DisplayLanguage.German] = "Filter: Name oder Nr. (z.B. 58, #058, a)...",
@@ -542,6 +559,20 @@ public static class UiStrings
             [DisplayLanguage.English] = " — You",
             [DisplayLanguage.French] = " — Toi",
             [DisplayLanguage.Japanese] = " — 自分",
+        },
+        [Key.PlayerLastUpdatedJustNow] = new()
+        {
+            [DisplayLanguage.German] = " — gerade aktualisiert",
+            [DisplayLanguage.English] = " — just updated",
+            [DisplayLanguage.French] = " — mis à jour à l'instant",
+            [DisplayLanguage.Japanese] = " — たった今更新",
+        },
+        [Key.PlayerLastUpdatedMinutesAgoFormat] = new()
+        {
+            [DisplayLanguage.German] = " — vor {0} Min. aktualisiert",
+            [DisplayLanguage.English] = " — updated {0} min ago",
+            [DisplayLanguage.French] = " — mis à jour il y a {0} min",
+            [DisplayLanguage.Japanese] = " — {0}分前に更新",
         },
         [Key.RemoveButton] = new()
         {
@@ -1075,12 +1106,50 @@ public static class UiStrings
             [DisplayLanguage.French] = "Note pour le groupe (60 caractères max.)",
             [DisplayLanguage.Japanese] = "グループのメモ (最大60文字)",
         },
+        // Sprachunabhängiges "aktuell/maximal"-Format (reine Zahlen/Satzzeichen) - trotzdem als
+        // UiStrings-Key statt hartcodiert, damit der Zeichenzähler in DrawGroupPublishSection dem
+        // bestehenden Stil folgt (siehe Aufgabenstellung).
+        [Key.CharCountFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0}/{1}",
+            [DisplayLanguage.English] = "{0}/{1}",
+            [DisplayLanguage.French] = "{0}/{1}",
+            [DisplayLanguage.Japanese] = "{0}/{1}",
+        },
         [Key.GroupPublishWantedPlayerCountLabel] = new()
         {
             [DisplayLanguage.German] = "Gewünschte Mitspieleranzahl für die Gruppe (0 = egal)",
             [DisplayLanguage.English] = "Desired player count for the group (0 = any)",
             [DisplayLanguage.French] = "Nombre de coéquipiers souhaité pour le groupe (0 = peu importe)",
             [DisplayLanguage.Japanese] = "グループの希望人数 (0 = 指定なし)",
+        },
+        [Key.GroupPublishTargetSpellHeader] = new()
+        {
+            [DisplayLanguage.German] = "Ziel-Spells",
+            [DisplayLanguage.English] = "Target spells",
+            [DisplayLanguage.French] = "Sorts cibles",
+            [DisplayLanguage.Japanese] = "目標スペル",
+        },
+        [Key.GroupPublishTargetSpellScopeOnlyMissing] = new()
+        {
+            [DisplayLanguage.German] = "Nur eigene fehlende Spells anzeigen",
+            [DisplayLanguage.English] = "Show only my missing spells",
+            [DisplayLanguage.French] = "Afficher seulement mes sorts manquants",
+            [DisplayLanguage.Japanese] = "自分の未修得スペルのみ表示",
+        },
+        [Key.GroupPublishTargetSpellScopeAll] = new()
+        {
+            [DisplayLanguage.German] = "Alle Spells anzeigen",
+            [DisplayLanguage.English] = "Show all spells",
+            [DisplayLanguage.French] = "Afficher tous les sorts",
+            [DisplayLanguage.Japanese] = "すべてのスペルを表示",
+        },
+        [Key.GroupPublishTargetSpellCountFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0} Ziel-Spells ausgewählt",
+            [DisplayLanguage.English] = "{0} target spells selected",
+            [DisplayLanguage.French] = "{0} sorts cibles sélectionnés",
+            [DisplayLanguage.Japanese] = "{0}個の目標スペルを選択中",
         },
         [Key.GroupPublishButton] = new()
         {
@@ -1180,6 +1249,20 @@ public static class UiStrings
             [DisplayLanguage.English] = "{0} group member(s) were added to the spell comparison.",
             [DisplayLanguage.French] = "{0} membre(s) du groupe ont été ajoutés à la comparaison des sorts.",
             [DisplayLanguage.Japanese] = "{0}人のグループメンバーをスペル比較に追加しました。",
+        },
+        [Key.GroupFinderShowTargetSpellsButton] = new()
+        {
+            [DisplayLanguage.German] = "Ziel-Spells anzeigen",
+            [DisplayLanguage.English] = "Show target spells",
+            [DisplayLanguage.French] = "Afficher les sorts cibles",
+            [DisplayLanguage.Japanese] = "目標スペルを表示",
+        },
+        [Key.GroupTargetSpellPopupHeader] = new()
+        {
+            [DisplayLanguage.German] = "Ziel-Spells dieser Gruppe ({0})",
+            [DisplayLanguage.English] = "This group's target spells ({0})",
+            [DisplayLanguage.French] = "Sorts cibles de ce groupe ({0})",
+            [DisplayLanguage.Japanese] = "このグループの目標スペル ({0})",
         },
         [Key.GroupBrowseFailed] = new()
         {

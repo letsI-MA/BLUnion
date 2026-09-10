@@ -30,7 +30,7 @@
   -->
 
   <PropertyGroup>
-    <Version>0.6.4.0</Version>
+    <Version>0.6.5.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>BLUnion</RootNamespace>
     <AssemblyName>BLUnion</AssemblyName>
@@ -38,6 +38,17 @@
 
   <ItemGroup>
     <None Include="Data\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    BLUnion.Tests/ ist ein EIGENES Projekt (xUnit, siehe dort) im selben Verzeichnisbaum wie diese
+    .csproj - ohne diesen Ausschluss zieht das SDK-Standard-Compile-Glob (**/*.cs, von
+    Dalamud.NET.Sdk/Microsoft.NET.Sdk vorgegeben) dessen *.cs-Dateien versehentlich mit in DIESES
+    Projekt hinein (beobachtet beim Anlegen von BLUnion.Tests: CS0246 für xunit-Typen direkt in
+    BLUnion.csproj, obwohl BLUnion.csproj xunit gar nicht referenziert).
+  -->
+  <ItemGroup>
+    <Compile Remove="BLUnion.Tests\**\*.cs" />
   </ItemGroup>
 
   <!--

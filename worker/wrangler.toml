@@ -14,3 +14,25 @@ compatibility_date = "2026-08-20"
 [[kv_namespaces]]
 binding = "BLUNION_PROFILES"
 id = "f0830d1c36fc475ba0dca0093dc6a528"
+
+# IP-basiertes Rate-Limiting für die schreibenden Endpunkte (PUT/DELETE auf /profile und /group,
+# siehe enforceWriteRateLimit in src/index.ts) - bestätigter Fremd-Traffic auf dem öffentlichen,
+# tokenlosen PUT-Endpoint macht einen Basisschutz gegen Missbrauch/Spam nötig.
+#
+# Bewusst das native Workers-Rate-Limiting-BINDING statt der Dashboard-"Rate Limiting Rules": die
+# sind ein Zonen-/WAF-Feature und setzen eine bei Cloudflare verwaltete, eigene Zone voraus -
+# dieser Worker läuft aber unter *.workers.dev (siehe "name" oben), ohne eigene Zone. Ebenso
+# bewusst NICHT die im README als Alternative genannte KV-Zähler-Eigenimplementierung (siehe
+# Aufgabenstellung) - das Binding leistet exakt das, ohne zusätzliche KV-Reads/Writes pro Request
+# und ohne eigene TTL-/Race-Condition-Logik.
+#
+# "namespace_id" ist NUR ein account-weit eindeutiger Bezeichner für DIESEN Limiter (kein Bezug zu
+# den KV-Namespace-IDs oben) - "1" reicht, da es aktuell der einzige Rate-Limiter dieses Workers
+# ist. limit/period-Begründung siehe enforceWriteRateLimit-Doc in src/index.ts.
+[[ratelimits]]
+name = "WRITE_RATE_LIMITER"
+namespace_id = "1"
+
+[ratelimits.simple]
+limit = 20
+period = 60

@@ -74,6 +74,9 @@
     color: var(--text);
   }
   button.secondary:hover { background: #22262f; }
+  /* Umschalter "Veröffentlichen"/"Durchsuchen" im neuen Gruppen-Unterbereich (siehe groupsSetView)
+     - reine Zustandsklasse, keine echten Tabs/ARIA-Rollen nötig für diese einfache Umschaltung. */
+  button.secondary.active-view { background: var(--accent); color: white; border-color: var(--accent); }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
   .status-msg { font-size: 0.85rem; margin-top: 8px; min-height: 1.2em; }
   .status-msg.ok { color: var(--ok); }
@@ -300,6 +303,91 @@
     </div>
     <div class="status-msg" id="gfBrowseStatus"></div>
     <div class="spell-list" id="gfBrowseList" style="margin-top:10px; max-height:420px; display:none;"></div>
+
+    <!--
+      Mehrköpfige Gruppen-Listungen (handleGroupPut/handleGroupsBrowse in worker/src/index.ts) -
+      GEGENSTÜCK zu DrawGroupPublishSection/DrawGroupBrowseSection in UI/MainWindow.cs, aber an den
+      Browser-Kontext angepasst: keine Party-/Live-Sync-Datenquelle, Mitglieder kommen stattdessen
+      über eingefügte Sync-Codes (siehe groupsAddMemberFromCode weiter unten). Eigener Unterbereich
+      "Gruppen" INNERHALB des bestehenden Gruppenfinder-Panels (nicht die separate "3.
+      Gruppenvergleich" weiter oben, die bleibt unverändert die rein lokale Spell-Vergleichstabelle).
+    -->
+    <h3 class="gf-subheader" id="txt_groups_header"></h3>
+    <div class="hint" id="txt_groups_intro" style="margin-top:0;"></div>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="secondary" id="btn_groupsViewPublish" onclick="groupsSetView('publish')"></button>
+      <button class="secondary" id="btn_groupsViewBrowse" onclick="groupsSetView('browse')"></button>
+    </div>
+
+    <div id="groupsPublishView" style="margin-top:12px;">
+      <h4 id="txt_groups_addMembers_header" style="font-size:0.9rem; margin:0 0 8px;"></h4>
+
+      <label id="txt_groups_label_code" for="groupMemberCodeInput">Code (beginnt mit BLU:)</label>
+      <textarea id="groupMemberCodeInput" placeholder="BLU:..." style="min-height:50px;"></textarea>
+
+      <label id="txt_groups_label_world" for="groupMemberWorldInput" style="margin-top:8px;">World</label>
+      <input type="text" id="groupMemberWorldInput">
+
+      <div class="row">
+        <button class="secondary" id="btn_groupAddMember" onclick="groupsAddMemberFromCode()"></button>
+        <span class="status-msg" id="groupAddMemberStatus"></span>
+      </div>
+
+      <div id="txt_groupMembers_empty_hint" class="hint" style="margin-top:10px;"></div>
+      <div id="groupPublishMembersList" style="margin:10px 0;"></div>
+
+      <div class="row gf-checkbox-row" style="margin-top:4px;">
+        <label>
+          <input type="checkbox" id="groupPublishVisible" checked>
+          <span id="txt_groups_visible"></span>
+        </label>
+      </div>
+
+      <div class="gf-tag-row">
+        <label><input type="checkbox" id="groupPublishTag_morning"><span id="txt_groups_tag_morning"></span></label>
+        <label><input type="checkbox" id="groupPublishTag_afternoon"><span id="txt_groups_tag_afternoon"></span></label>
+        <label><input type="checkbox" id="groupPublishTag_evening"><span id="txt_groups_tag_evening"></span></label>
+        <label><input type="checkbox" id="groupPublishTag_weekend"><span id="txt_groups_tag_weekend"></span></label>
+        <label><input type="checkbox" id="groupPublishTag_flexible"><span id="txt_groups_tag_flexible"></span></label>
+      </div>
+
+      <label id="txt_groups_label_note" for="groupPublishNote" style="margin-top:12px;">Notiz</label>
+      <input type="text" id="groupPublishNote" maxlength="60">
+      <div class="hint" id="groupPublishNoteCounter" style="margin-top:2px;"></div>
+
+      <label id="txt_groups_label_wanted" for="groupPublishWantedCount" style="margin-top:12px;">Mitspieleranzahl</label>
+      <input type="number" id="groupPublishWantedCount" min="0" max="8" value="0" style="max-width:120px;">
+
+      <h4 id="txt_groups_targetSpell_header" style="font-size:0.9rem; margin:16px 0 8px;"></h4>
+      <div class="row" style="margin-top:0;">
+        <label><input type="radio" name="groupTargetSpellScope" id="groupTargetScopeMissing" checked><span id="txt_groups_targetScope_missing"></span></label>
+        <label><input type="radio" name="groupTargetSpellScope" id="groupTargetScopeAll"><span id="txt_groups_targetScope_all"></span></label>
+      </div>
+      <input type="text" id="groupTargetSpellFilter" style="margin-top:8px;">
+      <div class="row gf-checkbox-row" style="margin-top:4px;">
+        <label>
+          <input type="checkbox" id="groupTargetHideTotems" checked>
+          <span id="txt_groups_hideTotems"></span>
+        </label>
+      </div>
+      <div class="hint" id="groupTargetSpellCount" style="margin-top:8px;"></div>
+      <div class="spell-list" id="groupTargetSpellList" style="max-height:220px; margin-top:6px;"></div>
+
+      <div class="row" style="margin-top:14px;">
+        <button id="btn_groupsPublish" onclick="groupsPublish()"></button>
+        <button class="secondary" id="btn_groupsDelete" onclick="groupsDeleteOwn()" disabled></button>
+        <span class="status-msg" id="groupsPublishStatus"></span>
+      </div>
+    </div>
+
+    <div id="groupsBrowseView" style="display:none; margin-top:12px;">
+      <div class="row" style="margin-top:0;">
+        <button class="secondary" id="btn_groupsRefresh" onclick="groupsBrowse()"></button>
+      </div>
+      <div class="status-msg" id="groupsBrowseStatus"></div>
+      <div class="spell-list" id="groupsBrowseList" style="margin-top:10px; max-height:480px; display:none;"></div>
+    </div>
   </div>
 
   <div class="hint" id="txt_hint"></div>
@@ -504,7 +592,32 @@ const I18N = {
     gfNoEntries: 'Aktuell keine anderen sichtbaren Spieler im Gruppenfinder auf diesem Data Center.',
     gfErrBrowseFailed: (m) => `Abrufen fehlgeschlagen: ${m}`,
     gfWantedLabel: (n) => `Gesucht: ${n}`,
-    btnGfAddToComparison: 'In Vergleich aufnehmen'
+    btnGfAddToComparison: 'In Vergleich aufnehmen',
+    groupsHeader: 'Gruppen',
+    groupsIntro: 'Veröffentlicht eine mehrköpfige Gruppen-Listung auf demselben Server wie das Dalamud-Plugin - andere können die ganze Gruppe dann im Gruppenfinder finden. Mitglieder werden über ihre BLU:-Codes hinzugefügt, genau wie beim Gruppenvergleich oben.',
+    btnGroupsViewPublish: 'Veröffentlichen',
+    btnGroupsViewBrowse: 'Durchsuchen',
+    groupsAddMembersHeader: 'Mitglieder hinzufügen',
+    btnGroupAddMember: 'Hinzufügen',
+    groupMembersEmptyHint: 'Noch keine Mitglieder hinzugefügt. Füge oben den BLU:-Code und die World eines Mitglieds ein.',
+    groupMemberAdded: (name, world) => `${name} (${world}) hinzugefügt.`,
+    groupsVisibleLabel: 'Im Gruppenfinder sichtbar',
+    groupsNoteLabel: 'Notiz für die Gruppe (max. 60 Zeichen)',
+    charCountFormat: (n, max) => `${n}/${max}`,
+    groupsWantedCountLabel: 'Gewünschte Mitspieleranzahl für die Gruppe (0 = egal)',
+    groupsTargetSpellHeader: 'Ziel-Spells',
+    groupsTargetScopeOnlyMissing: 'Nur eigene fehlende Spells anzeigen',
+    groupsTargetScopeAll: 'Alle Spells anzeigen',
+    groupsTargetSpellCountFormat: (n) => `${n} Ziel-Spells ausgewählt`,
+    groupsTargetSpellsLabel: (names) => `Ziel-Spells: ${names}`,
+    btnGroupsPublish: 'Gruppe veröffentlichen',
+    btnGroupsUpdate: 'Gruppe aktualisieren',
+    btnGroupsDelete: 'Gruppe löschen',
+    groupsOkPublished: 'Gruppe im Gruppenfinder veröffentlicht.',
+    groupsOkDeleted: 'Gruppe gelöscht.',
+    groupsErrMemberCount: 'Bitte 1-8 Mitglieder hinzufügen.',
+    groupsErrTargetSpellCount: (max) => `Höchstens ${max} Ziel-Spells erlaubt.`,
+    groupsNoEntries: 'Aktuell keine Gruppen im Gruppenfinder auf diesem Data Center.'
   },
   en: {
     title: 'BLUnion – Spell Status Companion',
@@ -576,7 +689,32 @@ const I18N = {
     gfNoEntries: 'Currently no other visible players in the group finder on this data center.',
     gfErrBrowseFailed: (m) => `Fetching failed: ${m}`,
     gfWantedLabel: (n) => `Looking for: ${n}`,
-    btnGfAddToComparison: 'Add to comparison'
+    btnGfAddToComparison: 'Add to comparison',
+    groupsHeader: 'Groups',
+    groupsIntro: 'Publishes a multi-member group listing to the same server as the Dalamud plugin - others can then find the whole group in the group finder. Members are added via their BLU: codes, just like the group comparison above.',
+    btnGroupsViewPublish: 'Publish',
+    btnGroupsViewBrowse: 'Browse',
+    groupsAddMembersHeader: 'Add members',
+    btnGroupAddMember: 'Add',
+    groupMembersEmptyHint: 'No members added yet. Paste a member\'s BLU: code and world above.',
+    groupMemberAdded: (name, world) => `Added ${name} (${world}).`,
+    groupsVisibleLabel: 'Visible in group finder',
+    groupsNoteLabel: 'Note for the group (max. 60 characters)',
+    charCountFormat: (n, max) => `${n}/${max}`,
+    groupsWantedCountLabel: 'Desired player count for the group (0 = any)',
+    groupsTargetSpellHeader: 'Target spells',
+    groupsTargetScopeOnlyMissing: 'Show only my missing spells',
+    groupsTargetScopeAll: 'Show all spells',
+    groupsTargetSpellCountFormat: (n) => `${n} target spells selected`,
+    groupsTargetSpellsLabel: (names) => `Target spells: ${names}`,
+    btnGroupsPublish: 'Publish group',
+    btnGroupsUpdate: 'Update group',
+    btnGroupsDelete: 'Delete group',
+    groupsOkPublished: 'Group published to the group finder.',
+    groupsOkDeleted: 'Group deleted.',
+    groupsErrMemberCount: 'Please add 1-8 members.',
+    groupsErrTargetSpellCount: (max) => `At most ${max} target spells allowed.`,
+    groupsNoEntries: 'Currently no groups in the group finder on this data center.'
   },
   fr: {
     title: 'BLUnion – Compagnon de statut des sorts',
@@ -648,7 +786,32 @@ const I18N = {
     gfNoEntries: 'Actuellement aucun autre joueur visible dans la recherche de groupe sur ce data center.',
     gfErrBrowseFailed: (m) => `Échec de la récupération : ${m}`,
     gfWantedLabel: (n) => `Recherché : ${n}`,
-    btnGfAddToComparison: 'Ajouter à la comparaison'
+    btnGfAddToComparison: 'Ajouter à la comparaison',
+    groupsHeader: 'Groupes',
+    groupsIntro: 'Publie une liste de groupe à plusieurs membres sur le même serveur que le plugin Dalamud - les autres peuvent alors trouver tout le groupe dans la recherche de groupe. Les membres sont ajoutés via leurs codes BLU:, comme pour la comparaison de groupe ci-dessus.',
+    btnGroupsViewPublish: 'Publier',
+    btnGroupsViewBrowse: 'Parcourir',
+    groupsAddMembersHeader: 'Ajouter des membres',
+    btnGroupAddMember: 'Ajouter',
+    groupMembersEmptyHint: 'Aucun membre ajouté pour l\'instant. Collez le code BLU: et le monde d\'un membre ci-dessus.',
+    groupMemberAdded: (name, world) => `${name} (${world}) ajouté.`,
+    groupsVisibleLabel: 'Visible dans la recherche de groupe',
+    groupsNoteLabel: 'Note pour le groupe (60 caractères max.)',
+    charCountFormat: (n, max) => `${n}/${max}`,
+    groupsWantedCountLabel: 'Nombre de coéquipiers souhaité pour le groupe (0 = peu importe)',
+    groupsTargetSpellHeader: 'Sorts cibles',
+    groupsTargetScopeOnlyMissing: 'Afficher seulement mes sorts manquants',
+    groupsTargetScopeAll: 'Afficher tous les sorts',
+    groupsTargetSpellCountFormat: (n) => `${n} sorts cibles sélectionnés`,
+    groupsTargetSpellsLabel: (names) => `Sorts cibles : ${names}`,
+    btnGroupsPublish: 'Publier le groupe',
+    btnGroupsUpdate: 'Mettre à jour le groupe',
+    btnGroupsDelete: 'Supprimer le groupe',
+    groupsOkPublished: 'Groupe publié dans la recherche de groupe.',
+    groupsOkDeleted: 'Groupe supprimé.',
+    groupsErrMemberCount: 'Veuillez ajouter 1 à 8 membres.',
+    groupsErrTargetSpellCount: (max) => `Au maximum ${max} sorts cibles autorisés.`,
+    groupsNoEntries: 'Actuellement aucun groupe dans la recherche de groupe sur ce data center.'
   },
   ja: {
     title: 'BLUnion – スペルステータス・コンパニオン',
@@ -720,7 +883,32 @@ const I18N = {
     gfNoEntries: '現在このデータセンターのグループファインダーに他の表示中プレイヤーはいません。',
     gfErrBrowseFailed: (m) => `取得に失敗しました：${m}`,
     gfWantedLabel: (n) => `募集: ${n}`,
-    btnGfAddToComparison: '比較に追加'
+    btnGfAddToComparison: '比較に追加',
+    groupsHeader: 'グループ',
+    groupsIntro: 'Dalamudプラグインと同じサーバーに複数人のグループ登録を公開します - 他のプレイヤーはグループファインダーでグループ全体を見つけられるようになります。メンバーは上のグループ比較と同様、BLU:コードで追加します。',
+    btnGroupsViewPublish: '公開',
+    btnGroupsViewBrowse: '検索',
+    groupsAddMembersHeader: 'メンバーを追加',
+    btnGroupAddMember: '追加',
+    groupMembersEmptyHint: 'まだメンバーが追加されていません。上にメンバーのBLU:コードとワールドを入力してください。',
+    groupMemberAdded: (name, world) => `${name}（${world}）を追加しました。`,
+    groupsVisibleLabel: 'グループファインダーに表示する',
+    groupsNoteLabel: 'グループのメモ（最大60文字）',
+    charCountFormat: (n, max) => `${n}/${max}`,
+    groupsWantedCountLabel: 'グループの希望人数（0 = 指定なし）',
+    groupsTargetSpellHeader: '目標スペル',
+    groupsTargetScopeOnlyMissing: '自分の未修得スペルのみ表示',
+    groupsTargetScopeAll: 'すべてのスペルを表示',
+    groupsTargetSpellCountFormat: (n) => `${n}個の目標スペルを選択中`,
+    groupsTargetSpellsLabel: (names) => `目標スペル：${names}`,
+    btnGroupsPublish: 'グループを公開',
+    btnGroupsUpdate: 'グループを更新',
+    btnGroupsDelete: 'グループを削除',
+    groupsOkPublished: 'グループをグループファインダーに公開しました。',
+    groupsOkDeleted: 'グループを削除しました。',
+    groupsErrMemberCount: '1〜8人のメンバーを追加してください。',
+    groupsErrTargetSpellCount: (max) => `目標スペルは最大${max}個までです。`,
+    groupsNoEntries: '現在このデータセンターのグループファインダーにグループはありません。'
   }
 };
 
@@ -770,6 +958,7 @@ function applyStaticTexts() {
   updateExportCount();
   renderGroup();
   applyGroupFinderTexts();
+  applyGroupsTexts();
 }
 
 function starString(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
@@ -781,6 +970,15 @@ function iconUrl(iconId) {
 }
 
 function orderLabel(order) { return '#' + String(order).padStart(3, '0'); }
+
+// Escaped für Einsatz in innerHTML-Template-Strings: alles, was letztlich vom Worker/anderen
+// Spielern kommt (Gruppenfinder-Einträge, Gruppenmitglieder-Namen aus Import/Browse), MUSS hierdurch,
+// bevor es in ein Template landet - sonst gespeichertes/reflektiertes XSS über z.B. Charakternamen
+// oder Notiz-Text (siehe gfRenderBrowseResults, renderGroup, renderGroupTable).
+const HTML_ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
+}
 
 function buildList(containerId, filterInputId) {
   const container = document.getElementById(containerId);
@@ -909,16 +1107,27 @@ function renderGroup() {
   document.getElementById('groupTotemRow').style.display = 'flex';
   tableEl.style.display = '';
 
-  // Mitgliederliste als Chips
+  // Mitgliederliste als Chips - über createElement/textContent statt innerHTML gebaut, weil
+  // m.name aus Import/Gruppenfinder-Browse (also letztlich vom Worker) stammt und nicht
+  // HTML-escaped ist (siehe Aufgabenstellung); das Entfernen-onclick läuft daher wie bei den
+  // Gruppenfinder-Browse-Buttons (siehe gfRenderBrowseResults) über eine Closure statt ein
+  // Inline-HTML-Attribut.
   membersList.innerHTML = '';
   group.forEach(m => {
     const chip = document.createElement('div');
     chip.className = 'group-member';
-    const safeName = m.name.replace(/'/g, "\\'");
-    chip.innerHTML = `
-      <span>${m.name} (${t().groupMemberCount(m.learned.size, SPELLS.length)})</span>
-      <button onclick="removeGroupMember('${safeName}')" title="${t().removeMember}">✕</button>
-    `;
+
+    const label = document.createElement('span');
+    label.textContent = `${m.name} (${t().groupMemberCount(m.learned.size, SPELLS.length)})`;
+    chip.appendChild(label);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.title = t().removeMember;
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => removeGroupMember(m.name));
+    chip.appendChild(removeBtn);
+
     membersList.appendChild(chip);
   });
 
@@ -972,8 +1181,8 @@ function renderGroupTable(filterRaw) {
         <span class="stars">${starString(sp.stars)}</span>
       </div>
       <div class="group-detail">
-        <span class="missing">${t().groupMissingLabel(missing.length)} ${missing.join(', ') || '-'}</span><br>
-        <span class="known">${t().groupKnownLabel(known.length)} ${known.join(', ') || '-'}</span>
+        <span class="missing">${t().groupMissingLabel(missing.length)} ${missing.map(escapeHtml).join(', ') || '-'}</span><br>
+        <span class="known">${t().groupKnownLabel(known.length)} ${known.map(escapeHtml).join(', ') || '-'}</span>
       </div>
     `;
     tableEl.appendChild(row);
@@ -1025,6 +1234,12 @@ function base64UrlToBytes(str) {
 // Feste, stabile Bit-Reihenfolge: alle 124 Spell-Ids aufsteigend sortiert.
 const SORTED_IDS = SPELLS.map(s => s.id).slice().sort((a, b) => a - b);
 
+// Feste Größe der Spell-Bitmaske (128 Bit, 124 genutzt) - MUSS mit ManualCodeSyncProvider.
+// BitmaskBytes im Plugin und BITMASK_BYTES in worker/src/index.ts übereinstimmen (alle drei
+// Implementierungen teilen sich dasselbe Wire-Format). Als benannte Konstante statt wiederholter
+// Magic Number "16", u.a. damit decodeCompact unten die erwartete Payload-Länge klar herleiten kann.
+const BITMASK_BYTES = 16;
+
 // Reines Bit-Mapping OHNE das Namens-Präfixbyte des "BLU:"-Formats (siehe encodeCompact/
 // decodeCompact) - das ist exakt das Format, das der Live-Sync-Worker in "spellBitmaskBase64"
 // erwartet/liefert (siehe worker/src/index.ts, Feld-Doc bei BITMASK_BYTES). Aus encodeCompact/
@@ -1032,7 +1247,7 @@ const SORTED_IDS = SPELLS.map(s => s.id).slice().sort((a, b) => a - b);
 // gfRenderBrowseResults) wiederverwendet, statt eine zweite Bitmask-Implementierung zu bauen -
 // beide Varianten (mit/ohne Namenspräfix) teilen sich dieselbe SORTED_IDS-Bit-Zuordnung.
 function buildBitmask(learnedIds) {
-  const bitmask = new Uint8Array(16); // 128 Bits, 124 genutzt
+  const bitmask = new Uint8Array(BITMASK_BYTES);
   SORTED_IDS.forEach((id, idx) => {
     if (learnedIds.has(id)) bitmask[idx >> 3] |= (1 << (idx % 8));
   });
@@ -1053,7 +1268,7 @@ function encodeCompact(name, learnedIds) {
 
   const bitmask = buildBitmask(learnedIds);
 
-  const payload = new Uint8Array(1 + nameBytes.length + 16);
+  const payload = new Uint8Array(1 + nameBytes.length + BITMASK_BYTES);
   payload[0] = nameBytes.length;
   payload.set(nameBytes, 1);
   payload.set(bitmask, 1 + nameBytes.length);
@@ -1061,10 +1276,30 @@ function encodeCompact(name, learnedIds) {
   return 'BLU:' + bytesToBase64Url(payload);
 }
 
+// Validiert die Payload-Länge, ANALOG zu ManualCodeSyncProvider.DecodeCurrentFormat im Plugin
+// (siehe TEST_REPORT.md, Finding "decodeCompact validiert die Payload-Länge nicht") - vorher
+// akzeptierte diese Funktion JEDE Payload klaglos: Uint8Array.slice() kürzt bei Bedarf
+// stillschweigend, TextDecoder.decode() dekodiert den (dann zu kurzen) Rest ohne Fehler, statt
+// dass ein abgeschnittener/kaputter Code als solcher erkannt wird. Wirft jetzt ein Error-Objekt
+// mit verständlicher Meldung, das die Aufrufer (importCode/gfTryDecodeMyCode) bereits fangen und
+// dem Nutzer anzeigen bzw. defensiv als "ungültiger Code" behandeln.
 function decodeCompact(payload) {
+  // Fehlermeldungen bewusst auf Englisch (wie encodeCompacts "Name too long." oben) - dieselbe
+  // Konvention wie im Rest der Datei: der Wurf-Text selbst wird NICHT lokalisiert, sondern von den
+  // Aufrufern über t().errImportFailed(err.message)/t().errGeneric(err.message) in die per
+  // currentLang gewählte Sprache eingebettet (siehe importCode/generateCode).
+  if (payload.length < 1 + BITMASK_BYTES) {
+    throw new Error(`Sync code is too short (${payload.length} bytes).`);
+  }
+
   const nameLen = payload[0];
+  const expectedLength = 1 + nameLen + BITMASK_BYTES;
+  if (payload.length !== expectedLength) {
+    throw new Error(`Sync code has unexpected length (${payload.length} instead of ${expectedLength} bytes).`);
+  }
+
   const name = new TextDecoder().decode(payload.slice(1, 1 + nameLen));
-  const bitmask = payload.slice(1 + nameLen, 1 + nameLen + 16);
+  const bitmask = payload.slice(1 + nameLen, 1 + nameLen + BITMASK_BYTES);
 
   return { name, learned: decodeBitmask(bitmask) };
 }
@@ -1411,7 +1646,11 @@ function gfRenderBrowseResults(entries) {
       learned = new Set();
     }
 
-    const tagLabels = (entry.availabilityTags || []).map(tag => (t().gfTags[tag] || tag)).join(', ');
+    // Alle vom Worker gelieferten Freitext-/Nutzerfelder (Charaktername, World, Tags, Notiz) laufen
+    // vor dem Einsetzen in das innerHTML-Template durch escapeHtml() - siehe Aufgabenstellung:
+    // diese Werte stammen letztlich vom öffentlichen PUT /profile/:world/:characterName-Endpoint
+    // und sind nicht HTML-escaped.
+    const tagLabels = (entry.availabilityTags || []).map(tag => escapeHtml(t().gfTags[tag] || tag)).join(', ');
     const note = entry.note || '';
     const wantedText = entry.wantedPlayerCount ? String(entry.wantedPlayerCount) : t().gfWantedAny;
 
@@ -1419,11 +1658,11 @@ function gfRenderBrowseResults(entries) {
     row.className = 'gf-entry';
     row.innerHTML = `
       <div class="gf-entry-head">
-        <span class="gf-entry-name">${entry.characterName || ''} (${entry.world || ''})</span>
+        <span class="gf-entry-name">${escapeHtml(entry.characterName || '')} (${escapeHtml(entry.world || '')})</span>
         <span class="count-badge">${t().count(learned.size, SPELLS.length)}</span>
       </div>
       <div class="gf-entry-meta">
-        ${tagLabels ? tagLabels + '<br>' : ''}${note ? `"${note}"<br>` : ''}${t().gfWantedLabel(wantedText)}
+        ${tagLabels ? tagLabels + '<br>' : ''}${note ? `"${escapeHtml(note)}"<br>` : ''}${t().gfWantedLabel(wantedText)}
       </div>
       <div class="row">
         <button class="secondary">${t().btnGfAddToComparison}</button>
@@ -1473,6 +1712,516 @@ function applyGroupFinderTexts() {
   // geladen wurden - ohne den Worker erneut abzufragen.
   if (lastGfBrowseEntries) gfRenderBrowseResults(lastGfBrowseEntries);
 }
+
+// --- Gruppen (mehrköpfige Gruppen-Listungen, handleGroupPut/handleGroupsBrowse in
+// worker/src/index.ts) ---
+// Gegenstück zu DrawGroupPublishSection/DrawGroupBrowseSection in UI/MainWindow.cs, angepasst an
+// den Browser-Kontext: das Plugin kennt die eigene Party und den eigenen Live-Sync-Status direkt
+// über Dalamud-Services, die Website hat weder das eine noch das andere - Mitglieder kommen
+// stattdessen über eingefügte Sync-Codes (siehe groupsAddMemberFromCode), und "eigene fehlende
+// Spells" für die Ziel-Spell-Auswahl wird aus den oben unter "1." angehakten Checkboxen abgeleitet
+// (die einzige "eigener Status"-Quelle, die diese Seite überhaupt hat).
+//
+// Bewusst EIN eigener, von "3. Gruppenvergleich" (group/addOrUpdateGroupMember/renderGroup)
+// UNABHÄNGIGER Zustand (groupsMembers) - das ist eine andere Sache: "3." ist die rein lokale
+// Spell-Vergleichstabelle, hier geht es um die Mitgliederliste EINER zu veröffentlichenden
+// Gruppen-Listung auf dem Worker. Der "Zum Vergleich hinzufügen"-Button in der Durchsuchen-Ansicht
+// (renderGroupsBrowseResults) nutzt dagegen ganz bewusst DIESELBE addOrUpdateGroupMember()-Logik
+// wie die bestehende Einzelspieler-Suche - siehe Aufgabenstellung "keine zweite Vergleichslogik".
+
+// Muss mit NOTE_MAX_LENGTH/GROUP_MEMBER_COUNT_MIN/MAX/GROUP_TARGET_SPELL_COUNT_MAX in
+// worker/src/index.ts übereinstimmen - der Worker validiert das ohnehin serverseitig, diese
+// Konstanten sind nur für frühzeitiges Client-Feedback (siehe groupsPublish).
+const NOTE_MAX_LENGTH = 60;
+const GROUP_MEMBER_COUNT_MIN = 1;
+const GROUP_MEMBER_COUNT_MAX = 8;
+const GROUP_TARGET_SPELL_COUNT_MAX = 30;
+
+function groupUrl(groupId) {
+  return `${WORKER_BASE_URL}/group/${encodeURIComponent(groupId)}`;
+}
+
+// Eigener Storage-Key (NICHT gfTokenStorageKey's world+characterName-Schema, siehe
+// Aufgabenstellung) - eine Gruppen-Listung gehört keinem einzelnen Charakter, sondern wird als
+// "die eine Gruppe, die dieser Browser gerade verwaltet" behandelt (genau wie
+// Configuration.GroupFinderOwnGroupIds im Plugin GENAU EINE Gruppe pro lokalem Charakter merkt -
+// die Website hat mangels stabiler "wer bin ich"-Identität nur einen einzigen Slot statt einen
+// pro Charakter). {groupId, editToken} zusammen gespeichert, damit ein PUT nach einem Seiten-
+// Reload weiterhin als Update (nicht als Neuanlage) erkannt wird.
+const GROUPS_OWN_GROUP_STORAGE_KEY = 'blunion_livesync_owngroup';
+
+function getStoredOwnGroup() {
+  try {
+    const raw = localStorage.getItem(GROUPS_OWN_GROUP_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.groupId && parsed.editToken) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function setStoredOwnGroup(groupId, editToken) {
+  localStorage.setItem(GROUPS_OWN_GROUP_STORAGE_KEY, JSON.stringify({ groupId, editToken }));
+}
+
+function removeStoredOwnGroup() {
+  localStorage.removeItem(GROUPS_OWN_GROUP_STORAGE_KEY);
+}
+
+// Mitglieder der GERADE ERSTELLTEN/BEARBEITETEN Gruppen-Listung (siehe Klassendoc oben) - je
+// {world, characterName, learnedCount} (learnedCount rein für die Chip-Anzeige, wird beim PUT
+// nicht mitgeschickt, siehe groupsPublish).
+let groupsMembers = [];
+
+function groupsFindMemberIndex(world, characterName) {
+  return groupsMembers.findIndex(m =>
+    m.world.toLowerCase() === world.toLowerCase() && m.characterName.toLowerCase() === characterName.toLowerCase());
+}
+
+function groupsAddOrUpdateMember(world, characterName, learnedCount) {
+  const idx = groupsFindMemberIndex(world, characterName);
+  const member = { world, characterName, learnedCount };
+  if (idx >= 0) groupsMembers[idx] = member;
+  else groupsMembers.push(member);
+}
+
+function groupsRemoveMember(world, characterName) {
+  groupsMembers = groupsMembers.filter(m => !(m.world === world && m.characterName === characterName));
+  renderGroupsMembers();
+}
+
+// Chips analog zu renderGroup()'s Mitgliederliste - über createElement/textContent statt
+// innerHTML gebaut, weil characterName/world letztlich aus einem vom Nutzer eingefügten Sync-Code
+// stammen (dieselbe Begründung wie bei renderGroup, siehe dortiger Kommentar).
+function renderGroupsMembers() {
+  const emptyHint = document.getElementById('txt_groupMembers_empty_hint');
+  const listEl = document.getElementById('groupPublishMembersList');
+  listEl.innerHTML = '';
+
+  emptyHint.style.display = groupsMembers.length === 0 ? '' : 'none';
+
+  groupsMembers.forEach(m => {
+    const chip = document.createElement('div');
+    chip.className = 'group-member';
+
+    const label = document.createElement('span');
+    label.textContent = `${m.characterName} (${m.world}) — ${t().count(m.learnedCount, SPELLS.length)}`;
+    chip.appendChild(label);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.title = t().removeMember;
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => groupsRemoveMember(m.world, m.characterName));
+    chip.appendChild(removeBtn);
+
+    listEl.appendChild(chip);
+  });
+
+  groupsUpdatePublishButtonState();
+}
+
+// Dekodiert DENSELBEN BLU:-Code wie der normale Import unter "2." bzw. "Mein Eintrag" oben (siehe
+// Aufgabenstellung: keine neue Parsing-Logik) - inkl. der Längenvalidierung in decodeCompact, die
+// bei einem abgeschnittenen/kaputten Code jetzt einen klaren Fehler wirft statt Datenmüll zu
+// liefern (siehe TEST_REPORT.md).
+function groupsAddMemberFromCode() {
+  const statusEl = document.getElementById('groupAddMemberStatus');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  const raw = document.getElementById('groupMemberCodeInput').value.trim();
+  const world = document.getElementById('groupMemberWorldInput').value.trim();
+
+  if (!world) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrNoWorld;
+    return;
+  }
+
+  if (!raw.startsWith('BLU:')) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().errPrefix;
+    return;
+  }
+
+  let decoded;
+  try {
+    decoded = decodeCompact(base64UrlToBytes(raw.slice('BLU:'.length)));
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().errGeneric(err.message);
+    return;
+  }
+
+  if (!decoded.name) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrNoCode;
+    return;
+  }
+
+  groupsAddOrUpdateMember(world, decoded.name, decoded.learned.size);
+  document.getElementById('groupMemberCodeInput').value = '';
+
+  statusEl.className = 'status-msg ok';
+  statusEl.textContent = t().groupMemberAdded(decoded.name, world);
+
+  renderGroupsMembers();
+}
+
+function groupsSetView(view) {
+  const isPublish = view === 'publish';
+  document.getElementById('groupsPublishView').style.display = isPublish ? '' : 'none';
+  document.getElementById('groupsBrowseView').style.display = isPublish ? 'none' : '';
+  document.getElementById('btn_groupsViewPublish').classList.toggle('active-view', isPublish);
+  document.getElementById('btn_groupsViewBrowse').classList.toggle('active-view', !isPublish);
+}
+
+function groupsUpdatePublishButtonState() {
+  const own = getStoredOwnGroup();
+  document.getElementById('btn_groupsDelete').disabled = !own;
+  document.getElementById('btn_groupsPublish').textContent = own ? t().btnGroupsUpdate : t().btnGroupsPublish;
+}
+
+function groupsUpdateNoteCounter() {
+  const note = document.getElementById('groupPublishNote').value;
+  document.getElementById('groupPublishNoteCounter').textContent = t().charCountFormat(note.length, NOTE_MAX_LENGTH);
+}
+
+// "Eigene fehlende Spells" für die Ziel-Spell-Auswahl (siehe groupsRenderTargetSpellList) - die
+// Seite hat keinen eigenständigen "eigener Spielstatus"-Zustand, deshalb wird hier bewusst genau
+// die Checkbox-Auswahl aus "1. Eigenen Status exportieren" wiederverwendet (dieselbe Quelle, die
+// auch generateCode()/addOwnSelectionToGroup() für den eigenen Status nutzen).
+function groupsGetOwnLearnedIds() {
+  return new Set(
+    Array.from(document.querySelectorAll('#exportList input[type=checkbox]:checked'))
+      .map(cb => parseInt(cb.dataset.id, 10)));
+}
+
+// Ziel-Spells der GERADE ERSTELLTEN/BEARBEITETEN Gruppen-Listung - Gegenstück zu
+// groupPublishTargetSpellIds in UI/MainWindow.cs (DrawGroupPublishTargetSpellSection).
+let groupsTargetSpellIds = new Set();
+
+function groupsRenderTargetSpellList() {
+  const scope = document.getElementById('groupTargetScopeMissing').checked ? 'missing' : 'all';
+  const filterRaw = (document.getElementById('groupTargetSpellFilter').value || '').trim();
+  const hideTotems = document.getElementById('groupTargetHideTotems').checked;
+  const ownLearned = groupsGetOwnLearnedIds();
+  const numMatch = filterRaw.match(/^#?(\d+)$/);
+
+  const rows = SPELLS.filter(sp => {
+    if (hideTotems && sp.isTotem) return false;
+    if (scope === 'missing' && ownLearned.has(sp.id)) return false;
+    if (filterRaw === '') return true;
+    if (numMatch) return sp.order === parseInt(numMatch[1], 10);
+    return spellName(sp).toLowerCase().includes(filterRaw.toLowerCase());
+  });
+
+  document.getElementById('groupTargetSpellCount').textContent =
+    t().groupsTargetSpellCountFormat(groupsTargetSpellIds.size);
+
+  const listEl = document.getElementById('groupTargetSpellList');
+  listEl.innerHTML = '';
+
+  rows.forEach(sp => {
+    const row = document.createElement('div');
+    row.className = 'spell-row';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = groupsTargetSpellIds.has(sp.id);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) groupsTargetSpellIds.add(sp.id);
+      else groupsTargetSpellIds.delete(sp.id);
+      document.getElementById('groupTargetSpellCount').textContent =
+        t().groupsTargetSpellCountFormat(groupsTargetSpellIds.size);
+    });
+    row.appendChild(checkbox);
+
+    const icon = document.createElement('img');
+    icon.className = 'spell-icon';
+    icon.loading = 'lazy';
+    icon.alt = '';
+    icon.src = iconUrl(sp.iconId);
+    icon.addEventListener('error', () => { icon.style.visibility = 'hidden'; });
+    row.appendChild(icon);
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'spell-name';
+    nameEl.textContent = `${orderLabel(sp.order)}  ${spellName(sp)}`;
+    row.appendChild(nameEl);
+
+    listEl.appendChild(row);
+  });
+}
+
+async function groupsPublish() {
+  const statusEl = document.getElementById('groupsPublishStatus');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  if (groupsMembers.length < GROUP_MEMBER_COUNT_MIN || groupsMembers.length > GROUP_MEMBER_COUNT_MAX) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().groupsErrMemberCount;
+    return;
+  }
+
+  if (groupsTargetSpellIds.size > GROUP_TARGET_SPELL_COUNT_MAX) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().groupsErrTargetSpellCount(GROUP_TARGET_SPELL_COUNT_MAX);
+    return;
+  }
+
+  const own = getStoredOwnGroup();
+  const groupId = own ? own.groupId : crypto.randomUUID();
+
+  const tags = AVAILABILITY_TAGS.filter(tag => document.getElementById(`groupPublishTag_${tag}`).checked);
+  const note = document.getElementById('groupPublishNote').value.slice(0, NOTE_MAX_LENGTH);
+  const wantedPlayerCount = parseInt(document.getElementById('groupPublishWantedCount').value, 10) || 0;
+  const visibility = document.getElementById('groupPublishVisible').checked ? 'listed' : 'unlisted';
+
+  const body = {
+    members: groupsMembers.map(m => ({ world: m.world, characterName: m.characterName })),
+    visibility,
+    availabilityTags: tags,
+    note,
+    wantedPlayerCount,
+    targetSpellIds: Array.from(groupsTargetSpellIds),
+    ttlHours: GF_TTL_HOURS,
+  };
+  if (own && own.editToken) body.editToken = own.editToken;
+
+  try {
+    const response = await fetch(groupUrl(groupId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().gfErrPublishFailed((json && json.error) || `HTTP ${response.status}`);
+      return;
+    }
+
+    // Beim allerersten PUT für diese Gruppe vom Worker generiert und einmalig zurückgegeben
+    // (siehe worker/README.md) - ab jetzt lokal gespeichert, damit ein erneuter Besuch dieser
+    // Seite die Gruppe aktualisieren statt eine zweite anzulegen kann.
+    if (json && json.editToken) setStoredOwnGroup(groupId, json.editToken);
+
+    statusEl.className = 'status-msg ok';
+    statusEl.textContent = t().groupsOkPublished;
+    groupsUpdatePublishButtonState();
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrPublishFailed(err.message);
+  }
+}
+
+async function groupsDeleteOwn() {
+  const statusEl = document.getElementById('groupsPublishStatus');
+  const own = getStoredOwnGroup();
+  if (!own) return;
+
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  try {
+    const response = await fetch(groupUrl(own.groupId), {
+      method: 'DELETE',
+      headers: { 'X-Edit-Token': own.editToken },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      const json = await response.json().catch(() => null);
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().gfErrDeleteFailed((json && json.error) || `HTTP ${response.status}`);
+      return;
+    }
+
+    removeStoredOwnGroup();
+    statusEl.className = 'status-msg ok';
+    statusEl.textContent = t().groupsOkDeleted;
+    groupsUpdatePublishButtonState();
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrDeleteFailed(err.message);
+  }
+}
+
+// Zwischengespeichertes Rohergebnis des letzten GET /groups/browse-Aufrufs - erlaubt
+// applyGroupsTexts(), die Liste bei einem Sprachwechsel neu zu rendern, ohne den Worker ein
+// zweites Mal abzufragen (analog zu lastGfBrowseEntries).
+let lastGroupsBrowseEntries = null;
+
+async function groupsBrowse() {
+  const dataCenter = document.getElementById('gfDataCenter').value;
+  const statusEl = document.getElementById('groupsBrowseStatus');
+  const listEl = document.getElementById('groupsBrowseList');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '';
+
+  if (!dataCenter) {
+    listEl.style.display = 'none';
+    listEl.innerHTML = '';
+    lastGroupsBrowseEntries = null;
+    return;
+  }
+
+  try {
+    const response = await fetch(`${WORKER_BASE_URL}/groups/browse?dataCenter=${encodeURIComponent(dataCenter)}`);
+    const json = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = t().gfErrBrowseFailed((json && json.error) || `HTTP ${response.status}`);
+      return;
+    }
+
+    lastGroupsBrowseEntries = Array.isArray(json) ? json : [];
+    renderGroupsBrowseResults(lastGroupsBrowseEntries);
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().gfErrBrowseFailed(err.message);
+  }
+}
+
+// Rein clientseitiges Rendern der zuletzt abgerufenen Rohdaten - dasselbe sichere Muster wie
+// gfRenderBrowseResults() (siehe dortiger Kommentar): availabilityTags/note laufen durch
+// escapeHtml() vor dem Einsetzen in ein innerHTML-Template, Mitgliedername/-world (je Mitglied EIN
+// eigener "Zum Vergleich hinzufügen"-Button/Closure nötig) werden stattdessen komplett über
+// createElement/textContent gebaut - noch eine Stufe sicherer als bei gfRenderBrowseResults, weil
+// hier ohnehin schon createElement für die Buttons gebraucht wird. targetSpellIds sind reine
+// Zahlen, gegen die LOKALE SPELLS-Konstante aufgelöst (kein Server-Freitext, kein escapeHtml
+// nötig).
+function renderGroupsBrowseResults(entries) {
+  const listEl = document.getElementById('groupsBrowseList');
+  listEl.innerHTML = '';
+  listEl.style.display = '';
+
+  if (entries.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.style.padding = '10px 12px';
+    hint.textContent = t().groupsNoEntries;
+    listEl.appendChild(hint);
+    return;
+  }
+
+  entries.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'gf-entry';
+
+    const tagLabels = (entry.availabilityTags || []).map(tag => escapeHtml(t().gfTags[tag] || tag)).join(', ');
+    const note = entry.note || '';
+    const wantedText = entry.wantedPlayerCount ? String(entry.wantedPlayerCount) : t().gfWantedAny;
+
+    const meta = document.createElement('div');
+    meta.className = 'gf-entry-meta';
+    meta.innerHTML =
+      `${tagLabels ? tagLabels + '<br>' : ''}${note ? `"${escapeHtml(note)}"<br>` : ''}${t().gfWantedLabel(wantedText)}`;
+    card.appendChild(meta);
+
+    if (Array.isArray(entry.targetSpellIds) && entry.targetSpellIds.length > 0) {
+      const targetNames = entry.targetSpellIds.map(id => {
+        const sp = SPELLS.find(s => s.id === id);
+        return sp ? spellName(sp) : `#${id}`;
+      });
+      const targetsEl = document.createElement('div');
+      targetsEl.className = 'gf-entry-meta';
+      targetsEl.textContent = t().groupsTargetSpellsLabel(targetNames.join(', '));
+      card.appendChild(targetsEl);
+    }
+
+    const membersEl = document.createElement('div');
+    membersEl.style.marginTop = '8px';
+
+    (entry.members || []).forEach(member => {
+      let learned = new Set();
+      try {
+        learned = member.spellBitmaskBase64 ? decodeBitmask(base64UrlToBytes(member.spellBitmaskBase64)) : new Set();
+      } catch {
+        learned = new Set();
+      }
+
+      const memberRow = document.createElement('div');
+      memberRow.className = 'row';
+      memberRow.style.marginTop = '4px';
+
+      const label = document.createElement('span');
+      label.textContent = `${member.characterName || t().unnamed} (${member.world || ''}) — ${t().count(learned.size, SPELLS.length)}`;
+      memberRow.appendChild(label);
+
+      // addEventListener statt Inline-onclick, siehe gfRenderBrowseResults-Kommentar (Namen
+      // können Apostrophe/Sonderzeichen enthalten) - dieselbe addOrUpdateGroupMember()-Logik wie
+      // die bestehende Einzelspieler-Suche, KEIN zweiter Vergleichspfad.
+      const addBtn = document.createElement('button');
+      addBtn.className = 'secondary';
+      addBtn.textContent = t().btnGfAddToComparison;
+      addBtn.addEventListener('click', () => {
+        const name = member.characterName || t().unnamed;
+        addOrUpdateGroupMember(name, learned);
+        renderGroup();
+        const browseStatusEl = document.getElementById('groupsBrowseStatus');
+        browseStatusEl.className = 'status-msg ok';
+        browseStatusEl.textContent = t().addedToGroup(name);
+      });
+      memberRow.appendChild(addBtn);
+
+      membersEl.appendChild(memberRow);
+    });
+
+    card.appendChild(membersEl);
+    listEl.appendChild(card);
+  });
+}
+
+function applyGroupsTexts() {
+  const s = t();
+  document.getElementById('txt_groups_header').textContent = s.groupsHeader;
+  document.getElementById('txt_groups_intro').textContent = s.groupsIntro;
+  document.getElementById('btn_groupsViewPublish').textContent = s.btnGroupsViewPublish;
+  document.getElementById('btn_groupsViewBrowse').textContent = s.btnGroupsViewBrowse;
+
+  document.getElementById('txt_groups_addMembers_header').textContent = s.groupsAddMembersHeader;
+  document.getElementById('txt_groups_label_code').textContent = s.labelCode;
+  document.getElementById('txt_groups_label_world').textContent = s.gfLabelWorld;
+  document.getElementById('groupMemberWorldInput').placeholder = s.gfWorldPlaceholder;
+  document.getElementById('btn_groupAddMember').textContent = s.btnGroupAddMember;
+  document.getElementById('txt_groupMembers_empty_hint').textContent = s.groupMembersEmptyHint;
+
+  document.getElementById('txt_groups_visible').textContent = s.groupsVisibleLabel;
+  AVAILABILITY_TAGS.forEach(tag => {
+    document.getElementById(`txt_groups_tag_${tag}`).textContent = s.gfTags[tag];
+  });
+  document.getElementById('txt_groups_label_note').textContent = s.groupsNoteLabel;
+  document.getElementById('txt_groups_label_wanted').textContent = s.groupsWantedCountLabel;
+
+  document.getElementById('txt_groups_targetSpell_header').textContent = s.groupsTargetSpellHeader;
+  document.getElementById('txt_groups_targetScope_missing').textContent = s.groupsTargetScopeOnlyMissing;
+  document.getElementById('txt_groups_targetScope_all').textContent = s.groupsTargetScopeAll;
+  document.getElementById('groupTargetSpellFilter').placeholder = s.filterPlaceholder;
+  document.getElementById('txt_groups_hideTotems').textContent = s.hideTotems;
+
+  document.getElementById('btn_groupsRefresh').textContent = s.btnGfRefresh;
+
+  groupsUpdateNoteCounter();
+  renderGroupsMembers();
+  groupsRenderTargetSpellList();
+  groupsUpdatePublishButtonState();
+  // Re-rendert die zuletzt geladene Gruppen-Browse-Liste mit übersetzten Tags, falls schon welche
+  // geladen wurden - ohne den Worker erneut abzufragen (analog zu gfRenderBrowseResults oben).
+  if (lastGroupsBrowseEntries) renderGroupsBrowseResults(lastGroupsBrowseEntries);
+}
+
+document.getElementById('groupPublishNote').addEventListener('input', groupsUpdateNoteCounter);
+document.getElementById('groupTargetSpellFilter').addEventListener('input', groupsRenderTargetSpellList);
+document.getElementById('groupTargetHideTotems').addEventListener('change', groupsRenderTargetSpellList);
+document.getElementById('groupTargetScopeMissing').addEventListener('change', groupsRenderTargetSpellList);
+document.getElementById('groupTargetScopeAll').addEventListener('change', groupsRenderTargetSpellList);
+document.getElementById('gfDataCenter').addEventListener('change', groupsBrowse);
 
 document.getElementById('gfImportInput').addEventListener('input', gfUpdateMyEntryPreview);
 document.getElementById('gfWorld').addEventListener('input', gfUpdateMyEntryPreview);

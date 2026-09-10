@@ -1,0 +1,67 @@
+<!--
+  Dalamud.NET.Sdk (dieselbe Version wie BLUnion.csproj) statt Microsoft.NET.Sdk: die getesteten
+  Services (SpellDataService) hängen an Dalamud.Plugin.Services.IPluginLog, ein reines
+  ProjectReference auf BLUnion.csproj reicht dafür NICHT - Dalamud.NET.Sdk löst die
+  Dalamud-Assembly-Referenzen (Reference Include="Dalamud"/"Serilog" in dessen Sdk.props) über
+  AssemblySearchPaths gegen die lokale XIVLauncher-Installation auf, das fließt NICHT transitiv
+  über eine ProjectReference (per Build-Test verifiziert: CS0246 für Dalamud/Serilog-Typen ohne
+  dies). Use_DalamudPackager=false, da dieses Projekt kein Plugin ist und kein Manifest hat (sonst
+  bricht der Build mit "Punchline is required" ab, siehe BLUnion.csproj-Doc).
+
+  Reference Update="Dalamud"/"Serilog" Private="true" überschreibt die SDK-Vorgabe Private="false"
+  (dort bewusst so, damit das fertige Plugin diese DLLs NICHT mitliefert - Dalamud stellt sie zur
+  Laufzeit im Spielprozess selbst bereit). Ein Testlauf läuft aber NICHT im Spielprozess, braucht
+  die DLLs also tatsächlich im Testausgabeverzeichnis, sonst schlägt das Laden von TestPluginLog
+  (siehe Fakes/TestPluginLog.cs) zur Laufzeit fehl.
+-->
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BLUnion.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <Use_DalamudPackager>false</Use_DalamudPackager>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Update="Dalamud" Private="true" />
+    <Reference Update="Serilog" Private="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BLUnion.csproj" />
+  </ItemGroup>
+
+  <!--
+    Test-Fixtures: echte Kopie der Produktivdaten (siehe Data/*.json im Repo-Root) - lädt damit
+    dieselben Spell-/Monster-/Location-/Source-Daten, die auch das Plugin tatsächlich auf
+    Nutzergeräten lädt (siehe SpellDataServiceTests "gegen echte Daten").
+  -->
+  <ItemGroup>
+    <None Include="..\Data\*.json" LinkBase="TestData" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    Handgeschriebene MINI-Fixtures (siehe Fixtures/SpellData/*.json) - unabhängig von den echten
+    Data/*.json (oben), die sich mit dem Spielinhalt ändern können. Bewusst gewählte Grenzfälle
+    (Spell ohne jede Quelle, Quelle mit unbekannter MonsterId, Monster mit unbekannter LocationId,
+    Spell nur per Totem lernbar) - siehe SpellDataServiceTests/ComparisonServiceTests.
+  -->
+  <ItemGroup>
+    <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- EnableDefaultNoneItems=false (von Dalamud.NET.Sdk vorgegeben) deaktiviert das automatische
+       Einsammeln von *.cs als Compile-Items NICHT - das ist ein reines Microsoft.NET.Sdk-Feature
+       für "None"-Items. *.cs-Dateien in diesem Projekt (SpellFilterTests.cs etc.) werden weiterhin
+       automatisch als Compile-Items erkannt. -->
+</Project>

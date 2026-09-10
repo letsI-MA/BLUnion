@@ -100,6 +100,7 @@ Eine Gruppen-Listung (KV-Value, JSON, KV-Key `group:<groupId>`) sieht so aus:
   "availabilityTags": ["evening"],
   "note": "Party sucht 2 weitere für Nachtjagd",
   "wantedPlayerCount": 4,
+  "targetSpellIds": [11383, 11384],
   "dataCenter": "Aether",
   "createdAt": "2026-08-21T18:00:00.000Z",
   "updatedAt": "2026-08-21T18:00:00.000Z"
@@ -112,6 +113,9 @@ natürlichen Schlüssel, der Key wird deshalb auch NICHT lowercased. `members` e
 `dataCenter` wird - wie bei Einzelprofilen - server-seitig aus dem `world` des **ersten**
 Mitglieds hergeleitet, nicht vom Client übergeben. `visibility`/`availabilityTags`/`note`/
 `wantedPlayerCount` folgen exakt denselben Regeln wie bei Einzelprofilen (siehe oben).
+`targetSpellIds` sind die Spells, die die Gruppe gemeinsam farmen möchte - ein Array aus höchstens
+30 IDs, jede muss einer tatsächlich bekannten Blue-Mage-Spell-ID entsprechen (fest hinterlegt in
+`src/spellIds.ts`, siehe dort für die Regenerierung bei neuen Spells), sonst `400`.
 
 | Methode | Pfad | Auth | Zweck |
 |---|---|---|---|
@@ -120,8 +124,8 @@ Mitglieds hergeleitet, nicht vom Client übergeben. `visibility`/`availabilityTa
 | `GET` | `/groups/browse?dataCenter=<DC>` | keine | Gruppen-Gruppenfinder: alle `listed`-Gruppen auf diesem Data Center |
 
 `PUT`-Body: `{ members: [{world, characterName}, …], visibility?, availabilityTags?, note?,
-wantedPlayerCount?, editToken? }` - `members` ist Pflicht, der Rest optional (gleiches
-"fehlt = bisheriger Wert bleibt"-Verhalten wie beim Einzelprofil-`PUT`). Jedes
+wantedPlayerCount?, targetSpellIds?, editToken? }` - `members` ist Pflicht, der Rest optional
+(gleiches "fehlt = bisheriger Wert bleibt"-Verhalten wie beim Einzelprofil-`PUT`). Jedes
 `members[].world` muss einer bekannten FFXIV-World entsprechen, sonst `400`.
 
 **Edit-Token-Besitzmodell (wichtig):** der `editToken` einer Gruppen-Listung identifiziert
@@ -135,8 +139,9 @@ Tags/Notiz) - rührt **nie** an den referenzierten `profile:`-Einträgen der Mit
 davon unabhängig bestehen. Das ist der ganze Punkt des Referenz-statt-Kopie-Ansatzes.
 
 `GET /groups/browse` liefert je Treffer `{ groupId, members: [{world, characterName,
-spellBitmaskBase64}], availabilityTags, note, wantedPlayerCount }` (kein `dataCenter`/
-`visibility`/`editTokenHash`, analog zu `GET /profiles/browse`). `spellBitmaskBase64` ist dabei
+spellBitmaskBase64}], availabilityTags, note, wantedPlayerCount, targetSpellIds }` (kein
+`dataCenter`/`visibility`/`editTokenHash`, analog zu `GET /profiles/browse`). `spellBitmaskBase64`
+ist dabei
 je Mitglied `null`, falls für dieses Mitglied kein (mehr) gültiges Einzelprofil existiert
 (gelöscht/abgelaufen/nie gepusht) - das Mitglied wird trotzdem aufgelistet, nur ohne Bitmaske,
 statt die ganze Gruppen-Listung aus dem Ergebnis zu verwerfen. Macht pro Gruppen-Treffer
@@ -198,6 +203,15 @@ veröffentlichtes oder gelöschtes Profil kann dadurch aber für bis zu 20 Sekun
 veraltet in den Browse-Ergebnissen erscheinen, zusätzlich zur oben beschriebenen KV-Verzögerung.
 Bewusster Kompromiss, kein Bug.
 
+**IP-basiertes Rate-Limiting der schreibenden Endpunkte:** `PUT`/`DELETE` auf `/profile` und
+`/group` sind über das native Cloudflare-Workers-Rate-Limiting-Binding auf 20 Anfragen pro IP und
+Minute begrenzt (`WRITE_RATE_LIMITER` in `wrangler.toml`, siehe `enforceWriteRateLimit` in
+`src/index.ts` für die vollständige Begründung der Limit-Wahl). Eine IP, die das Limit
+überschreitet, erhält `429 Too Many Requests`. `GET /profile` sowie die beiden Browse-Endpunkte
+sind bewusst ausgenommen (rein lesend, Browse zusätzlich schon über das Caching oben geschützt).
+Anders als beim KV-Namespace oben ist dafür **kein** separater `wrangler`-Setup-Schritt nötig -
+das Binding wird beim Deploy automatisch aus `wrangler.toml` angelegt.
+
 ## Lokal testen
 
 ```bash
@@ -244,3 +258,21 @@ da Live-Sync rein additiv/opt-in ist).
 ```bash
 npm run typecheck
 ```
+
+## Tests
+
+```bash
+cd worker
+npm install
+npm test
+```
+
+Läuft über `@cloudflare/vitest-plugin` gegen einen ECHTEN lokalen `workerd`-Prozess (kein reines
+JS-Mock) - inklusive echtem, lokal simuliertem KV-Namespace und dem nativen Rate-Limiting-Binding
+(siehe `WRITE_RATE_LIMITER` in `wrangler.toml`). `test/crypto.test.ts` deckt `src/crypto.ts` ab
+(SHA-256, Edit-Token-Erzeugung, Base64url-Encode/Decode inkl. ungültiger Eingaben),
+`test/index.test.ts` alle Endpunkte aus `src/index.ts` inklusive Fehlerfällen (400/403/404/409/429)
+und Filterung nach `dataCenter`/`visibility`, nicht nur den Happy Path. `test/helpers.ts` bündelt
+die Request-Hilfsfunktionen; siehe dortige Doku zum `_cacheBust`-Query-Parameter, der den
+serverseitigen `withCache`-Browse-Cache (siehe oben) für Testzwecke gezielt umgeht - Details siehe
+`../TEST_REPORT.md`. Braucht kein `wrangler login`/keinen echten Account, genau wie `npm run dev`.

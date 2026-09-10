@@ -1,0 +1,5 @@
+[
+  { "Id": 10, "NameDe": "Monster A", "NameEn": "Monster A", "NameFr": "Monstre A", "NameJa": "モンスターA", "LocationId": 100 },
+  { "Id": 11, "NameDe": "Monster B", "NameEn": "Monster B", "NameFr": "Monstre B", "NameJa": "モンスターB", "LocationId": 200 },
+  { "Id": 12, "NameDe": "Monster C (ohne Location)", "NameEn": "Monster C (no location)", "NameFr": "Monstre C (sans lieu)", "NameJa": "モンスターC（場所なし）", "LocationId": 300 }
+]

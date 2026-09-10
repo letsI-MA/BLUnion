@@ -1,0 +1,8 @@
+[
+  { "SpellId": 1, "MonsterId": 10, "Method": "OpenWorld" },
+  { "SpellId": 2, "MonsterId": 10, "Method": "OpenWorld" },
+  { "SpellId": 2, "MonsterId": 11, "Method": "Totem" },
+  { "SpellId": 4, "MonsterId": 11, "Method": "Totem" },
+  { "SpellId": 5, "MonsterId": 999, "Method": "OpenWorld" },
+  { "SpellId": 6, "MonsterId": 12, "Method": "Duty" }
+]

@@ -1,0 +1,6 @@
+[
+  { "Id": 1, "NameDe": "Feuerball", "NameEn": "Fireball", "NameFr": "Boule de feu", "NameJa": "ファイア", "Stars": 1, "Description": "Ein normaler Spell mit einer Open-World-Quelle.", "IconId": 100, "SpellbookOrder": 1 },
+  { "Id": 2, "NameDe": "Eisstrahl", "NameEn": "Ice Beam", "NameFr": "Rayon de glace", "NameJa": "アイス", "Stars": 2, "Description": "Hat sowohl eine Open-World- als auch eine Totem-Quelle.", "IconId": 101, "SpellbookOrder": 2 },
+  { "Id": 3, "NameDe": "Ohne Quelle", "NameEn": "No Source", "NameFr": "Sans source", "NameJa": "ノーソース", "Stars": 3, "Description": null, "IconId": 102, "SpellbookOrder": 3 },
+  { "Id": 4, "NameDe": "Nur Totem", "NameEn": "Totem Only", "NameFr": "Totem uniquement", "NameJa": "トーテムのみ", "Stars": 4, "Description": "Ausschließlich über ein Totem lernbar.", "IconId": 103, "SpellbookOrder": 4 }
+]

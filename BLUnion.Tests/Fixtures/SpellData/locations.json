@@ -1,0 +1,4 @@
+[
+  { "Id": 100, "ZoneNameDe": "Zone A", "ZoneNameEn": "Zone A", "ZoneNameFr": "Zone A", "ZoneNameJa": "ゾーンA", "Coordinates": "10,20" },
+  { "Id": 200, "ZoneNameDe": "Zone B", "ZoneNameEn": "Zone B", "ZoneNameFr": "Zone B", "ZoneNameJa": "ゾーンB", "Coordinates": null }
+]

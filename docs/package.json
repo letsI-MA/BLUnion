@@ -1,0 +1,13 @@
+{
+  "name": "blunion-web-companion",
+  "private": true,
+  "version": "1.0.0",
+  "description": "BLUnion Web-Companion (index.html) - Tests, siehe test/README.md und ../TEST_REPORT.md.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1",
+    "vitest": "^4.1.11"
+  }
+}

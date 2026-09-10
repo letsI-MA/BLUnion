@@ -17,6 +17,15 @@
  *   DELETE /group/:groupId                  - Gruppen-Listung löschen (X-Edit-Token-Header nötig)
  *   GET    /groups/browse?dataCenter=<DC>   - öffentlicher GRUPPEN-Gruppenfinder (Phase 2, siehe unten)
  *
+ * RATE-LIMITING: die vier schreibenden Endpunkte (PUT/DELETE auf /profile und /group) sind seit
+ * bestätigtem Fremd-Traffic auf dem öffentlichen, tokenlosen PUT über ein IP-basiertes
+ * Rate-Limiting-Binding geschützt (siehe enforceWriteRateLimit + WRITE_RATE_LIMITER-Doc unten und
+ * die Begründung in wrangler.toml). GET /profile sowie die beiden Browse-Endpunkte sind davon
+ * BEWUSST ausgenommen - sie sind rein lesend/idempotent und die Browse-Endpunkte bereits über
+ * withCache (siehe unten) vor wiederholter Last geschützt, ein zusätzliches Limit dort brächte
+ * also kaum Zusatzschutz, aber das Risiko, legitime Nutzer beim Gruppenfinder-Auto-Polling
+ * (siehe dortiger Kommentar) unnötig auszubremsen.
+ *
  * KV-Key-Schema: "profile:<world>:<characterName>", beide Teile lowercased (siehe kvKey()) -
  * verhindert Duplikate durch abweichende Groß-/Kleinschreibung (das Spiel liefert Namen/Welten
  * nicht immer konsistent kapitalisiert). :world/:characterName in der URL sind
@@ -41,6 +50,11 @@
  * handleGroupDelete) - wer die Gruppe veröffentlicht, ist der einzige, der sie später
  * ändern/löschen kann.
  *
+ * targetSpellIds (siehe StoredGroupProfile/isValidTargetSpellIds): die Spells, die die Gruppe
+ * gemeinsam farmen möchte - reine IDs aus dem fest hinterlegten KNOWN_SPELL_IDS-Set (siehe
+ * spellIds.ts), NICHT gegen die Mitgliederprofile abgeglichen (dieser Abgleich gegen den eigenen
+ * Lernstatus passiert rein clientseitig, siehe GroupTargetSpellService im Plugin).
+ *
  * Sowohl das Dalamud-Plugin ALS AUCH die Website (docs/index.html) sind Clients DIESES EINEN
  * Workers - kein zweites Backend, keine Parallelstruktur. Der optionale PUT-Body-Parameter
  * ttlHours (siehe resolveTtlSeconds) existiert eigens für die Website, die damit Profile mit
@@ -57,9 +71,14 @@
 
 import { base64UrlDecode, generateEditToken, sha256Hex } from "./crypto";
 import { lookupDataCenter } from "./worlds";
+import { KNOWN_SPELL_IDS } from "./spellIds";
 
 export interface Env {
   BLUNION_PROFILES: KVNamespace;
+  /** Natives Workers-Rate-Limiting-Binding (siehe wrangler.toml-Doc und enforceWriteRateLimit
+   * unten) - schützt AUSSCHLIESSLICH die vier schreibenden Endpunkte (PUT/DELETE auf /profile
+   * und /group), nicht die GET-/Browse-Endpunkte (siehe dortige Begründung). */
+  WRITE_RATE_LIMITER: RateLimit;
 }
 
 /** Feste Größe der Spell-Bitmaske - MUSS mit ManualCodeSyncProvider.BitmaskBytes im Plugin
@@ -135,6 +154,13 @@ const WANTED_PLAYER_COUNT_MAX = 8;
 const GROUP_MEMBER_COUNT_MIN = 1;
 const GROUP_MEMBER_COUNT_MAX = 8;
 
+/** Obergrenze für StoredGroupProfile.targetSpellIds (siehe handleGroupPut/isValidTargetSpellIds) -
+ * bewusst deutlich unter der Gesamtzahl bekannter Spells (siehe KNOWN_SPELL_IDS, aktuell 124):
+ * eine "Ziel-Spell-Liste" für eine gemeinsame Farm-Session soll ein konkretes, erreichbares
+ * Session-Ziel bleiben, kein Abbild der kompletten Spellliste. 0 (leeres Array) ist gültig - eine
+ * Gruppe muss keine Ziel-Spells angeben. */
+const GROUP_TARGET_SPELL_COUNT_MAX = 30;
+
 /** Das in KV gespeicherte JSON (siehe Datenmodell in README.md). editTokenHash verlässt diese
  * Datei NIE in Richtung Client (siehe stripForResponse/stripForBrowseResponse).
  *
@@ -197,7 +223,14 @@ interface GroupMember {
  * Mitglieds, siehe handleGroupPut), nicht vom Client übergeben. availabilityTags/note/
  * wantedPlayerCount sind exakt dieselben Phase-2-Felder wie bei StoredProfile, inklusive
  * derselben ALLOWED_AVAILABILITY_TAGS/NOTE_MAX_LENGTH/WANTED_PLAYER_COUNT_MIN/MAX-Regeln - daher
- * hier ebenfalls optional (siehe StoredProfile-Doc zur Rückwärtskompatibilität). */
+ * hier ebenfalls optional (siehe StoredProfile-Doc zur Rückwärtskompatibilität).
+ *
+ * targetSpellIds: die Spells, die die Gruppe gemeinsam farmen möchte (siehe UI/MainWindow.
+ * GroupFinder.cs DrawGroupPublishSection) - anders als members[] KEINE Referenz auf andere
+ * KV-Einträge, sondern reine IDs aus dem festen KNOWN_SPELL_IDS-Set (siehe spellIds.ts), gegen das
+ * handleGroupPut validiert. Optional aus demselben Rückwärtskompatibilitätsgrund wie die übrigen
+ * Phase-2-Felder - Gruppen-Listungen von vor diesem Feature haben es im gespeicherten JSON schlicht
+ * nicht. */
 interface StoredGroupProfile {
   groupId: string;
   members: GroupMember[];
@@ -206,6 +239,7 @@ interface StoredGroupProfile {
   availabilityTags?: string[];
   note?: string;
   wantedPlayerCount?: number;
+  targetSpellIds?: number[];
   dataCenter: string;
   createdAt: string;
   updatedAt: string;
@@ -218,6 +252,7 @@ interface PutGroupRequestBody {
   availabilityTags?: unknown;
   note?: unknown;
   wantedPlayerCount?: unknown;
+  targetSpellIds?: unknown;
   ttlHours?: unknown;
 }
 
@@ -279,6 +314,54 @@ async function withCache(
   }
 
   return response;
+}
+
+/** IP-basiertes Basis-Rate-Limiting für die vier schreibenden Endpunkte (PUT/DELETE auf /profile
+ * und /group, siehe deren Aufrufstellen unten) über das native Cloudflare-Workers-Rate-Limiting-
+ * Binding WRITE_RATE_LIMITER (siehe Env/wrangler.toml) - KEINE KV-Eigenimplementierung nötig
+ * (siehe Aufgabenstellung "einfaches Rate-Limiting, keine unnötigen Abhängigkeiten"), das Binding
+ * leistet exakt das ohne zusätzliche KV-Reads/Writes pro Request.
+ *
+ * Bewusst NICHT die Dashboard-"Rate Limiting Rules": die sind ein Zonen-/WAF-Feature und setzen
+ * eine bei Cloudflare verwaltete, eigene Zone (Custom Domain) voraus - dieser Worker läuft aber
+ * unter *.workers.dev (siehe wrangler.toml), ohne eigene Zone. Das Rate-Limiting-BINDING hängt
+ * dagegen direkt am Worker selbst und funktioniert unabhängig von Zone/Custom-Domain.
+ *
+ * LIMIT-WAHL (siehe wrangler.toml [ratelimits.simple]): 20 Schreibzugriffe/IP alle 60 Sekunden.
+ * Großzügig genug für normale Nutzung - ein Spieler pusht bei jedem gelernten Spell erneut (siehe
+ * PROFILE_TTL_SECONDS-Doc oben), dazu kommen gelegentliche Gruppenfinder-Aktualisierungen/
+ * -Löschungen - aber eng genug, um massenhaftes Anlegen/Löschen vieler Profile von einer
+ * einzelnen IP (das eigentliche Missbrauchsszenario bei einem öffentlichen, tokenlosen
+ * PUT-Endpoint) abzuwürgen. 60 statt der ebenfalls erlaubten 10 Sekunden gewählt (siehe
+ * RateLimitOptions-Doc), weil ein Minutenfenster die aussagekräftigere Grenze zwischen normaler
+ * Nutzung und Abuse zieht - ein Spieler, der z.B. innerhalb von 2 Sekunden nacheinander mehrere
+ * Spells lernt und dabei mehrfach pusht, würde bei einem 10-Sekunden-Fenster eher versehentlich
+ * anschlagen.
+ *
+ * KEY = CF-Connecting-IP (von Cloudflare selbst am Edge gesetzt, vom Client NICHT fälschbar)
+ * statt z.B. world+characterName - begrenzt damit nicht nur Spam GEGEN ein einzelnes Profil,
+ * sondern das massenhafte ANLEGEN vieler verschiedener Profile von derselben Quelle. Fehlt der
+ * Header (z.B. lokal in `wrangler dev` ohne echten Cloudflare-Edge-Request davor), wird NICHT
+ * limitiert statt mit 500 zu antworten - lokale Entwicklung soll dadurch nicht blockiert werden,
+ * hinter dem echten Edge in Produktion ist der Header immer gesetzt.
+ *
+ * Laut Cloudflare-Doku ist das Binding "permissive, eventually consistent" (pro Edge-Standort
+ * gezählt, kein exakter globaler Zähler) - für den hier verlangten Basisschutz gegen
+ * Missbrauch/Spam völlig ausreichend, NICHT gedacht/geeignet als exaktes Abrechnungssystem.
+ *
+ * Gibt bei Überschreitung direkt eine fertige 429-Response zurück (Aufrufer muss dann NUR noch
+ * `if (rateLimited) return rateLimited;` prüfen), bei null darf normal fortgefahren werden -
+ * gleiches Frühzeitig-Rückgabe-Muster wie die bestehende Validierung in handlePut/handleGroupPut. */
+async function enforceWriteRateLimit(env: Env, request: Request): Promise<Response | null> {
+  const ip = request.headers.get("CF-Connecting-IP");
+  if (!ip)
+    return null;
+
+  const { success } = await env.WRITE_RATE_LIMITER.limit({ key: ip });
+  if (!success)
+    return errorResponse(429, "Zu viele Anfragen von dieser IP - bitte kurz warten und erneut versuchen.");
+
+  return null;
 }
 
 function kvKey(world: string, characterName: string): string {
@@ -345,6 +428,7 @@ function stripForGroupResponse(stored: StoredGroupProfile) {
     availabilityTags: stored.availabilityTags ?? [],
     note: stored.note ?? "",
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
+    targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
   };
 }
@@ -379,6 +463,15 @@ function isValidWantedPlayerCount(value: unknown): value is number {
     && value <= WANTED_PLAYER_COUNT_MAX;
 }
 
+/** Analog zu isValidAvailabilityTags, aber gegen KNOWN_SPELL_IDS statt ALLOWED_AVAILABILITY_TAGS
+ * geprüft (siehe handleGroupPut) - jede ID muss eine tatsächlich existierende Spell-ID sein, dazu
+ * die Obergrenze GROUP_TARGET_SPELL_COUNT_MAX. Leeres Array ist gültig (siehe dortige Doc). */
+function isValidTargetSpellIds(value: unknown): value is number[] {
+  return Array.isArray(value)
+    && value.length <= GROUP_TARGET_SPELL_COUNT_MAX
+    && value.every((id) => typeof id === "number" && Number.isInteger(id) && KNOWN_SPELL_IDS.has(id));
+}
+
 /** Reine Form-/Typ-Prüfung für EIN members[]-Element aus dem /group/:groupId-PUT-Body (siehe
  * handleGroupPut) - prüft nur, dass world/characterName als nicht-leere Strings vorhanden sind.
  * Ob world tatsächlich über lookupDataCenter auflösbar ist, prüft bewusst NICHT diese Funktion,
@@ -404,6 +497,10 @@ async function handleGet(env: Env, world: string, characterName: string): Promis
 }
 
 async function handlePut(env: Env, request: Request, world: string, characterName: string): Promise<Response> {
+  const rateLimited = await enforceWriteRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
   let body: PutRequestBody;
   try {
     body = await request.json();
@@ -571,6 +668,10 @@ async function handleBrowse(env: Env, request: Request, ctx: ExecutionContext): 
 }
 
 async function handleDelete(env: Env, request: Request, world: string, characterName: string): Promise<Response> {
+  const rateLimited = await enforceWriteRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
   const token = request.headers.get("X-Edit-Token");
   if (!token)
     return errorResponse(403, 'Header "X-Edit-Token" fehlt.');
@@ -604,6 +705,10 @@ async function handleDelete(env: Env, request: Request, world: string, character
  * Token stattdessen an alle Mitglieder verteilt oder durch ein anderes Berechtigungsmodell
  * (z.B. eigene Tokens pro Mitglied) ersetzt werden. */
 async function handleGroupPut(env: Env, request: Request, groupId: string): Promise<Response> {
+  const rateLimited = await enforceWriteRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
   let body: PutGroupRequestBody;
   try {
     body = await request.json();
@@ -685,6 +790,22 @@ async function handleGroupPut(env: Env, request: Request, groupId: string): Prom
     );
   }
 
+  // Gleiches optional/nur-bei-Vorhandensein-validiert-Muster wie die übrigen Phase-2-Felder oben
+  // (siehe StoredGroupProfile-Doc) - anders als bei note wird hier NICHT gekappt/normalisiert,
+  // sondern bei ungültigen IDs komplett abgelehnt (wie bei availabilityTags): eine erfundene
+  // Spell-ID ist ein Korrektheitsproblem, kein reines Längenlimit.
+  let targetSpellIds: number[];
+  if (body.targetSpellIds === undefined) {
+    targetSpellIds = existing?.targetSpellIds ?? [];
+  } else if (isValidTargetSpellIds(body.targetSpellIds)) {
+    targetSpellIds = body.targetSpellIds;
+  } else {
+    return errorResponse(
+      400,
+      `targetSpellIds muss ein Array aus höchstens ${GROUP_TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
+    );
+  }
+
   let editTokenHash: string;
   let createdAt: string;
   let plaintextEditTokenForResponse: string | undefined;
@@ -715,6 +836,7 @@ async function handleGroupPut(env: Env, request: Request, groupId: string): Prom
     availabilityTags,
     note,
     wantedPlayerCount,
+    targetSpellIds,
     dataCenter: dataCenter!,
     createdAt,
     updatedAt: now,
@@ -788,6 +910,7 @@ async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionCont
           availabilityTags: stored.availabilityTags ?? [],
           note: stored.note ?? "",
           wantedPlayerCount: stored.wantedPlayerCount ?? 0,
+          targetSpellIds: stored.targetSpellIds ?? [],
         });
       }
 
@@ -805,6 +928,10 @@ async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionCont
  * bestehen (das ist der ganze Punkt des Referenz-statt-Kopie-Ansatzes, siehe Klassendoc/
  * StoredGroupProfile). */
 async function handleGroupDelete(env: Env, request: Request, groupId: string): Promise<Response> {
+  const rateLimited = await enforceWriteRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
   const token = request.headers.get("X-Edit-Token");
   if (!token)
     return errorResponse(403, 'Header "X-Edit-Token" fehlt.');

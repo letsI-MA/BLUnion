@@ -79,9 +79,11 @@ public sealed class LiveSyncService : IDisposable
 
     private volatile bool groupBrowseInFlight;
 
+#if DEBUG
     private readonly Dictionary<string, string> devTestProfileEditTokens = new();
 
     private volatile bool devPublishInFlight;
+#endif
 
     public OwnProfileSnapshot? LastKnownOwnProfile { get; private set; }
 
@@ -465,6 +467,7 @@ public sealed class LiveSyncService : IDisposable
                             .ToList(),
                         Note = entry.Note ?? string.Empty,
                         WantedPlayerCount = entry.WantedPlayerCount ?? 0,
+                        TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
                     });
                 }
                 catch (Exception exEntry)
@@ -486,6 +489,11 @@ public sealed class LiveSyncService : IDisposable
         }
     }
 
+    // Dev-Only: veröffentlicht die festen Alice/Bob/Charles-Testprofile aus DevTestFixtures im
+    // Gruppenfinder (siehe UI/MainWindow.cs DrawSyncTab, "Dev: Testprofile im Gruppenfinder
+    // veröffentlichen"-Button). Komplett per #if DEBUG entfernt, damit ein Release-Build weder
+    // die Dev-UI dafür noch diesen Aufruf/die Abhängigkeit auf DevTestFixtures enthält.
+#if DEBUG
     public void PublishDevTestProfiles()
     {
         if (this.devPublishInFlight)
@@ -588,6 +596,7 @@ public sealed class LiveSyncService : IDisposable
             this.devPublishInFlight = false;
         }
     }
+#endif
 
     public bool HasEditTokenForLocalCharacter()
     {
@@ -660,12 +669,18 @@ public sealed class LiveSyncService : IDisposable
     private const int GroupMemberCountMin = 1;
     private const int GroupMemberCountMax = 8;
 
+    // Muss mit GROUP_TARGET_SPELL_COUNT_MAX im Worker übereinstimmen (siehe worker/src/index.ts) -
+    // derselbe früh-abbrechende Client-Check wie oben für GroupMemberCountMin/Max, damit ein
+    // offensichtlich zu langes targetSpellIds erst gar nicht den Netzwerk-Roundtrip auslöst.
+    private const int GroupTargetSpellCountMax = 30;
+
     public void PublishGroup(
         IReadOnlyList<(string World, string CharacterName)> members,
         bool visible,
         IReadOnlyCollection<AvailabilityTag> tags,
         string note,
-        int wantedPlayerCount)
+        int wantedPlayerCount,
+        IReadOnlyCollection<uint> targetSpellIds)
     {
         if (this.groupPublishInFlight)
             return;
@@ -678,6 +693,14 @@ public sealed class LiveSyncService : IDisposable
             return;
         }
 
+        if (targetSpellIds.Count > GroupTargetSpellCountMax)
+        {
+            this.SetPendingResult(
+                LiveSyncEventKind.GroupPublishFailed,
+                $"Höchstens {GroupTargetSpellCountMax} Ziel-Spells erlaubt (aktuell {targetSpellIds.Count}).");
+            return;
+        }
+
         var localName = this.partyService.GetLocalPlayerName();
         var localWorld = this.partyService.GetLocalPlayerWorld();
         if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
@@ -687,7 +710,7 @@ public sealed class LiveSyncService : IDisposable
         }
 
         this.groupPublishInFlight = true;
-        _ = this.PublishGroupAsync(members, visible, tags, note, wantedPlayerCount, localName, localWorld);
+        _ = this.PublishGroupAsync(members, visible, tags, note, wantedPlayerCount, targetSpellIds, localName, localWorld);
     }
 
     private async Task PublishGroupAsync(
@@ -696,6 +719,7 @@ public sealed class LiveSyncService : IDisposable
         IReadOnlyCollection<AvailabilityTag> tags,
         string note,
         int wantedPlayerCount,
+        IReadOnlyCollection<uint> targetSpellIds,
         string localName,
         string localWorld)
     {
@@ -715,7 +739,8 @@ public sealed class LiveSyncService : IDisposable
                 visible ? "listed" : "unlisted",
                 tags.Select(tag => tag.ToWireValue()).ToList(),
                 note,
-                wantedPlayerCount);
+                wantedPlayerCount,
+                targetSpellIds.ToList());
 
             var url = BuildGroupUrl(groupId);
             using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
@@ -884,7 +909,8 @@ public sealed class LiveSyncService : IDisposable
         string? Visibility,
         List<string>? AvailabilityTags,
         string? Note,
-        int? WantedPlayerCount);
+        int? WantedPlayerCount,
+        List<uint>? TargetSpellIds);
 
     private sealed record PutGroupResponseBody(string? EditToken);
 
@@ -904,5 +930,6 @@ public sealed class LiveSyncService : IDisposable
         List<GroupBrowseResponseMember>? Members,
         List<string>? AvailabilityTags,
         string? Note,
-        int? WantedPlayerCount);
+        int? WantedPlayerCount,
+        List<uint>? TargetSpellIds);
 }

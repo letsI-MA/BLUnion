@@ -45,3 +45,24 @@ period = 60
 # Cloudflare-Muster: Dev-Default hier/​in .dev.vars, echtes Secret in Produktion). Für lokale
 # Entwicklung/Tests siehe stattdessen worker/.dev.vars (aus .dev.vars.example kopieren) - NICHT
 # hier in [vars], damit auch ein lokaler Test-Schlüssel nicht versehentlich committed wird.
+#
+# Persistente Gruppen-Karten Phase 1.5 (siehe DISCORD_INTEGRATION.md, DATA_CENTER_TO_REGION/
+# syncGroupDiscordCard in src/index.ts) - vier weitere, region-spezifische Webhook-Secrets, aus
+# demselben Grund ebenfalls NIE hier im Klartext, sondern per
+#   wrangler secret put DISCORD_WEBHOOK_NA   (analog für _EU/_JP/_OC)
+# gesetzt bzw. lokal über worker/.dev.vars. Anders als DISCORD_PUBLIC_KEY sind sie im Env-Typ
+# OPTIONAL - eine (noch) nicht konfigurierte Region lässt die Kartenfunktion für diese Region
+# einfach nichts tun, siehe Env.DISCORD_WEBHOOK_NA-Doc in src/index.ts.
+
+# Täglicher Cron Trigger (Phase 1.5, siehe cleanupOrphanedDiscordCards/scheduled-Handler in
+# src/index.ts) - räumt Discord-Karten von Gruppen auf, deren KV-Eintrag still per expirationTtl
+# abgelaufen ist (siehe PROFILE_TTL_SECONDS-Doc dort), ohne dass vorher DELETE /group/:groupId
+# aufgerufen wurde. Einmal täglich reicht völlig: das eigentliche stille TTL-Ablaufen selbst kann
+# frühestens nach TTL_HOURS_MIN=1 Stunde passieren, eine für bis zu ~24h sichtbar bleibende
+# verwaiste Karte ist ein akzeptabler Kompromiss gegenüber einem unnötig häufig laufenden Cron
+# (der pro Lauf für JEDE Region den kompletten discordcards:<region>-Index durchgeht, siehe dort).
+# UTC 03:00 gewählt, weil das für die drei größten Spielerregionen (NA/EU/JP) jeweils außerhalb der
+# Haupt-Spielzeit liegt - reine Höflichkeit gegenüber der Discord-Rate-Limit-Situation, keine
+# harte Notwendigkeit.
+[triggers]
+crons = ["0 3 * * *"]

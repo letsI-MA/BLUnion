@@ -76,6 +76,7 @@
  */
 
 import { base64UrlDecode, generateEditToken, hexToBytes, sha256Hex } from "./crypto";
+import { createWebhookMessage, deleteWebhookMessage, editWebhookMessage, extractWebhookId } from "./discordWebhook";
 import { lookupDataCenter } from "./worlds";
 import { KNOWN_SPELL_IDS } from "./spellIds";
 
@@ -96,6 +97,23 @@ export interface Env {
    * ist genau das von Cloudflare dafür vorgesehene Muster (Dev-Default lokal, echtes Secret in
    * Produktion). */
   DISCORD_PUBLIC_KEY: string;
+  /** Vier region-spezifische Discord-Webhook-URLs (Phase 1.5 "persistente Gruppen-Karten", siehe
+   * DATA_CENTER_TO_REGION/syncGroupDiscordCard unten und DISCORD_INTEGRATION.md) - je EINE pro
+   * FFXIV-Region (NICHT pro Data Center, siehe DATA_CENTER_TO_REGION-Doc), zeigt auf einen
+   * Discord-Webhook im jeweiligen Regions-Kanal. Genau wie DISCORD_PUBLIC_KEY NIE im Code/in
+   * wrangler.toml im Klartext, sondern per
+   *   wrangler secret put DISCORD_WEBHOOK_NA   (analog für _EU/_JP/_OC)
+   * gesetzt bzw. lokal über worker/.dev.vars (siehe .dev.vars.example).
+   *
+   * Anders als DISCORD_PUBLIC_KEY bewusst OPTIONAL: die Karten-Funktion ist reine
+   * Zusatz-Funktionalität (siehe Aufgabenstellung "kein Discord-API-Fehler darf eine
+   * Gruppen-Veröffentlichung/-Änderung/-Löschung fehlschlagen lassen") - eine (noch) nicht
+   * konfigurierte Region lässt syncGroupDiscordCard für Gruppen auf dieser Region schlicht nichts
+   * tun, statt den Worker zum Absturz zu bringen oder den PUT/DELETE abzulehnen. */
+  DISCORD_WEBHOOK_NA?: string;
+  DISCORD_WEBHOOK_EU?: string;
+  DISCORD_WEBHOOK_JP?: string;
+  DISCORD_WEBHOOK_OC?: string;
 }
 
 /** Feste Größe der Spell-Bitmaske - MUSS mit ManualCodeSyncProvider.BitmaskBytes im Plugin
@@ -208,6 +226,81 @@ const DISCORD_RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
  * Gruppe muss keine Ziel-Spells angeben. */
 const GROUP_TARGET_SPELL_COUNT_MAX = 30;
 
+/** FFXIV-Region ("physische" Server-Region, NICHT das einzelne Data Center) - siehe
+ * DATA_CENTER_TO_REGION-Doc direkt unten für die eigentliche Begründung, warum die Discord-Karten
+ * (Phase 1.5) pro REGION statt pro Data Center gebündelt werden. */
+type Region = "NA" | "EU" | "JP" | "OC";
+
+/** Alle vier Regionen als Liste (statt die vier Region-Literale an mehreren Stellen erneut
+ * aufzuzählen, z.B. im Cron-Cleanup unten) - Reihenfolge ist beliebig, wird nirgends als Bedeutung
+ * interpretiert. */
+const ALL_REGIONS: readonly Region[] = ["NA", "EU", "JP", "OC"];
+
+/** Data-Center -> Region-Zuordnung für die persistenten Discord-Gruppen-Karten (Phase 1.5, siehe
+ * DISCORD_INTEGRATION.md/syncGroupDiscordCard unten) - EINZIGE, zentrale Stelle für diese Tabelle
+ * (siehe Aufgabenstellung "nicht mehrfach im Code duplizieren").
+ *
+ * WARUM REGION statt Data Center die Gruppierungseinheit für die Discord-Kanäle ist: innerhalb
+ * einer Region kann ein Spieler jederzeit per "World Visit" zwischen den Data Centern wechseln
+ * (z.B. Aether <-> Crystal), zwischen Regionen dagegen nicht. Eine auf Aether veröffentlichte
+ * Blue-Mage-Gruppe ist für einen Crystal-Spieler also potenziell genauso gut erreichbar wie eine
+ * auf Crystal selbst - ein separater Kanal pro Data Center würde Gruppen künstlich über mehrere
+ * Kanäle verstreuen, obwohl sie faktisch für dieselbe Spielerschaft sichtbar/erreichbar sein
+ * sollten. Jede einzelne Karte zeigt trotzdem weiterhin das KONKRETE Data Center an (siehe
+ * buildGroupCardEmbed) - nur die Kanal-/Webhook-Wahl selbst gruppiert nach Region.
+ *
+ * Bewusst OHNE "Shadow" (EU): das war ein 2024 eingeführtes, noch im selben Jahr wieder
+ * geschlossenes TEMPORÄRES Data Center (Überlauf-Kapazität) - lookupDataCenter()/WORLD_DATA_CENTERS
+ * (siehe worlds.ts) kannten es nie und werden es nie zurückliefern, ein gespeichertes
+ * stored.dataCenter === "Shadow" kann also gar nicht vorkommen. Die 11 hier hinterlegten Data
+ * Center sind damit vollständig - kein Platzhalter für ein zwölftes. */
+const DATA_CENTER_TO_REGION: Readonly<Record<string, Region>> = {
+  // North America
+  Aether: "NA",
+  Crystal: "NA",
+  Dynamis: "NA",
+  Primal: "NA",
+
+  // Europe
+  Chaos: "EU",
+  Light: "EU",
+
+  // Japan
+  Elemental: "JP",
+  Gaia: "JP",
+  Mana: "JP",
+  Meteor: "JP",
+
+  // Oceania
+  Materia: "OC",
+};
+
+/** Case-insensitiver Lookup analog zu lookupDataCenter() in worlds.ts (aus demselben Grund: die
+ * tatsächliche Groß-/Kleinschreibung des gespeicherten dataCenter-Werts soll hier keine Rolle
+ * spielen). null bei einem (noch) nicht in DATA_CENTER_TO_REGION hinterlegten Data Center - siehe
+ * syncGroupDiscordCard, das diesen Fall wie "keine Region/kein Webhook konfiguriert" behandelt,
+ * statt zu werfen. */
+export function regionForDataCenter(dataCenter: string): Region | null {
+  const normalized = dataCenter.toLowerCase();
+  for (const [dc, region] of Object.entries(DATA_CENTER_TO_REGION)) {
+    if (dc.toLowerCase() === normalized)
+      return region;
+  }
+  return null;
+}
+
+/** Liefert die für eine Region konfigurierte Webhook-URL (siehe Env.DISCORD_WEBHOOK_NA-Doc oben) -
+ * undefined, wenn diese Region (noch) nicht konfiguriert ist; der Aufrufer (syncGroupDiscordCard)
+ * behandelt das als "Kartenfunktion für diese Region aktuell nicht verfügbar", nicht als Fehler. */
+function getRegionWebhookUrl(env: Env, region: Region): string | undefined {
+  switch (region) {
+    case "NA": return env.DISCORD_WEBHOOK_NA;
+    case "EU": return env.DISCORD_WEBHOOK_EU;
+    case "JP": return env.DISCORD_WEBHOOK_JP;
+    case "OC": return env.DISCORD_WEBHOOK_OC;
+  }
+}
+
 /** Das in KV gespeicherte JSON (siehe Datenmodell in README.md). editTokenHash verlässt diese
  * Datei NIE in Richtung Client (siehe stripForResponse/stripForBrowseResponse).
  *
@@ -277,7 +370,15 @@ interface GroupMember {
  * KV-Einträge, sondern reine IDs aus dem festen KNOWN_SPELL_IDS-Set (siehe spellIds.ts), gegen das
  * handleGroupPut validiert. Optional aus demselben Rückwärtskompatibilitätsgrund wie die übrigen
  * Phase-2-Felder - Gruppen-Listungen von vor diesem Feature haben es im gespeicherten JSON schlicht
- * nicht. */
+ * nicht.
+ *
+ * discordCard (Phase 1.5, siehe DISCORD_INTEGRATION.md/syncGroupDiscordCard weiter unten): rein
+ * additives, optionales Feld - hält fest, ÜBER WELCHE Discord-Nachricht (welcher Webhook/welche
+ * Region, welche Message-ID) diese Gruppe aktuell eine persistente Kanal-Karte hat, damit ein
+ * späteres Update dieselbe Nachricht per editWebhookMessage aktualisieren statt eine zweite,
+ * doppelte anzulegen. Fehlt bei alten Gruppen-Listungen von vor diesem Feature UND bei Gruppen, für
+ * deren Region (noch) kein Webhook konfiguriert ist - beides schlicht "hat aktuell keine Karte",
+ * siehe syncGroupDiscordCard, KEIN Fehlerzustand. */
 interface StoredGroupProfile {
   groupId: string;
   members: GroupMember[];
@@ -288,8 +389,19 @@ interface StoredGroupProfile {
   wantedPlayerCount?: number;
   targetSpellIds?: number[];
   dataCenter: string;
+  discordCard?: DiscordCard;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Siehe StoredGroupProfile.discordCard-Doc oben. channelWebhookId identifiziert NUR, ÜBER WELCHEN
+ * Webhook zuletzt gepostet wurde (siehe extractWebhookId in discordWebhook.ts) - NIE der Token
+ * selbst, der bleibt ausschließlich im jeweiligen Env.DISCORD_WEBHOOK_*-Secret (siehe Env-Doc oben)
+ * und landet nie in KV. */
+interface DiscordCard {
+  region: Region;
+  channelWebhookId: string;
+  messageId: string;
 }
 
 interface PutGroupRequestBody {
@@ -461,6 +573,69 @@ function kvKey(world: string, characterName: string): string {
  * Schlüssel, den man auf diese Weise deduplizieren müsste. */
 function groupKvKey(groupId: string): string {
   return `group:${groupId}`;
+}
+
+/** KV-Key für den "welche Gruppen haben aktuell eine offene Discord-Karte in dieser Region"-Index
+ * (Phase 1.5, siehe DiscordCardIndexEntry-Doc/cleanupOrphanedDiscordCards weiter unten für die
+ * ausführliche Begründung, WARUM dieser zusätzliche Index überhaupt nötig ist). */
+function discordCardsIndexKey(region: Region): string {
+  return `discordcards:${region}`;
+}
+
+/** EIN Eintrag im "discordcards:<region>"-Index (siehe discordCardsIndexKey) - absichtlich NUR
+ * groupId+messageId, keine weiteren Gruppendaten (die stehen, solange die Gruppe existiert, ohnehin
+ * schon im zugehörigen "group:<groupId>"-Eintrag; siehe cleanupOrphanedDiscordCards, das genau
+ * diesen Zusammenhang nutzt).
+ *
+ * WARUM DIESER INDEX ÜBERHAUPT NÖTIG IST (siehe Aufgabenstellung "bitte VOR der Implementierung
+ * kurz dokumentieren"): Gruppen laufen nicht per explizitem Löschen ab, sondern über KVs
+ * expirationTtl (siehe PROFILE_TTL_SECONDS/resolveTtlSeconds oben) - KV löst dabei KEINEN Code aus,
+ * der Key verschwindet still, ohne jede Benachrichtigung (siehe Klassendoc am Dateianfang). Ein
+ * KV.list({ prefix: "group:" })-Durchlauf (wie ihn z.B. computeGroupsBrowse nutzt) zeigt deshalb
+ * IMMER nur noch existierende Gruppen - genau die bereits abgelaufenen Einträge, um die es beim
+ * Karten-Aufräumen geht, sind darin per Definition NICHT mehr enthalten. Ohne einen SEPARATEN,
+ * eigenständig gepflegten Index gäbe es also keine Möglichkeit, im Nachhinein zu erkennen "Gruppe X
+ * hatte mal eine Karte, X existiert aber nicht mehr, also muss die Karte weg" - die Information
+ * "X hatte mal eine Karte" wäre mit dem group:X-Eintrag selbst mitverschwunden.
+ *
+ * "discordcards:<region>" wird deshalb bei JEDEM Anlegen/Entfernen einer Karte separat mitgepflegt
+ * (siehe addDiscordCardIndexEntry/removeDiscordCardIndexEntry) und hat bewusst KEIN expirationTtl -
+ * sonst könnte der Index-Eintrag selbst VOR dem zugehörigen group:-Eintrag verschwinden, und der
+ * Cron-Vergleich (siehe cleanupOrphanedDiscordCards) würde genau die Fälle verpassen, die er lösen
+ * soll. Der Index bleibt dadurch zwangsläufig "eventually consistent" mit den group:-Einträgen
+ * (siehe auch der bestehende Kommentar zum nativen Rate-Limiting-Binding zum selben Thema) - für
+ * einen täglichen Aufräum-Cron (siehe wrangler.toml [triggers]) völlig ausreichend. */
+interface DiscordCardIndexEntry {
+  groupId: string;
+  messageId: string;
+}
+
+/** Trägt einen {groupId, messageId}-Eintrag in den Index der gegebenen Region ein (siehe
+ * DiscordCardIndexEntry-Doc) - entfernt zuerst einen eventuell vorhandenen ALTEN Eintrag für
+ * dieselbe groupId (z.B. bei einem erneuten Erstellen nach einem Regionswechsel, siehe
+ * syncGroupDiscordCard), damit pro Gruppe/Region nie mehr als ein Eintrag existiert. */
+async function addDiscordCardIndexEntry(env: Env, region: Region, groupId: string, messageId: string): Promise<void> {
+  const key = discordCardsIndexKey(region);
+  const existing = (await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(key, "json")) ?? [];
+  const withoutGroup = existing.filter((entry) => entry.groupId !== groupId);
+  withoutGroup.push({ groupId, messageId });
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(withoutGroup));
+}
+
+/** Entfernt den Eintrag für groupId aus dem Index der gegebenen Region, falls vorhanden - tut
+ * bewusst NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen unnötigen
+ * Schreibzugriff auszulösen. */
+async function removeDiscordCardIndexEntry(env: Env, region: Region, groupId: string): Promise<void> {
+  const key = discordCardsIndexKey(region);
+  const existing = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(key, "json");
+  if (!existing)
+    return;
+
+  const filtered = existing.filter((entry) => entry.groupId !== groupId);
+  if (filtered.length === existing.length)
+    return;
+
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
 }
 
 /** Bewusst als eigene, kleine Funktion statt der Versuchung nachzugeben, einfach das gespeicherte
@@ -792,7 +967,7 @@ async function handleDelete(env: Env, request: Request, world: string, character
  * geändert werden soll (z.B. soll jedes Mitglied die Gruppen-Listung löschen dürfen), müsste der
  * Token stattdessen an alle Mitglieder verteilt oder durch ein anderes Berechtigungsmodell
  * (z.B. eigene Tokens pro Mitglied) ersetzt werden. */
-async function handleGroupPut(env: Env, request: Request, groupId: string): Promise<Response> {
+async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: ExecutionContext): Promise<Response> {
   const rateLimited = await enforceWriteRateLimit(env, request);
   if (rateLimited)
     return rateLimited;
@@ -926,6 +1101,14 @@ async function handleGroupPut(env: Env, request: Request, groupId: string): Prom
     wantedPlayerCount,
     targetSpellIds,
     dataCenter: dataCenter!,
+    // Unverändert aus "existing" übernommen (siehe DiscordCard-Doc) - discordCard wird
+    // AUSSCHLIESSLICH von syncGroupDiscordCard weiter unten geschrieben, NIE hier direkt gesetzt.
+    // Würde man es hier stattdessen weglassen (bzw. auf undefined setzen), ginge die Referenz auf
+    // eine bereits bestehende Karte für das kurze Zeitfenster bis zum Abschluss des
+    // Hintergrund-Syncs verloren - bei einem (theoretisch) fehlschlagenden Sync sogar dauerhaft,
+    // mit einer verwaisten Karte in Discord und einer doppelt angelegten beim nächsten Update als
+    // Folge.
+    discordCard: existing?.discordCard,
     createdAt,
     updatedAt: now,
   };
@@ -934,8 +1117,19 @@ async function handleGroupPut(env: Env, request: Request, groupId: string): Prom
   // ABER: anders als bei Einzelprofilen (die bei jedem gelernten Spell automatisch erneut
   // gepusht werden) gibt es für die Gruppen-Listung selbst KEINEN automatischen Refresh-Trigger
   // (siehe README.md) - eine einmal veröffentlichte Gruppe verschwindet also nach der TTL
-  // automatisch, wenn niemand erneut PUT aufruft.
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: resolveTtlSeconds(body.ttlHours) });
+  // automatisch, wenn niemand erneut PUT aufruft. In einer eigenen Variable (statt wie bisher
+  // inline berechnet), weil syncGroupDiscordCard weiter unten dieselbe TTL für ihren eigenen,
+  // NACHGELAGERTEN Put braucht (siehe dortiger Kommentar) - nicht zweimal aus body.ttlHours neu
+  // ableiten, sondern exakt denselben Wert wiederverwenden.
+  const ttlSeconds = resolveTtlSeconds(body.ttlHours);
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: ttlSeconds });
+
+  // Discord-Kartensynchronisierung (Phase 1.5, siehe syncGroupDiscordCard-Doc) BEWUSST NACH dem
+  // eigentlichen KV-Put UND über ctx.waitUntil statt awaited im Request-Pfad selbst (siehe
+  // Aufgabenstellung: "Fehler dürfen die Response an den ursprünglichen Caller NICHT
+  // beeinflussen") - das Plugin/die Website bekommt seine Antwort dadurch weder verzögert noch
+  // riskiert es, dass ein Discord-Ausfall den PUT scheitern lässt.
+  ctx.waitUntil(syncGroupDiscordCard(env, key, record, ttlSeconds));
 
   const responseBody: Record<string, unknown> = stripForGroupResponse(record);
   if (plaintextEditTokenForResponse)
@@ -1019,7 +1213,9 @@ async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionCont
  * an den referenzierten "profile:"-Einträgen der Mitglieder, die bleiben unabhängig davon
  * bestehen (das ist der ganze Punkt des Referenz-statt-Kopie-Ansatzes, siehe Klassendoc/
  * StoredGroupProfile). */
-async function handleGroupDelete(env: Env, request: Request, groupId: string): Promise<Response> {
+async function handleGroupDelete(
+  env: Env, request: Request, groupId: string, ctx: ExecutionContext,
+): Promise<Response> {
   const rateLimited = await enforceWriteRateLimit(env, request);
   if (rateLimited)
     return rateLimited;
@@ -1038,6 +1234,14 @@ async function handleGroupDelete(env: Env, request: Request, groupId: string): P
     return errorResponse(403, "editToken stimmt nicht mit der gespeicherten Gruppen-Listung überein.");
 
   await env.BLUNION_PROFILES.delete(key);
+
+  // Discord-Karten-Aufräumen (Phase 1.5, siehe Aufgabenstellung Punkt 5) NACH dem KV-Delete, über
+  // ctx.waitUntil statt awaited (siehe identische Begründung in handleGroupPut) - "existing" wurde
+  // bereits VOR dem Delete gelesen und trägt damit noch die zu löschende discordCard, falls
+  // vorhanden.
+  if (existing.discordCard)
+    ctx.waitUntil(removeGroupDiscordCard(env, groupId, existing.discordCard));
+
   return jsonResponse({ deleted: true });
 }
 
@@ -1109,6 +1313,130 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
     value: `Mitglieder (${memberCountLabel}):\n${memberList}\n\nVerfügbarkeit: ${availabilityLabel}`,
     inline: false,
   };
+}
+
+/** Baut das Embed für EINE persistente Gruppen-Karte in einem Regions-Kanal (Phase 1.5, siehe
+ * syncGroupDiscordCard unten) - WIEDERVERWENDET bewusst buildGroupEmbedField (siehe
+ * Aufgabenstellung Punkt 3 "Kartenformat soll sich zwischen /blunion browse und den persistenten
+ * Kanal-Karten nicht auseinanderentwickeln") statt eine zweite, eigene Notiz/Mitglieder/
+ * Verfügbarkeits-Formatierung zu pflegen. StoredGroupProfile.members ist strukturell bereits
+ * exakt DiscordBrowseGroupMember (world+characterName, siehe dortige Interfaces) - keine
+ * Umwandlung nötig.
+ *
+ * Anders als buildGroupsBrowseEmbed (das MEHRERE Gruppen eines Data Centers in einem Embed
+ * auflistet) zeigt eine Kanal-Karte GENAU EINE Gruppe - das konkrete Data Center (wichtig: der
+ * Kanal selbst ist ja nach REGION, nicht DC gruppiert, siehe DATA_CENTER_TO_REGION-Doc) steht
+ * deshalb hier im Embed-Titel statt wie beim Browse-Embed einmal außen für alle Treffer gemeinsam. */
+function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown> {
+  const field = buildGroupEmbedField({
+    groupId: record.groupId,
+    members: record.members,
+    availabilityTags: record.availabilityTags ?? [],
+    note: record.note ?? "",
+    wantedPlayerCount: record.wantedPlayerCount ?? 0,
+  });
+
+  return {
+    title: `Blue Mage Gruppe auf ${record.dataCenter}`,
+    color: 0x2b6cb0,
+    fields: [field],
+  };
+}
+
+/** Legt für eine (bereits als "listed" bestätigte) Gruppe eine NEUE Discord-Karte an - gemeinsam
+ * von syncGroupDiscordCard für den "noch keine Karte"- UND den "Region gewechselt"-Fall genutzt
+ * (siehe dort). Pflegt bei Erfolg zusätzlich den discordcards:<region>-Index mit (siehe
+ * addDiscordCardIndexEntry/DiscordCardIndexEntry-Doc) - bei einem Fehlschlag (siehe
+ * createWebhookMessage: liefert dann null) bleibt der Index unangetastet und die Gruppe hat
+ * schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. */
+async function createGroupDiscordCard(
+  env: Env, region: Region, webhookUrl: string, record: StoredGroupProfile,
+): Promise<DiscordCard | undefined> {
+  const messageId = await createWebhookMessage(webhookUrl, buildGroupCardEmbed(record));
+  if (!messageId)
+    return undefined;
+
+  await addDiscordCardIndexEntry(env, region, record.groupId, messageId);
+  return { region, channelWebhookId: extractWebhookId(webhookUrl) ?? "", messageId };
+}
+
+/** Entfernt die Discord-Karte EINER Gruppe vollständig (Nachricht löschen + Index-Eintrag
+ * entfernen) - gemeinsam genutzt von syncGroupDiscordCard (Gruppe wird unlisted/Region wechselt),
+ * handleGroupDelete (Gruppe wird komplett gelöscht) UND cleanupOrphanedDiscordCards (Cron-Aufräumen
+ * verwaister Karten nach stillem TTL-Ablauf) - alle drei Stellen sollen sich exakt gleich
+ * verhalten, siehe jeweilige Aufrufstellen. Wirft nie (siehe deleteWebhookMessage/
+ * removeDiscordCardIndexEntry - beide fehlerisoliert). */
+async function removeGroupDiscordCard(env: Env, groupId: string, card: DiscordCard): Promise<void> {
+  const webhookUrl = getRegionWebhookUrl(env, card.region);
+  if (webhookUrl)
+    await deleteWebhookMessage(webhookUrl, card.messageId);
+
+  await removeDiscordCardIndexEntry(env, card.region, groupId);
+}
+
+function discordCardsEqual(a: DiscordCard | undefined, b: DiscordCard | undefined): boolean {
+  if (a === b)
+    return true;
+  if (!a || !b)
+    return false;
+
+  return a.region === b.region && a.channelWebhookId === b.channelWebhookId && a.messageId === b.messageId;
+}
+
+/** Nach einem erfolgreichen /group/:groupId-PUT (siehe handleGroupPut) im Hintergrund aufgerufen
+ * (siehe dortiges ctx.waitUntil) - legt/aktualisiert/entfernt die persistente Discord-Kanal-Karte
+ * für diese Gruppe (Phase 1.5, siehe Aufgabenstellung Punkt 4). Läuft KOMPLETT nach der bereits
+ * abgeschickten Antwort an den Aufrufer ab; jeder Fehler bleibt innerhalb dieser Funktion (siehe
+ * discordWebhook.ts-Klassendoc - keine der dort exportierten Funktionen wirft).
+ *
+ * `key`/`ttlSeconds` kommen 1:1 von handleGroupPut (dieselbe expirationTtl wie beim ursprünglichen
+ * Put) - der abschließende KV-Put hier unten schreibt NUR ein ggf. geändertes discordCard-Feld,
+ * alle anderen Felder bleiben exakt `record` wie vom aufrufenden PUT bereits gespeichert. */
+async function syncGroupDiscordCard(
+  env: Env, key: string, record: StoredGroupProfile, ttlSeconds: number,
+): Promise<void> {
+  const existingCard = record.discordCard;
+  const region = regionForDataCenter(record.dataCenter);
+  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+
+  let nextCard: DiscordCard | undefined;
+
+  if (record.visibility !== "listed") {
+    // Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen (siehe
+    // Aufgabenstellung Punkt 4). Wichtig: über existingCard.region gehen, NICHT über die (evtl.
+    // andere) aktuell berechnete "region" - die alte Karte hängt ja im WEBHOOK DER ALTEN Region.
+    if (existingCard)
+      await removeGroupDiscordCard(env, record.groupId, existingCard);
+
+    nextCard = undefined;
+  } else if (!region || !webhookUrl) {
+    // Kein Webhook für diese Region konfiguriert (z.B. lokale Entwicklung ohne alle vier Secrets,
+    // siehe Env-Doc, oder ein Data Center ohne Region-Zuordnung) - die Kartenfunktion ist rein
+    // optional (siehe Aufgabenstellung), also nichts tun statt zu werfen. Eine eventuell
+    // BESTEHENDE Karte bleibt dabei unangetastet (sie wurde ja unter einem damals funktionierenden
+    // Webhook angelegt) statt sie hier fälschlich als "weg" zu behandeln.
+    nextCard = existingCard;
+  } else if (!existingCard) {
+    nextCard = await createGroupDiscordCard(env, region, webhookUrl, record);
+  } else if (existingCard.region !== region) {
+    // Gruppe auf ein anderes Data Center/eine andere Region verschoben (siehe Aufgabenstellung
+    // Punkt 4) - alte Karte im ALTEN Webhook löschen (editWebhookMessage über einen ANDEREN Webhook
+    // hinweg funktioniert bei Discord nicht), neue im NEUEN Webhook anlegen.
+    await removeGroupDiscordCard(env, record.groupId, existingCard);
+    nextCard = await createGroupDiscordCard(env, region, webhookUrl, record);
+  } else {
+    // Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen.
+    await editWebhookMessage(webhookUrl, existingCard.messageId, buildGroupCardEmbed(record));
+    nextCard = existingCard; // region/channelWebhookId/messageId unverändert.
+  }
+
+  // Nur erneut in KV schreiben, wenn sich discordCard tatsächlich geändert hat - der allermeiste
+  // Fall ("gleiche Region, nur Inhalt editiert" ODER "kein Webhook konfiguriert") braucht gar
+  // keinen zweiten Put.
+  if (!discordCardsEqual(existingCard, nextCard)) {
+    const updated: StoredGroupProfile = { ...record, discordCard: nextCard };
+    await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
+  }
 }
 
 /** Discord-Embeds erlauben höchstens 25 "fields" (harte API-Grenze) - mehr Treffer würden von
@@ -1279,6 +1607,33 @@ async function handleDiscordInteractions(env: Env, request: Request): Promise<Re
   }
 }
 
+/** Cron-Cleanup verwaister Discord-Karten (Phase 1.5, siehe scheduled-Handler unten und die
+ * ausführliche "warum ein separater Index nötig ist"-Begründung an DiscordCardIndexEntry oben) -
+ * pro Region den discordcards:<region>-Index durchgehen und für jeden {groupId, messageId}-Eintrag
+ * per get() prüfen, ob "group:<groupId>" noch existiert. Existiert die Gruppe noch, ist ihre Karte
+ * ohnehin bereits über syncGroupDiscordCard aktuell gehalten - hier nichts zu tun. Existiert sie
+ * NICHT mehr (stiller TTL-Ablauf ohne vorheriges DELETE), wird die Karte über dieselbe
+ * removeGroupDiscordCard-Funktion entfernt, die auch der explizite DELETE-Pfad nutzt (siehe
+ * handleGroupDelete) - identisches Verhalten aus einer einzigen Stelle.
+ *
+ * "channelWebhookId" im übergebenen DiscordCard-Objekt ist hier bewusst ein Platzhalter (""): der
+ * Index (siehe DiscordCardIndexEntry) speichert ihn gar nicht erst mit, weil removeGroupDiscordCard
+ * ihn ohnehin nicht braucht (nur region+messageId fließen in deleteWebhookMessage/
+ * getRegionWebhookUrl ein) - eine vierte, hier nutzlose Kopie des Werts zu pflegen wäre unnötig. */
+async function cleanupOrphanedDiscordCards(env: Env): Promise<void> {
+  for (const region of ALL_REGIONS) {
+    const entries = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(discordCardsIndexKey(region), "json");
+    if (!entries || entries.length === 0)
+      continue;
+
+    for (const entry of entries) {
+      const stillExists = await env.BLUNION_PROFILES.get(groupKvKey(entry.groupId));
+      if (stillExists === null)
+        await removeGroupDiscordCard(env, entry.groupId, { region, channelWebhookId: "", messageId: entry.messageId });
+    }
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method === "OPTIONS")
@@ -1355,9 +1710,9 @@ export default {
 
       switch (request.method) {
         case "PUT":
-          return handleGroupPut(env, request, groupId);
+          return handleGroupPut(env, request, groupId, ctx);
         case "DELETE":
-          return handleGroupDelete(env, request, groupId);
+          return handleGroupDelete(env, request, groupId, ctx);
         default:
           return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
       }
@@ -1368,5 +1723,17 @@ export default {
       'Unbekannter Endpoint - erwartet wird "/profile/:world/:characterName", "/profiles/browse", ' +
         '"/group/:groupId", "/groups/browse" oder "/discord/interactions".',
     );
+  },
+
+  /** Cloudflare Cron Trigger (siehe wrangler.toml [triggers], Phase 1.5) - räumt Discord-Karten von
+   * Gruppen auf, deren KV-Eintrag still per expirationTtl abgelaufen ist, OHNE dass vorher DELETE
+   * /group/:groupId aufgerufen wurde (siehe Klassendoc am Dateianfang "KV löst dabei KEINEN Code
+   * aus" und die ausführliche Begründung an DiscordCardIndexEntry oben, WARUM das ohne den
+   * discordcards:<region>-Index gar nicht erkennbar wäre). Über ctx.waitUntil, damit der
+   * Cron-Aufruf selbst nicht auf die komplette Bereinigung warten muss, um als "erfolgreich
+   * angenommen" zu gelten - Fehler einzelner Lösch-Calls sind ohnehin bereits in
+   * removeGroupDiscordCard/discordWebhook.ts abgefangen. */
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(cleanupOrphanedDiscordCards(env));
   },
 };

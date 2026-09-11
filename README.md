@@ -58,12 +58,15 @@ Plugin
 
 Game data lives separately from your own settings, on purpose.
 
-## Discord integration (Phase 1, read-only)
+## Discord integration (Phase 1 read-only + Phase 1.5 persistent cards)
 
 A `/blunion browse` Discord slash command lets people check the group finder straight from
-Discord, without the plugin or the website - see [DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md)
-for setup/registration/testing. Read-only for now; linking a Discord account or publishing/editing
-groups from Discord is a later phase.
+Discord, without the plugin or the website. On top of that, every publicly listed group also gets
+an automatically maintained, persistent card in one of four region channels (North America,
+Europe, Japan, Oceania) - created/edited/removed in step with the group's own lifecycle. See
+[DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md) for setup/registration/testing. Still read-only
+from Discord's side; linking a Discord account or publishing/editing groups *from* Discord is a
+later phase.
 
 ## Known gaps
 

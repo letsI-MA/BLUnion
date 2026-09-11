@@ -11,3 +11,16 @@
 # App -> "General Information" -> "Public Key") - siehe DISCORD_INTEGRATION.md. In Produktion
 # NIEMALS hier, sondern per "wrangler secret put DISCORD_PUBLIC_KEY" gesetzt (siehe wrangler.toml).
 DISCORD_PUBLIC_KEY=
+
+# Vier region-spezifische Discord-Webhook-URLs (Phase 1.5 "persistente Gruppen-Karten", siehe
+# DISCORD_INTEGRATION.md und DATA_CENTER_TO_REGION in src/index.ts) - je EINE pro FFXIV-Region
+# (NICHT pro Data Center), Format ".../api/webhooks/<id>/<token>" (siehe Discord Developer Portal
+# bzw. Kanal-Einstellungen -> Integrationen -> Webhooks -> "Neuer Webhook" -> "Webhook-URL
+# kopieren"). Optional - fehlt eine Region hier, legt/aktualisiert der Worker für Gruppen auf
+# dieser Region einfach keine Karte an, ohne den zugrunde liegenden Gruppen-PUT/DELETE zu
+# beeinträchtigen (siehe Env.DISCORD_WEBHOOK_NA-Doc in src/index.ts). In Produktion NIEMALS hier,
+# sondern per "wrangler secret put DISCORD_WEBHOOK_NA" (analog für _EU/_JP/_OC) gesetzt.
+DISCORD_WEBHOOK_NA=
+DISCORD_WEBHOOK_EU=
+DISCORD_WEBHOOK_JP=
+DISCORD_WEBHOOK_OC=

@@ -139,6 +139,12 @@ bewusste Design-Entscheidung, kein Bug.
 Tags/Notiz) - rührt **nie** an den referenzierten `profile:`-Einträgen der Mitglieder, die bleiben
 davon unabhängig bestehen. Das ist der ganze Punkt des Referenz-statt-Kopie-Ansatzes.
 
+**Discord-Karten (Phase 1.5):** jedes `PUT`/`DELETE` auf `/group/:groupId` pflegt im Hintergrund
+zusätzlich eine persistente Karte in einem von vier region-spezifischen Discord-Kanälen mit (siehe
+[DISCORD_INTEGRATION.md](../DISCORD_INTEGRATION.md)) - rein additiv, ohne Einfluss auf die
+Response/den Erfolg dieser Endpunkte, auch bei einem Discord-Ausfall. Ein täglicher Cron Trigger
+räumt zusätzlich Karten von Gruppen auf, die still per TTL abgelaufen sind.
+
 `GET /groups/browse` liefert je Treffer `{ groupId, members: [{world, characterName,
 spellBitmaskBase64}], availabilityTags, note, wantedPlayerCount, targetSpellIds }` (kein
 `dataCenter`/`visibility`/`editTokenHash`, analog zu `GET /profiles/browse`). `spellBitmaskBase64`

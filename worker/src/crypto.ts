@@ -47,3 +47,22 @@ export function base64UrlDecode(value: string): Uint8Array {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
+
+/** Dekodiert einen Hex-String (z.B. den Discord-Ed25519-Public-Key oder eine
+ * X-Signature-Ed25519-Headerwert, siehe verifyDiscordSignature in index.ts) in rohe Bytes. Wirft
+ * bei ungerader Länge oder ungültigen Zeichen - Aufrufer fängt das ab und behandelt es wie eine
+ * ungültige Signatur (401), statt mit 500 abzubrechen. */
+export function hexToBytes(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0)
+    throw new Error("Ungültige Hex-String-Länge.");
+
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    const byte = Number.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(byte))
+      throw new Error("Ungültiger Hex-String.");
+
+    bytes[i] = byte;
+  }
+  return bytes;
+}

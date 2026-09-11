@@ -16,6 +16,12 @@
  *   PUT    /group/:groupId                  - Gruppen-Listung anlegen/aktualisieren (Phase 2)
  *   DELETE /group/:groupId                  - Gruppen-Listung löschen (X-Edit-Token-Header nötig)
  *   GET    /groups/browse?dataCenter=<DC>   - öffentlicher GRUPPEN-Gruppenfinder (Phase 2, siehe unten)
+ *   POST   /discord/interactions            - Discord-Slash-Command "/blunion browse" (Phase 1,
+ *                                              siehe DISCORD_INTEGRATION.md und
+ *                                              handleDiscordInteractions unten) - rein lesend,
+ *                                              reicht denselben Gruppen-Gruppenfinder oben nur als
+ *                                              Discord-Embed formatiert durch, KEIN eigener
+ *                                              Datenspeicher/keine neue KV-Struktur.
  *
  * RATE-LIMITING: die vier schreibenden Endpunkte (PUT/DELETE auf /profile und /group) sind seit
  * bestätigtem Fremd-Traffic auf dem öffentlichen, tokenlosen PUT über ein IP-basiertes
@@ -69,7 +75,7 @@
  * Browse-Ergebnissen leicht veraltet erscheinen. Bewusster Kompromiss (siehe Aufgabenstellung).
  */
 
-import { base64UrlDecode, generateEditToken, sha256Hex } from "./crypto";
+import { base64UrlDecode, generateEditToken, hexToBytes, sha256Hex } from "./crypto";
 import { lookupDataCenter } from "./worlds";
 import { KNOWN_SPELL_IDS } from "./spellIds";
 
@@ -79,6 +85,17 @@ export interface Env {
    * unten) - schützt AUSSCHLIESSLICH die vier schreibenden Endpunkte (PUT/DELETE auf /profile
    * und /group), nicht die GET-/Browse-Endpunkte (siehe dortige Begründung). */
   WRITE_RATE_LIMITER: RateLimit;
+  /** Ed25519-Public-Key der Discord-Application (Hex-kodiert, exakt wie im Discord Developer
+   * Portal unter "General Information -> Public Key" angezeigt) - einziges Geheimnis der neuen
+   * Discord-Integration (siehe verifyDiscordSignature/handleDiscordInteractions unten und
+   * DISCORD_INTEGRATION.md). In Produktion NIEMALS im Code/in wrangler.toml, sondern per
+   *   wrangler secret put DISCORD_PUBLIC_KEY
+   * gesetzt. Für lokale Entwicklung/Tests kommt der Wert stattdessen aus worker/.dev.vars (siehe
+   * dortige .dev.vars.example) - ein von "wrangler secret put" gesetzter Wert überschreibt beim
+   * Deploy einen gleichnamigen Eintrag aus wrangler.toml [vars] bzw. .dev.vars automatisch, das
+   * ist genau das von Cloudflare dafür vorgesehene Muster (Dev-Default lokal, echtes Secret in
+   * Produktion). */
+  DISCORD_PUBLIC_KEY: string;
 }
 
 /** Feste Größe der Spell-Bitmaske - MUSS mit ManualCodeSyncProvider.BitmaskBytes im Plugin
@@ -121,6 +138,12 @@ const BROWSE_PATH = /^\/profiles\/browse\/?$/;
 const GROUP_PATH = /^\/group\/([^/]+)\/?$/;
 const GROUPS_BROWSE_PATH = /^\/groups\/browse\/?$/;
 
+/** POST /discord/interactions - Discord-Slash-Command-Integration Phase 1 (siehe
+ * DISCORD_INTEGRATION.md und handleDiscordInteractions unten). Rein lesend: reicht "/blunion
+ * browse" an dieselbe handleGroupsBrowse-Kernlogik durch (siehe computeGroupsBrowse), KEIN
+ * Linking/Schreiben (das ist explizit Phase 2, siehe dortige Doku). */
+const DISCORD_INTERACTIONS_PATH = /^\/discord\/interactions\/?$/;
+
 /** Ursprünglich für Phase 2 (Website/Gruppenfinder) vorbereitet, jetzt tatsächlich gebraucht
  * (siehe handleBrowse) - vom Plugin aus für die reinen /profile/-Endpunkte weiterhin nicht
  * zwingend nötig, kostet aber nichts, überall gesetzt zu sein. */
@@ -153,6 +176,30 @@ const WANTED_PLAYER_COUNT_MAX = 8;
  * wie WANTED_PLAYER_COUNT_MAX oben). */
 const GROUP_MEMBER_COUNT_MIN = 1;
 const GROUP_MEMBER_COUNT_MAX = 8;
+
+/** Basis-URL der Web-Companion-Seite (docs/index.html, siehe README.md "browser companion" -
+ * https://letsi-ma.github.io/BLUnion/) - für den Link-Button im Discord-Browse-Embed (siehe
+ * buildGroupsBrowseEmbed), damit Discord-Nutzer ohne installiertes Plugin trotzdem eine Gruppe
+ * ansehen können. Bewusst als eigene Konstante HIER (nicht im Env-Binding wie DISCORD_PUBLIC_KEY):
+ * es ist eine öffentliche, feste GitHub-Pages-URL, kein Geheimnis, und identisch zu der bereits
+ * bestehenden WORKER_BASE_URL-Konstante in docs/index.html - nur eben die URL der Website selbst,
+ * nicht die des Workers/der API. */
+const COMPANION_WEBSITE_URL = "https://letsi-ma.github.io/BLUnion/";
+
+/** Von Discord vorgegebene Interaction-/Response-Typen (siehe
+ * https://discord.com/developers/docs/interactions/receiving-and-responding) - hier NUR die für
+ * Phase 1 tatsächlich gebrauchten Werte als benannte Konstanten hinterlegt, statt ein komplettes
+ * SDK/Typpaket einzubinden (siehe Aufgabenstellung "keine unnötigen Abhängigkeiten"). */
+const DISCORD_INTERACTION_TYPE_PING = 1;
+const DISCORD_INTERACTION_TYPE_APPLICATION_COMMAND = 2;
+const DISCORD_OPTION_TYPE_SUB_COMMAND = 1;
+const DISCORD_RESPONSE_TYPE_PONG = 1;
+const DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE = 4;
+/** Aktuell ungenutzt (Phase 1 antwortet ausschließlich direkt, siehe handleDiscordBrowse) - schon
+ * hier benannt hinterlegt, weil eine spätere Phase (z.B. schreibende Commands mit externem
+ * API-Aufruf) auf denselben Konstantennamen zurückgreifen soll, statt den magischen Wert 5 dann
+ * erneut irgendwo einzuführen. */
+const DISCORD_RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 
 /** Obergrenze für StoredGroupProfile.targetSpellIds (siehe handleGroupPut/isValidTargetSpellIds) -
  * bewusst deutlich unter der Gesamtzahl bekannter Spells (siehe KNOWN_SPELL_IDS, aktuell 124):
@@ -254,6 +301,47 @@ interface PutGroupRequestBody {
   wantedPlayerCount?: unknown;
   targetSpellIds?: unknown;
   ttlHours?: unknown;
+}
+
+/** Minimale, nur für Phase 1 gebrauchte Typisierung der eingehenden Discord-Interaction (siehe
+ * handleDiscordInteractions unten) - absichtlich kein vollständiges Interaction-Schema (Discord
+ * schickt deutlich mehr Felder, u.a. guild_id/member/channel_id), da diese hier nicht ausgewertet
+ * werden. Kein separates SDK/Typpaket (siehe Aufgabenstellung "keine unnötigen Abhängigkeiten"). */
+interface DiscordInteraction {
+  type: number;
+  data?: DiscordInteractionCommandData;
+}
+
+/** "options" ist bei einem Sub-Command-Aufruf ("/blunion browse ...") verschachtelt: das äußere
+ * data.options[] enthält EIN Element vom Typ SUB_COMMAND ("browse"), dessen EIGENE options[]
+ * wiederum die tatsächlichen Parameter des Sub-Commands (hier "datacenter") trägt - siehe
+ * findDiscordSubcommand/findDiscordStringOption. */
+interface DiscordInteractionCommandData {
+  name: string;
+  options?: DiscordInteractionOption[];
+}
+
+interface DiscordInteractionOption {
+  name: string;
+  type: number;
+  value?: string | number | boolean;
+  options?: DiscordInteractionOption[];
+}
+
+/** Response-Shape von handleGroupsBrowse/computeGroupsBrowse (siehe dort) - hier separat
+ * typisiert, weil handleDiscordBrowse das per JSON.parse zurückerhaltene Ergebnis wieder in ein
+ * Discord-Embed umbaut (siehe buildGroupsBrowseEmbed) und dafür Feldnamen/-typen braucht. */
+interface DiscordBrowseGroupMember {
+  world: string;
+  characterName: string;
+}
+
+interface DiscordBrowseGroup {
+  groupId: string;
+  members: DiscordBrowseGroupMember[];
+  availabilityTags: string[];
+  note: string;
+  wantedPlayerCount: number;
 }
 
 /** Liefert die tatsächlich zu setzende expirationTtl (Sekunden) aus dem optionalen
@@ -856,68 +944,72 @@ async function handleGroupPut(env: Env, request: Request, groupId: string): Prom
   return jsonResponse(responseBody, existing ? 200 : 201);
 }
 
-/** GET /groups/browse?dataCenter=<DC> - öffentlicher Gruppen-Gruppenfinder (Phase 2), analog zu
- * handleBrowse für Einzelprofile (gleiche list()+Cursor-Pagination, gleicher
- * dataCenter+visibility-Filter in-memory), ABER mit einem zusätzlichen Nachlade-Schritt: eine
- * Gruppen-Listung speichert selbst KEINE Spell-Bitmaske (siehe StoredGroupProfile-Doc), daher
- * wird hier pro Treffer für JEDES Mitglied das zugehörige "profile:"-KV-Objekt per get()
- * nachgeladen, um dessen spellBitmaskBase64 einzusetzen. Das bedeutet pro Gruppen-Treffer
- * zusätzlich N Einzelprofil-Lookups (N = Mitgliederzahl) und verschärft damit die bereits bei
- * handleBrowse dokumentierte Browse-Skalierungsgrenze zusätzlich - bewusst nicht optimiert,
- * siehe dortigen Kommentar zum selben Thema. */
+/** Kernlogik von GET /groups/browse (Nachschlagen+Filtern+members-Anreicherung), OHNE das
+ * HTTP-Cache-Wrapping von handleGroupsBrowse (siehe withCache dort) - aus handleGroupsBrowse
+ * herausgelöst (siehe Klassendoc "minimal refaktorieren"), damit der neue Discord-Slash-Command
+ * "/blunion browse" (siehe handleDiscordBrowse unten) exakt dieselbe Logik nutzen kann, ohne sie
+ * zu duplizieren. Verhalten 1:1 identisch zum vorherigen Code innerhalb des withCache-Callbacks -
+ * nur ausgeschnitten, nicht verändert; GET /groups/browse selbst verhält sich dadurch unverändert. */
+async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise<Response> {
+  if (!dataCenter)
+    return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
+
+  const normalizedDataCenter = dataCenter.toLowerCase();
+  const results: Record<string, unknown>[] = [];
+
+  let cursor: string | undefined;
+  do {
+    const listResult = await env.BLUNION_PROFILES.list({ prefix: "group:", cursor });
+
+    for (const listedKey of listResult.keys) {
+      const stored = await env.BLUNION_PROFILES.get<StoredGroupProfile>(listedKey.name, "json");
+      if (!stored)
+        continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
+
+      if (stored.visibility !== "listed" || stored.dataCenter.toLowerCase() !== normalizedDataCenter)
+        continue;
+
+      // Pro Mitglied das zugehörige Einzelprofil nachladen (siehe Funktionsdoc oben). Fehlt es
+      // (gelöscht/abgelaufen/nie gepusht), wird das Mitglied TROTZDEM aufgelistet, nur mit
+      // spellBitmaskBase64: null - NICHT der ganze Gruppen-Treffer verworfen (analog zum
+      // bestehenden "Zwischen list() und get() gelöscht"-Muster oben, hier auf Mitglieder- statt
+      // Eintrags-Ebene angewendet).
+      const members = await Promise.all(stored.members.map(async (member) => {
+        const memberProfile = await env.BLUNION_PROFILES.get<StoredProfile>(
+          kvKey(member.world, member.characterName), "json");
+
+        return {
+          world: member.world,
+          characterName: member.characterName,
+          spellBitmaskBase64: memberProfile?.spellBitmaskBase64 ?? null,
+        };
+      }));
+
+      results.push({
+        groupId: stored.groupId,
+        members,
+        availabilityTags: stored.availabilityTags ?? [],
+        note: stored.note ?? "",
+        wantedPlayerCount: stored.wantedPlayerCount ?? 0,
+        targetSpellIds: stored.targetSpellIds ?? [],
+      });
+    }
+
+    cursor = listResult.list_complete ? undefined : listResult.cursor;
+  } while (cursor);
+
+  return jsonResponse(results);
+}
+
+/** GET /groups/browse?dataCenter=<DC> - öffentlicher Gruppen-Gruppenfinder (Phase 2) - dünner
+ * HTTP-Wrapper um computeGroupsBrowse (siehe dort für die eigentliche Logik): liest "dataCenter"
+ * aus der Query und legt NUR die Berechnung selbst hinter withCache (siehe dortigen Kommentar zum
+ * selben Muster bei handleBrowse) - der "dataCenter fehlt"-400-Fehler wird über response.ok in
+ * withCache ohnehin nie gecached. */
 async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
-  // Siehe handleBrowse-Kommentar oben - nur die eigentliche Berechnung läuft hinter withCache.
-  return withCache(request, ctx, async () => {
+  return withCache(request, ctx, () => {
     const url = new URL(request.url);
-    const dataCenter = url.searchParams.get("dataCenter");
-    if (!dataCenter)
-      return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
-
-    const normalizedDataCenter = dataCenter.toLowerCase();
-    const results: Record<string, unknown>[] = [];
-
-    let cursor: string | undefined;
-    do {
-      const listResult = await env.BLUNION_PROFILES.list({ prefix: "group:", cursor });
-
-      for (const listedKey of listResult.keys) {
-        const stored = await env.BLUNION_PROFILES.get<StoredGroupProfile>(listedKey.name, "json");
-        if (!stored)
-          continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
-
-        if (stored.visibility !== "listed" || stored.dataCenter.toLowerCase() !== normalizedDataCenter)
-          continue;
-
-        // Pro Mitglied das zugehörige Einzelprofil nachladen (siehe Funktionsdoc oben). Fehlt es
-        // (gelöscht/abgelaufen/nie gepusht), wird das Mitglied TROTZDEM aufgelistet, nur mit
-        // spellBitmaskBase64: null - NICHT der ganze Gruppen-Treffer verworfen (analog zum
-        // bestehenden "Zwischen list() und get() gelöscht"-Muster oben, hier auf Mitglieder- statt
-        // Eintrags-Ebene angewendet).
-        const members = await Promise.all(stored.members.map(async (member) => {
-          const memberProfile = await env.BLUNION_PROFILES.get<StoredProfile>(
-            kvKey(member.world, member.characterName), "json");
-
-          return {
-            world: member.world,
-            characterName: member.characterName,
-            spellBitmaskBase64: memberProfile?.spellBitmaskBase64 ?? null,
-          };
-        }));
-
-        results.push({
-          groupId: stored.groupId,
-          members,
-          availabilityTags: stored.availabilityTags ?? [],
-          note: stored.note ?? "",
-          wantedPlayerCount: stored.wantedPlayerCount ?? 0,
-          targetSpellIds: stored.targetSpellIds ?? [],
-        });
-      }
-
-      cursor = listResult.list_complete ? undefined : listResult.cursor;
-    } while (cursor);
-
-    return jsonResponse(results);
+    return computeGroupsBrowse(env, url.searchParams.get("dataCenter"));
   });
 }
 
@@ -949,6 +1041,244 @@ async function handleGroupDelete(env: Env, request: Request, groupId: string): P
   return jsonResponse({ deleted: true });
 }
 
+/** Verifiziert die Ed25519-Signatur eines eingehenden Discord-Interaction-Requests (siehe
+ * https://discord.com/developers/docs/interactions/overview#setting-up-an-endpoint) - MUSS als
+ * ALLERERSTER Schritt in handleDiscordInteractions passieren, VOR jeder weiteren Verarbeitung des
+ * Bodys (siehe Aufgabenstellung), sonst könnte ein Angreifer beliebige, nicht von Discord
+ * stammende "Interactions" einschleusen.
+ *
+ * Bewusst über die Web Crypto API (SubtleCrypto) statt Node-"crypto": Node-"crypto" ist in der
+ * Workers-Runtime nicht verfügbar (siehe Aufgabenstellung), SubtleCrypto dagegen schon immer.
+ * signature/publicKey kommen als Hex-Strings (siehe Discord-Doku bzw. hier env.DISCORD_PUBLIC_KEY,
+ * siehe Env-Doc oben) - importKey erwartet dafür rohe Bytes, siehe hexToBytes (crypto.ts). Die zu
+ * verifizierende Nachricht ist laut Discord-Doku exakt "timestamp + rawBody" (String-Konkatenation,
+ * dann UTF-8-kodiert), NICHT nur der Body allein - deshalb braucht diese Funktion den rohen,
+ * NOCH NICHT geparsten Body als eigenes Argument (siehe Aufrufstelle: request.text() statt
+ * request.json(), damit exakt dieselben Bytes signiert/verifiziert werden, die Discord gesendet
+ * hat, unabhängig von JSON.stringify-Rundungsfehlern beim Re-Serialisieren).
+ *
+ * Gibt bei JEDEM Problem (fehlender Header, kein DISCORD_PUBLIC_KEY konfiguriert, ungültiges Hex,
+ * falsche Signatur) einheitlich false zurück statt zu werfen - der Aufrufer muss dadurch nur EINEN
+ * Fall behandeln ("ungültig -> 401"), egal aus welchem Grund die Verifikation fehlschlug. */
+async function verifyDiscordSignature(env: Env, request: Request, rawBody: string): Promise<boolean> {
+  const signatureHeader = request.headers.get("X-Signature-Ed25519");
+  const timestampHeader = request.headers.get("X-Signature-Timestamp");
+  if (!signatureHeader || !timestampHeader || !env.DISCORD_PUBLIC_KEY)
+    return false;
+
+  try {
+    const publicKey = await crypto.subtle.importKey(
+      "raw",
+      hexToBytes(env.DISCORD_PUBLIC_KEY),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    );
+
+    const message = new TextEncoder().encode(timestampHeader + rawBody);
+    return await crypto.subtle.verify({ name: "Ed25519" }, publicKey, hexToBytes(signatureHeader), message);
+  } catch {
+    // Ungültiges Hex (falsche Länge/Zeichen) in Header ODER Secret landet hier (siehe
+    // hexToBytes-Doc) - wie jeder andere Verifikationsfehlschlag als "ungültige Signatur"
+    // behandelt, nicht als Serverfehler (kein 500).
+    return false;
+  }
+}
+
+/** Baut EIN "field" für das Discord-Browse-Embed aus einer Gruppe (siehe buildGroupsBrowseEmbed) -
+ * Gruppenname existiert nicht als eigenes Feld (siehe StoredGroupProfile), "note" übernimmt diese
+ * Rolle im UI. Mitgliederliste als "World CharacterName" pro Zeile (siehe Aufgabenstellung) -
+ * bewusst OHNE spellBitmaskBase64 (für Menschen im Discord-Embed nicht lesbar/nützlich, anders als
+ * fürs Plugin) und OHNE editToken/sonstige interne Felder (die stehen ohnehin nicht im Ergebnis
+ * von computeGroupsBrowse, siehe dort). */
+function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value: string; inline: boolean } {
+  const memberList = group.members
+    .map((member) => `${member.world} ${member.characterName}`)
+    .join("\n");
+
+  // wantedPlayerCount === 0 bedeutet "egal wie viele" (siehe WANTED_PLAYER_COUNT_MIN-Doc oben) -
+  // dafür nur die aktuelle Mitgliederzahl zeigen statt eines verwirrenden "3/0".
+  const memberCountLabel = group.wantedPlayerCount > 0
+    ? `${group.members.length}/${group.wantedPlayerCount}`
+    : `${group.members.length}`;
+
+  const availabilityLabel = group.availabilityTags.length > 0 ? group.availabilityTags.join(", ") : "-";
+
+  return {
+    name: group.note.length > 0 ? group.note : "(ohne Notiz)",
+    value: `Mitglieder (${memberCountLabel}):\n${memberList}\n\nVerfügbarkeit: ${availabilityLabel}`,
+    inline: false,
+  };
+}
+
+/** Discord-Embeds erlauben höchstens 25 "fields" (harte API-Grenze) - mehr Treffer würden von
+ * Discord komplett abgelehnt statt nur gekappt. Phase 1 kappt deshalb selbst und weist im
+ * description-Feld auf die Kappung hin, statt sich auf Discord zu verlassen. */
+const DISCORD_EMBED_MAX_GROUP_FIELDS = 25;
+
+/** Baut das komplette Discord-Embed für "/blunion browse" aus dem (bereits gefilterten) Ergebnis
+ * von computeGroupsBrowse (siehe handleDiscordBrowse) - siehe buildGroupEmbedField für ein
+ * einzelnes Gruppen-Feld. dataCenter kommt hier NUR für die Titelzeile zum Einsatz (das Ergebnis
+ * selbst enthält kein dataCenter-Feld je Gruppe, siehe DiscordBrowseGroup/computeGroupsBrowse -
+ * alle Treffer teilen ohnehin dasselbe, vom Aufrufer angegebene Data Center). */
+function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]): Record<string, unknown> {
+  const shownGroups = groups.slice(0, DISCORD_EMBED_MAX_GROUP_FIELDS);
+
+  return {
+    title: `Blue Mage Gruppen auf ${dataCenter}`,
+    description: groups.length > shownGroups.length
+      ? `Zeige ${shownGroups.length} von ${groups.length} gelisteten Gruppen.`
+      : undefined,
+    color: 0x2b6cb0,
+    fields: shownGroups.map(buildGroupEmbedField),
+  };
+}
+
+/** Action-Row mit einem Link-Button zur bestehenden Web-Companion-Seite (siehe
+ * COMPANION_WEBSITE_URL-Doc oben) - style 5 ("Link") braucht laut Discord-API KEINE custom_id
+ * (anders als z.B. ein Button, der eine eigene Interaction auslösen würde) und öffnet die URL
+ * direkt im Browser. Als Konstante statt bei jedem Aufruf neu gebaut, da sie sich nie ändert. */
+const DISCORD_WEBSITE_LINK_COMPONENTS = [
+  {
+    type: 1, // Action Row
+    components: [
+      {
+        type: 2, // Button
+        style: 5, // Link
+        label: "Companion-Website öffnen",
+        url: COMPANION_WEBSITE_URL,
+      },
+    ],
+  },
+];
+
+/** Baut eine direkte Discord-Interaction-Response (type 4, siehe DISCORD_RESPONSE_TYPE_
+ * CHANNEL_MESSAGE_WITH_SOURCE-Doc oben) mit reinem Text-Inhalt - für Fehlermeldungen/leere
+ * Ergebnisse (siehe handleDiscordBrowse), wo ein leeres Embed keinen Mehrwert hätte (siehe
+ * Aufgabenstellung "klare, freundliche Meldung statt leerem Embed"). */
+function discordMessageResponse(content: string): Response {
+  return jsonResponse({
+    type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
+    data: { content },
+  });
+}
+
+/** "/blunion browse [datacenter]" - reicht dieselbe Kernlogik wie GET /groups/browse (siehe
+ * computeGroupsBrowse) durch und formatiert das Ergebnis als Discord-Embed (siehe
+ * buildGroupsBrowseEmbed). Nur visibility==="listed"-Gruppen sind überhaupt im Ergebnis von
+ * computeGroupsBrowse enthalten (siehe dort) - hier also nichts zusätzlich zu tun, um das
+ * sicherzustellen (siehe Aufgabenstellung Punkt 4).
+ *
+ * dataCenter ist die vom Discord-Nutzer als Sub-Command-Option übergebene "datacenter"-Option
+ * (siehe handleDiscordApplicationCommand) - anders als beim HTTP-Endpoint hier absichtlich KEIN
+ * hartes 400, sondern eine normale Chat-Antwort bei fehlendem/unbekanntem Wert (siehe
+ * Aufgabenstellung Punkt 4 "Fehlermeldung analog zum bestehenden Verhalten von GET
+ * /groups/browse"): eine rohe HTTP-4xx-Response würde Discord nur als "App hat nicht geantwortet"
+ * anzeigen, keine lesbare Fehlermeldung im Kanal. */
+async function handleDiscordBrowse(env: Env, dataCenter: string | undefined): Promise<Response> {
+  if (!dataCenter) {
+    return discordMessageResponse(
+      'Bitte ein Data Center angeben, z.B. "/blunion browse datacenter:Aether".',
+    );
+  }
+
+  const browseResponse = await computeGroupsBrowse(env, dataCenter);
+  if (!browseResponse.ok) {
+    const errorBody = await browseResponse.json().catch(() => null) as { error?: string } | null;
+    return discordMessageResponse(errorBody?.error ?? "Beim Abrufen der Gruppen ist ein Fehler aufgetreten.");
+  }
+
+  const groups = await browseResponse.json<DiscordBrowseGroup[]>();
+  if (groups.length === 0)
+    return discordMessageResponse(`Keine öffentlich gelisteten Gruppen auf "${dataCenter}" gefunden.`);
+
+  return jsonResponse({
+    type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      embeds: [buildGroupsBrowseEmbed(dataCenter, groups)],
+      components: DISCORD_WEBSITE_LINK_COMPONENTS,
+    },
+  });
+}
+
+/** Sucht in den options[] einer Command-Interaction den Sub-Command mit dem gegebenen Namen (siehe
+ * DiscordInteractionCommandData-Doc oben zur Verschachtelung) - DISCORD_OPTION_TYPE_SUB_COMMAND
+ * (1) grenzt das gegen andere, potenzielle Top-Level-Optionen ab. */
+function findDiscordSubcommand(
+  data: DiscordInteractionCommandData | undefined,
+  name: string,
+): DiscordInteractionOption | undefined {
+  return data?.options?.find((option) => option.type === DISCORD_OPTION_TYPE_SUB_COMMAND && option.name === name);
+}
+
+/** Liest den String-Wert EINER benannten Option aus den options[] eines Sub-Commands (siehe
+ * findDiscordSubcommand) - z.B. "datacenter" aus "/blunion browse datacenter:Aether". undefined,
+ * wenn die Option fehlt oder (sollte nie passieren, Discord validiert den Typ serverseitig gegen
+ * die registrierte Command-Definition) keinen String-Wert trägt. */
+function findDiscordStringOption(options: DiscordInteractionOption[] | undefined, name: string): string | undefined {
+  const option = options?.find((candidate) => candidate.name === name);
+  return typeof option?.value === "string" ? option.value : undefined;
+}
+
+/** Dispatcht eine APPLICATION_COMMAND-Interaction (siehe handleDiscordInteractions) - Phase 1
+ * kennt ausschließlich "/blunion browse" (siehe Aufgabenstellung: "noch KEIN Linking, KEIN
+ * /blunion link, KEINE Schreiboperationen"). Unbekannte Commands/Sub-Commands enden in einer
+ * normalen Chat-Antwort statt eines Fehlerstatus (siehe handleDiscordBrowse-Doc zum selben Grund):
+ * kann bei einer künftig geänderten Command-Registrierung auftreten (z.B. ein Sub-Command wird
+ * umbenannt, aber der alte Command bleibt in einem Server noch gecached), soll dann aber nicht wie
+ * ein Serverfehler wirken. */
+async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInteraction): Promise<Response> {
+  if (interaction.data?.name !== "blunion")
+    return discordMessageResponse(`Unbekannter Command "${interaction.data?.name ?? "?"}".`);
+
+  const browseSubcommand = findDiscordSubcommand(interaction.data, "browse");
+  if (!browseSubcommand)
+    return discordMessageResponse('Unbekannter Sub-Command - aktuell wird nur "browse" unterstützt.');
+
+  const dataCenter = findDiscordStringOption(browseSubcommand.options, "datacenter");
+  return handleDiscordBrowse(env, dataCenter);
+}
+
+/** POST /discord/interactions - Einstiegspunkt der neuen, rein lesenden Discord-Integration Phase
+ * 1 (siehe DISCORD_INTERACTIONS_PATH/DISCORD_INTEGRATION.md). Reihenfolge ist bewusst so und NICHT
+ * vertauschbar (siehe Aufgabenstellung "Signaturverifikation als ERSTER Schritt"):
+ *   1. rawBody per request.text() lesen (EINMAL, siehe verifyDiscordSignature-Doc zum
+ *      Body-ist-ein-einmal-lesbarer-Stream-Problem - JSON.parse danach arbeitet auf demselben
+ *      bereits gelesenen String, kein zweiter request.json()-Aufruf nötig/möglich).
+ *   2. Signatur verifizieren - JEDER Fehlschlag (inkl. fehlender Header) führt SOFORT zu 401, OHNE
+ *      den Body weiter zu verarbeiten (kein JSON.parse, kein Dispatch).
+ *   3. ERST DANACH den (jetzt vertrauenswürdigen) Body als JSON parsen und nach Interaction-Typ
+ *      dispatchen (PING -> PONG, APPLICATION_COMMAND -> handleDiscordApplicationCommand, alles
+ *      andere -> Fehlerantwort ohne Crash). */
+async function handleDiscordInteractions(env: Env, request: Request): Promise<Response> {
+  const rawBody = await request.text();
+
+  const isValidSignature = await verifyDiscordSignature(env, request, rawBody);
+  if (!isValidSignature)
+    return new Response("Ungültige Anfrage-Signatur.", { status: 401 });
+
+  let interaction: DiscordInteraction;
+  try {
+    interaction = JSON.parse(rawBody);
+  } catch {
+    return errorResponse(400, "Ungültiger JSON-Body.");
+  }
+
+  switch (interaction.type) {
+    case DISCORD_INTERACTION_TYPE_PING:
+      // Von Discord beim Einrichten der Interactions Endpoint URL im Developer Portal gefordert
+      // (siehe DISCORD_INTEGRATION.md) - OHNE eine korrekte PONG-Antwort verweigert Discord das
+      // Speichern der Endpoint-URL.
+      return jsonResponse({ type: DISCORD_RESPONSE_TYPE_PONG });
+
+    case DISCORD_INTERACTION_TYPE_APPLICATION_COMMAND:
+      return handleDiscordApplicationCommand(env, interaction);
+
+    default:
+      return errorResponse(400, `Unbekannter Interaction-Typ ${interaction.type}.`);
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (request.method === "OPTIONS")
@@ -977,6 +1307,17 @@ export default {
         return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
 
       return handleGroupsBrowse(env, request, ctx);
+    }
+
+    // Neue, rein lesende Discord-Slash-Command-Integration Phase 1 (siehe
+    // DISCORD_INTEGRATION.md/handleDiscordInteractions) - ebenfalls als eigener, sichtbarer Zweig
+    // VOR den PROFILE_PATH/GROUP_PATH-Regex-Abgleichen (die für "/discord/interactions" ohnehin
+    // nie matchen würden, siehe Begründung bei BROWSE_PATH/GROUPS_BROWSE_PATH oben).
+    if (DISCORD_INTERACTIONS_PATH.test(url.pathname)) {
+      if (request.method !== "POST")
+        return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
+
+      return handleDiscordInteractions(env, request);
     }
 
     const profileMatch = url.pathname.match(PROFILE_PATH);
@@ -1025,7 +1366,7 @@ export default {
     return errorResponse(
       404,
       'Unbekannter Endpoint - erwartet wird "/profile/:world/:characterName", "/profiles/browse", ' +
-        '"/group/:groupId" oder "/groups/browse".',
+        '"/group/:groupId", "/groups/browse" oder "/discord/interactions".',
     );
   },
 };

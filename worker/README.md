@@ -58,6 +58,7 @@ Update neu gesetzt) - kein Cron-Job nötig.
 | `GET` | `/profile/:world/:characterName` | keine | Profil abrufen (öffentlich lesbar, siehe Aufgabenstellung) |
 | `DELETE` | `/profile/:world/:characterName` | Header `X-Edit-Token` | Profil löschen |
 | `GET` | `/profiles/browse?dataCenter=<DC>` | keine | Gruppenfinder: alle `listed`-Profile auf diesem Data Center |
+| `POST` | `/discord/interactions` | Ed25519-Signatur (Discord-Header, siehe [DISCORD_INTEGRATION.md](../DISCORD_INTEGRATION.md)) | Discord-Slash-Command `/blunion browse` (Phase 1, rein lesend) |
 
 `:world` und `:characterName` müssen URI-komponenten-kodiert werden (Charakternamen enthalten
 oft Leerzeichen/Apostrophe).

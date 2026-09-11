@@ -58,6 +58,13 @@ Plugin
 
 Game data lives separately from your own settings, on purpose.
 
+## Discord integration (Phase 1, read-only)
+
+A `/blunion browse` Discord slash command lets people check the group finder straight from
+Discord, without the plugin or the website - see [DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md)
+for setup/registration/testing. Read-only for now; linking a Discord account or publishing/editing
+groups from Discord is a later phase.
+
 ## Known gaps
 
 - 2 of 124 spells don't have full source info yet

@@ -36,3 +36,12 @@ namespace_id = "1"
 [ratelimits.simple]
 limit = 20
 period = 60
+
+# Discord-Slash-Command-Integration Phase 1 (siehe DISCORD_INTEGRATION.md und
+# handleDiscordInteractions/Env.DISCORD_PUBLIC_KEY in src/index.ts) - der eigentliche Wert wird
+# NIE hier eingetragen (siehe Aufgabenstellung "keine Secrets im Code"), sondern für Produktion per
+#   wrangler secret put DISCORD_PUBLIC_KEY
+# gesetzt - das überschreibt einen gleichnamigen [vars]-Eintrag automatisch (offizielles
+# Cloudflare-Muster: Dev-Default hier/​in .dev.vars, echtes Secret in Produktion). Für lokale
+# Entwicklung/Tests siehe stattdessen worker/.dev.vars (aus .dev.vars.example kopieren) - NICHT
+# hier in [vars], damit auch ein lokaler Test-Schlüssel nicht versehentlich committed wird.

@@ -1,0 +1,13 @@
+# Lokale Entwicklungs-/Test-Secrets für den BLUnion-Worker (siehe worker/.gitignore -
+# ".dev.vars" selbst wird NIE committed). Diese Datei hier IST committed - kopiere sie einmalig zu
+# ".dev.vars" im selben Ordner und trag dort deine eigenen Werte ein:
+#
+#   cp .dev.vars.example .dev.vars
+#
+# Wird sowohl von "wrangler dev" als auch von "npm test" (siehe vitest.config.mts/
+# @cloudflare/vitest-plugin, das dieselbe wrangler.toml + .dev.vars lädt) automatisch gelesen.
+
+# Ed25519-Public-Key deiner Discord-Application (Hex, siehe Discord Developer Portal -> deine
+# App -> "General Information" -> "Public Key") - siehe DISCORD_INTEGRATION.md. In Produktion
+# NIEMALS hier, sondern per "wrangler secret put DISCORD_PUBLIC_KEY" gesetzt (siehe wrangler.toml).
+DISCORD_PUBLIC_KEY=

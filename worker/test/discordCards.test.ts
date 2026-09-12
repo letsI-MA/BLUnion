@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { regionForDataCenter } from "../src/index";
 import { setDiscordFetchForTests } from "../src/discordWebhook";
-import { deleteGroup, putGroup, uniqueName } from "./helpers";
+import { deleteGroup, KNOWN_SPELL_IDS_SAMPLE, putGroup, uniqueName } from "./helpers";
 
 /**
  * Tests für die persistenten Discord-Gruppen-Karten (Phase 1.5, siehe DISCORD_INTEGRATION.md und
@@ -155,6 +155,32 @@ describe("persistent Discord group cards - creation and updates", () => {
     expect(field.value).toContain(memberName);
     expect(field.value).toContain("evening");
     expect(field.value).toContain("1/3");
+  });
+
+  it("shows targetSpellIds as sorted order numbers on the card, and omits the line when empty", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    await putGroup(uniqueName("discordcard-spells-"), {
+      members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
+      visibility: "listed",
+      note: "Karte mit Ziel-Spells",
+      targetSpellIds: [KNOWN_SPELL_IDS_SAMPLE[1], KNOWN_SPELL_IDS_SAMPLE[0]],
+    });
+
+    const postCalls = calls.filter((call) => call.method === "POST");
+    const field = postCalls[0]!.body!.embeds![0]!.fields![0]!;
+    expect(field.value).toContain("Ziel-Spells: #25, #26");
+
+    await putGroup(uniqueName("discordcard-nospells-"), {
+      members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
+      visibility: "listed",
+      note: "Karte ohne Ziel-Spells",
+    });
+
+    const secondField = calls.filter((call) => call.method === "POST")[1]!.body!.embeds![0]!.fields![0]!;
+    expect(secondField.value).not.toContain("Ziel-Spells");
   });
 
   it.each(["NA", "EU", "JP", "OC"] as const)(

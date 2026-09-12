@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { browseProfiles, callWorker, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, uniqueName } from "./helpers";
+import { formatTargetSpellOrders } from "../src/index";
+import {
+  browseProfiles, callWorker, KNOWN_SPELL_IDS_SAMPLE, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, uniqueName,
+} from "./helpers";
 
 /**
  * Tests für die neue, rein lesende Discord-Slash-Command-Integration Phase 1 (POST
@@ -197,6 +200,71 @@ describe("POST /discord/interactions - /blunion browse", () => {
     expect(JSON.stringify(json.data.components)).toContain("letsi-ma.github.io");
   });
 
+  it("shows targetSpellIds as sorted, language-independent order numbers (e.g. '#25, #26')", async () => {
+    const groupId = uniqueName("discord-group-spells-");
+    await putGroup(groupId, {
+      members: [{ world: KNOWN_WORLD, characterName: uniqueName("SpellMitglied") }],
+      visibility: "listed",
+      note: "Ziel-Spell-Testgruppe",
+      // absichtlich absteigend übergeben - das Embed muss trotzdem aufsteigend zeigen.
+      targetSpellIds: [KNOWN_SPELL_IDS_SAMPLE[1], KNOWN_SPELL_IDS_SAMPLE[0]],
+    });
+
+    const request = await signedDiscordRequest(
+      JSON.stringify(browseCommandInteraction(KNOWN_WORLD_DATA_CENTER)));
+    const response = await callWorker(request);
+    const json = await response.json<{
+      data: { embeds: { fields: { name: string; value: string }[] }[] };
+    }>();
+
+    const field = json.data.embeds[0]!.fields.find((f) => f.name === "Ziel-Spell-Testgruppe");
+    expect(field).toBeDefined();
+    // KNOWN_SPELL_IDS_SAMPLE = [11383, 11384], deren order-Werte sind 25 und 26 (siehe
+    // src/spellOrder.ts) - aufsteigend sortiert also #25 vor #26.
+    expect(field!.value).toContain("Ziel-Spells: #25, #26");
+  });
+
+  it("omits the 'Ziel-Spells' line entirely when the group has no targetSpellIds", async () => {
+    const groupId = uniqueName("discord-group-nospells-");
+    await putGroup(groupId, {
+      members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
+      visibility: "listed",
+      note: "Ohne Ziel-Spells",
+    });
+
+    const request = await signedDiscordRequest(
+      JSON.stringify(browseCommandInteraction(KNOWN_WORLD_DATA_CENTER)));
+    const response = await callWorker(request);
+    const json = await response.json<{
+      data: { embeds: { fields: { name: string; value: string }[] }[] };
+    }>();
+
+    const field = json.data.embeds[0]!.fields.find((f) => f.name === "Ohne Ziel-Spells");
+    expect(field).toBeDefined();
+    expect(field!.value).not.toContain("Ziel-Spells");
+  });
+
+  it("omits the 'Verfügbarkeit' line entirely (no '-' placeholder) when availabilityTags is empty", async () => {
+    const groupId = uniqueName("discord-group-noavail-");
+    await putGroup(groupId, {
+      members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
+      visibility: "listed",
+      note: "Ohne Verfügbarkeit",
+    });
+
+    const request = await signedDiscordRequest(
+      JSON.stringify(browseCommandInteraction(KNOWN_WORLD_DATA_CENTER)));
+    const response = await callWorker(request);
+    const json = await response.json<{
+      data: { embeds: { fields: { name: string; value: string }[] }[] };
+    }>();
+
+    const field = json.data.embeds[0]!.fields.find((f) => f.name === "Ohne Verfügbarkeit");
+    expect(field).toBeDefined();
+    expect(field!.value).not.toContain("Verfügbarkeit");
+    expect(field!.value).not.toContain(" - ");
+  });
+
   it("does not surface unlisted groups", async () => {
     const groupId = uniqueName("discord-unlisted-");
     await putGroup(groupId, {
@@ -220,5 +288,27 @@ describe("existing endpoints keep working unchanged alongside /discord/interacti
   it("GET /profiles/browse still requires a dataCenter query param", async () => {
     const response = await browseProfiles(null);
     expect(response.status).toBe(400);
+  });
+});
+
+describe("formatTargetSpellOrders", () => {
+  // Direkter Unit-Test statt über den HTTP-Endpunkt (siehe formatTargetSpellOrders-Doc in
+  // src/index.ts): eine SPELL_ORDER_BY_ID unbekannte, aber KNOWN_SPELL_IDS bekannte ID lässt sich
+  // aktuell gar nicht künstlich herstellen (beide Tabellen sind deckungsgleich) - eine wirklich
+  // unbekannte ID würde bereits isValidTargetSpellIds/handleGroupPut ablehnen.
+  it("skips an ID unknown to SPELL_ORDER_BY_ID instead of throwing", () => {
+    expect(formatTargetSpellOrders([KNOWN_SPELL_IDS_SAMPLE[0]!, 999999999])).toBe("#25");
+  });
+
+  it("returns undefined for an empty list", () => {
+    expect(formatTargetSpellOrders([])).toBeUndefined();
+  });
+
+  it("returns undefined when every ID is unknown", () => {
+    expect(formatTargetSpellOrders([999999999])).toBeUndefined();
+  });
+
+  it("sorts ascending by order regardless of input order", () => {
+    expect(formatTargetSpellOrders([KNOWN_SPELL_IDS_SAMPLE[1]!, KNOWN_SPELL_IDS_SAMPLE[0]!])).toBe("#25, #26");
   });
 });

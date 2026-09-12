@@ -79,6 +79,7 @@ import { base64UrlDecode, generateEditToken, hexToBytes, sha256Hex } from "./cry
 import { createWebhookMessage, deleteWebhookMessage, editWebhookMessage, extractWebhookId } from "./discordWebhook";
 import { lookupDataCenter } from "./worlds";
 import { KNOWN_SPELL_IDS } from "./spellIds";
+import { SPELL_ORDER_BY_ID } from "./spellOrder";
 
 export interface Env {
   BLUNION_PROFILES: KVNamespace;
@@ -454,6 +455,7 @@ interface DiscordBrowseGroup {
   availabilityTags: string[];
   note: string;
   wantedPlayerCount: number;
+  targetSpellIds: number[];
 }
 
 /** Liefert die tatsächlich zu setzende expirationTtl (Sekunden) aus dem optionalen
@@ -1289,12 +1291,37 @@ async function verifyDiscordSignature(env: Env, request: Request, rawBody: strin
   }
 }
 
+/** Formatiert group.targetSpellIds für das Discord-Embed als aufsteigend sortierte, sprach-
+ * unabhängige order-Nummern (z.B. "#1, #3, #7") - siehe SPELL_ORDER_BY_ID-Doc für die Begründung,
+ * warum hier bewusst KEIN lokalisierter Spell-Name steht. Eine ID, die SPELL_ORDER_BY_ID nicht
+ * kennt (z.B. weil die Tabelle mal nicht aktuell gehalten wurde), wird stillschweigend
+ * übersprungen statt das ganze Embed scheitern zu lassen. Gibt undefined zurück, wenn danach
+ * nichts übrig bleibt (leere/undefined targetSpellIds ODER ausschließlich unbekannte IDs) - der
+ * Aufrufer lässt die Zeile dann komplett weg, siehe buildGroupEmbedField.
+ *
+ * Exportiert (wie regionForDataCenter) für einen direkten Unit-Test des "unbekannte ID"-Falls:
+ * SPELL_ORDER_BY_ID deckt aktuell exakt dieselben IDs wie KNOWN_SPELL_IDS ab, ein Gruppen-PUT mit
+ * einer dort unbekannten ID kommt also durch isValidTargetSpellIds nie durch den öffentlichen
+ * Endpunkt hindurch (siehe handleGroupPut). */
+export function formatTargetSpellOrders(targetSpellIds: number[]): string | undefined {
+  const orders = targetSpellIds
+    .map((spellId) => SPELL_ORDER_BY_ID.get(spellId))
+    .filter((order): order is number => order !== undefined)
+    .sort((a, b) => a - b);
+
+  return orders.length > 0 ? orders.map((order) => `#${order}`).join(", ") : undefined;
+}
+
 /** Baut EIN "field" für das Discord-Browse-Embed aus einer Gruppe (siehe buildGroupsBrowseEmbed) -
  * Gruppenname existiert nicht als eigenes Feld (siehe StoredGroupProfile), "note" übernimmt diese
  * Rolle im UI. Mitgliederliste als "World CharacterName" pro Zeile (siehe Aufgabenstellung) -
  * bewusst OHNE spellBitmaskBase64 (für Menschen im Discord-Embed nicht lesbar/nützlich, anders als
  * fürs Plugin) und OHNE editToken/sonstige interne Felder (die stehen ohnehin nicht im Ergebnis
- * von computeGroupsBrowse, siehe dort). */
+ * von computeGroupsBrowse, siehe dort).
+ *
+ * "Verfügbarkeit"/"Ziel-Spells" sind beides optionale Zeilen: leer -> ganz weggelassen statt mit
+ * einem Platzhalter wie "-" angezeigt (weniger Rauschen für die meisten Gruppen, die z.B. keine
+ * targetSpellIds gesetzt haben). */
 function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value: string; inline: boolean } {
   const memberList = group.members
     .map((member) => `${member.world} ${member.characterName}`)
@@ -1306,11 +1333,18 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
     ? `${group.members.length}/${group.wantedPlayerCount}`
     : `${group.members.length}`;
 
-  const availabilityLabel = group.availabilityTags.length > 0 ? group.availabilityTags.join(", ") : "-";
+  let value = `Mitglieder (${memberCountLabel}):\n${memberList}`;
+
+  if (group.availabilityTags.length > 0)
+    value += `\n\nVerfügbarkeit: ${group.availabilityTags.join(", ")}`;
+
+  const targetSpellLabel = formatTargetSpellOrders(group.targetSpellIds);
+  if (targetSpellLabel !== undefined)
+    value += `\n\nZiel-Spells: ${targetSpellLabel}`;
 
   return {
     name: group.note.length > 0 ? group.note : "(ohne Notiz)",
-    value: `Mitglieder (${memberCountLabel}):\n${memberList}\n\nVerfügbarkeit: ${availabilityLabel}`,
+    value,
     inline: false,
   };
 }
@@ -1334,6 +1368,7 @@ function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown
     availabilityTags: record.availabilityTags ?? [],
     note: record.note ?? "",
     wantedPlayerCount: record.wantedPlayerCount ?? 0,
+    targetSpellIds: record.targetSpellIds ?? [],
   });
 
   return {

@@ -6,6 +6,13 @@ Blue-Mage-Gruppen direkt in Discord anzeigt - als Embed, mit einem Link-Button z
 durch, die bereits `GET /groups/browse` benutzt (siehe `computeGroupsBrowse` in
 `worker/src/index.ts`) - keine neue KV-Struktur, kein zweites Backend.
 
+Über die optionale `type`-Option (`groups`, Standard, oder `players`) zeigt derselbe Command
+wahlweise statt Gruppen auch einzelne, öffentlich gelistete Spieler-Gesuche an (`type: "players"`
+reicht dieselbe Logik wie `GET /profiles/browse` durch, siehe `computePlayersBrowse`/
+`buildPlayersBrowseEmbed` in `worker/src/index.ts`) - genau wie bei Gruppen keine neue KV-Struktur,
+nur ein anderes Embed-Format. Bereits registrierte Guild-Commands ohne diese Option verhalten sich
+unverändert (Default `groups`).
+
 **Bewusst NICHT Teil von Phase 1** (siehe Aufgabenstellung): Discord-Account-Linking
 (`/blunion link`), und jede Art von Schreiboperation (Gruppe erstellen/beitreten/verlassen/
 bearbeiten/canceln) über Discord. `/blunion browse` ist rein lesend.
@@ -20,6 +27,7 @@ eine automatische Spiegelung dessen, was übers Plugin/die Website bereits verö
 | Datei | Änderung | Warum |
 |---|---|---|
 | `worker/src/index.ts` | Neue Route `POST /discord/interactions` + `verifyDiscordSignature`, `handleDiscordInteractions`, `handleDiscordApplicationCommand`, `handleDiscordBrowse`, `buildGroupsBrowseEmbed`/`buildGroupEmbedField`, Discord-Typen/-Konstanten. `handleGroupsBrowse` minimal in `computeGroupsBrowse` (Kernlogik) + dünnen HTTP-Wrapper aufgeteilt. `Env` um `DISCORD_PUBLIC_KEY` erweitert. | Neue Route im bestehenden Router-Pattern; `computeGroupsBrowse`-Extraktion ermöglicht Wiederverwendung durch den Discord-Handler, ohne die KV-Iterations-/Filterlogik zu duplizieren. **Verhalten von `GET /groups/browse` unverändert** (siehe `worker/test/index.test.ts`, alle bestehenden Tests laufen unverändert grün). |
+| `worker/src/index.ts` | Neue `type`-Sub-Command-Option (`groups`/`players`, Default `groups`) für `/blunion browse`: `handleBrowse` analog zu `handleGroupsBrowse` in `computePlayersBrowse` (Kernlogik) + dünnen HTTP-Wrapper aufgeteilt, neu `buildPlayersBrowseEmbed`/`buildPlayerEmbedField`, `handleDiscordBrowse` verzweigt je nach `type`. | Zeigt wahlweise einzelne, öffentlich gelistete Spieler-Gesuche statt Gruppen an, ohne die bestehende `GET /profiles/browse`-Logik zu duplizieren. **Verhalten von `GET /profiles/browse` unverändert**, bereits registrierte Guild-Commands ohne `type`-Option verhalten sich weiterhin wie zuvor (Default `groups`). |
 | `worker/src/crypto.ts` | Neue Funktion `hexToBytes`. | Zum Dekodieren von `DISCORD_PUBLIC_KEY` und der `X-Signature-Ed25519`-Headerwerte in rohe Bytes für `crypto.subtle.importKey`/`verify`. |
 | `worker/wrangler.toml` | Kommentar zu `DISCORD_PUBLIC_KEY` (kein neuer Eintrag - siehe unten). | Dokumentiert, wie/wo das Secret gesetzt wird, ohne es im Klartext einzutragen. |
 | `worker/.dev.vars.example` (neu, committed) | Vorlage für lokale Secrets. | Lokale Entwicklung/Tests brauchen einen `DISCORD_PUBLIC_KEY`-Wert, ohne echte Secrets zu committen. |

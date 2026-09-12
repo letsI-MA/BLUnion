@@ -324,6 +324,44 @@ describe("handleBrowse (GET /profiles/browse)", () => {
     expect(entry?.visibility).toBeUndefined();
     expect(entry?.editTokenHash).toBeUndefined();
   });
+
+  it("returns the full stripForBrowseResponse shape (computePlayersBrowse) with actual values", async () => {
+    const name = uniqueName("VollesShape");
+    await putProfile(KNOWN_WORLD, name, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+      availabilityTags: ["evening", "weekend"],
+      note: "Shape-Testnotiz",
+      wantedPlayerCount: 2,
+    });
+
+    const response = await browseProfiles(KNOWN_WORLD_DATA_CENTER);
+    const json = await response.json<Record<string, unknown>[]>();
+    const entry = json.find((e) => e.characterName === name);
+
+    expect(entry).toEqual({
+      characterName: name,
+      world: KNOWN_WORLD,
+      spellBitmaskBase64: expect.any(String),
+      availabilityTags: ["evening", "weekend"],
+      note: "Shape-Testnotiz",
+      wantedPlayerCount: 2,
+      updatedAt: expect.any(String),
+    });
+  });
+
+  it("defaults availabilityTags/note/wantedPlayerCount to []/''/0 when never set", async () => {
+    const name = uniqueName("BrowseDefaults");
+    await putProfile(KNOWN_WORLD, name, { spellBitmaskBase64: validBitmaskBase64(), visibility: "listed" });
+
+    const response = await browseProfiles(KNOWN_WORLD_DATA_CENTER);
+    const json = await response.json<Record<string, unknown>[]>();
+    const entry = json.find((e) => e.characterName === name);
+
+    expect(entry?.availabilityTags).toEqual([]);
+    expect(entry?.note).toBe("");
+    expect(entry?.wantedPlayerCount).toBe(0);
+  });
 });
 
 describe("handleGroupPut (PUT /group/:groupId)", () => {

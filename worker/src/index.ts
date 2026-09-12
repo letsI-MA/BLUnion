@@ -322,6 +322,12 @@ interface StoredProfile {
   availabilityTags?: string[];
   note?: string;
   wantedPlayerCount?: number;
+  /** Spieler-Pendant zu StoredGroupProfile.discordCard (siehe dortige ausführliche Doc, gilt hier
+   * 1:1 analog) - rein additives, optionales Feld für eine persistente Discord-Kanal-Karte dieses
+   * EINZELNEN Spieler-Profils, siehe syncPlayerDiscordCard weiter unten. NOCH NICHT verdrahtet
+   * (kein Aufruf aus handlePut/handleDelete) - das Feld existiert bereits, damit ein späterer
+   * Schritt es einfach befüllen kann, ohne das gespeicherte JSON-Schema erneut anzufassen. */
+  discordCard?: DiscordCard;
   createdAt: string;
   updatedAt: string;
 }
@@ -640,6 +646,85 @@ async function removeDiscordCardIndexEntry(env: Env, region: Region, groupId: st
   await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
 }
 
+/** KV-Key für den "welche Spieler-Profile haben aktuell eine offene Discord-Karte in dieser
+ * Region"-Index - Spieler-Pendant zu discordCardsIndexKey oben (siehe dortige ausführliche
+ * Begründung, WARUM ein solcher Index überhaupt nötig ist: KV-TTL-Ablauf löst still keinen Code
+ * aus, siehe Klassendoc am Dateianfang).
+ *
+ * WARUM EIN EIGENER "playercards:<region>"-Index statt denselben "discordcards:<region>"-Index für
+ * beide Karten-Arten mitzubenutzen: die beiden Eintragstypen identifizieren ihr Ursprungsobjekt
+ * unterschiedlich (DiscordCardIndexEntry über groupId, PlayerCardIndexEntry unten über
+ * world+characterName) und damit auch über unterschiedliche KV-Keys ("group:<groupId>" vs.
+ * "profile:<world>:<characterName>", siehe groupKvKey/kvKey). Ein gemeinsamer Index müsste pro
+ * Eintrag zusätzlich markieren, welcher der beiden Eintragstypen er ist, und der
+ * Cron-Aufräumlauf (siehe cleanupOrphanedDiscordCards) müsste bei JEDEM Eintrag erst raten/prüfen,
+ * welche Art Eintrag er vor sich hat, bevor er den passenden KV-Key nachschlagen kann. Zwei
+ * getrennte, von vornherein eindeutig typisierte Indizes sind einfacher und robuster als das.
+ *
+ * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test des
+ * Key-Formats. */
+export function playerCardsIndexKey(region: Region): string {
+  return `playercards:${region}`;
+}
+
+/** EIN Eintrag im "playercards:<region>"-Index (siehe playerCardsIndexKey-Doc oben) - Pendant zu
+ * DiscordCardIndexEntry, dedupliziert aber über world+characterName statt groupId, weil ein
+ * Spieler-Profil (anders als eine Gruppe) keine eigene ID hat - world+characterName sind genau die
+ * beiden Felder, die auch den KV-Key eines "profile:"-Eintrags bilden (siehe kvKey()).
+ *
+ * Exportiert (siehe playerCardsIndexKey-Doc) für direkte Unit-Tests von add-/
+ * removePlayerCardIndexEntry. */
+export interface PlayerCardIndexEntry {
+  world: string;
+  characterName: string;
+  messageId: string;
+}
+
+/** Trägt einen {world, characterName, messageId}-Eintrag in den Spieler-Karten-Index der
+ * gegebenen Region ein (siehe PlayerCardIndexEntry-Doc) - entfernt zuerst einen eventuell
+ * vorhandenen ALTEN Eintrag für dasselbe world+characterName (analog zu addDiscordCardIndexEntry
+ * oben, z.B. bei einem erneuten Erstellen nach einem Regionswechsel, siehe syncPlayerDiscordCard),
+ * damit pro Spieler-Profil/Region nie mehr als ein Eintrag existiert.
+ *
+ * Exportiert (siehe playerCardsIndexKey-Doc) für einen direkten Unit-Test des Dedup-Verhaltens -
+ * dieses Verhalten wird vom bestehenden PUT-/Sync-Testpfad NIE isoliert ausgelöst (dort geht
+ * jedem erneuten Anlegen bereits ein removePlayerCardIndexEntry für denselben Eintrag voraus,
+ * siehe syncPlayerDiscordCard), obwohl die Funktion selbst robust dagegen sein soll. */
+export async function addPlayerCardIndexEntry(
+  env: Env, region: Region, world: string, characterName: string, messageId: string,
+): Promise<void> {
+  const key = playerCardsIndexKey(region);
+  const existing = (await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json")) ?? [];
+  const withoutPlayer = existing.filter(
+    (entry) => !(entry.world === world && entry.characterName === characterName),
+  );
+  withoutPlayer.push({ world, characterName, messageId });
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(withoutPlayer));
+}
+
+/** Entfernt den Eintrag für world+characterName aus dem Index der gegebenen Region, falls
+ * vorhanden - tut bewusst NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen
+ * unnötigen Schreibzugriff auszulösen (analog zu removeDiscordCardIndexEntry oben).
+ *
+ * Exportiert (siehe addPlayerCardIndexEntry-Doc) für einen direkten Unit-Test des Add/Remove-
+ * Zyklus. */
+export async function removePlayerCardIndexEntry(
+  env: Env, region: Region, world: string, characterName: string,
+): Promise<void> {
+  const key = playerCardsIndexKey(region);
+  const existing = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
+  if (!existing)
+    return;
+
+  const filtered = existing.filter(
+    (entry) => !(entry.world === world && entry.characterName === characterName),
+  );
+  if (filtered.length === existing.length)
+    return;
+
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
+}
+
 /** Bewusst als eigene, kleine Funktion statt der Versuchung nachzugeben, einfach das gespeicherte
  * Objekt "minus editTokenHash" per Destrukturierung durchzureichen - so ist beim Hinzufügen eines
  * künftigen internen Felds nicht automatisch die Gefahr da, es versehentlich mit rauszugeben,
@@ -761,7 +846,9 @@ async function handleGet(env: Env, world: string, characterName: string): Promis
   return jsonResponse(stripForResponse(stored));
 }
 
-async function handlePut(env: Env, request: Request, world: string, characterName: string): Promise<Response> {
+async function handlePut(
+  env: Env, request: Request, world: string, characterName: string, ctx: ExecutionContext,
+): Promise<Response> {
   const rateLimited = await enforceWriteRateLimit(env, request);
   if (rateLimited)
     return rateLimited;
@@ -870,6 +957,10 @@ async function handlePut(env: Env, request: Request, world: string, characterNam
     availabilityTags,
     note,
     wantedPlayerCount,
+    // Unverändert aus "existing" übernommen (siehe DiscordCard-Doc) - discordCard wird
+    // AUSSCHLIESSLICH von syncPlayerDiscordCard weiter unten geschrieben, NIE hier direkt gesetzt
+    // (1:1 dieselbe Begründung wie beim Gruppen-Pendant in handleGroupPut).
+    discordCard: existing?.discordCard,
     createdAt,
     updatedAt: now,
   };
@@ -880,6 +971,12 @@ async function handlePut(env: Env, request: Request, world: string, characterNam
   // PROFILE_TTL_SECONDS ohne ttlHours im Body, sonst der geclampte Override).
   await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: resolveTtlSeconds(body.ttlHours) });
 
+  // Discord-Kartensynchronisierung (siehe syncPlayerDiscordCard-Doc) BEWUSST NACH dem KV-Put, über
+  // ctx.waitUntil statt awaited (identische Begründung wie in handleGroupPut): läuft komplett nach
+  // der bereits abgeschickten Antwort ab, ein Discord-Ausfall/-Timeout darf die Response an den
+  // Aufrufer NIE verzögern oder beeinflussen.
+  ctx.waitUntil(syncPlayerDiscordCard(env, key, record, resolveTtlSeconds(body.ttlHours)));
+
   const responseBody: Record<string, unknown> = stripForResponse(record);
   if (plaintextEditTokenForResponse)
     responseBody.editToken = plaintextEditTokenForResponse;
@@ -887,8 +984,14 @@ async function handlePut(env: Env, request: Request, world: string, characterNam
   return jsonResponse(responseBody, existing ? 200 : 201);
 }
 
-/** GET /profiles/browse?dataCenter=<DC> - öffentlicher Gruppenfinder (Phase 2). Liefert alle
- * Profile mit visibility === "listed" auf dem angegebenen Data Center.
+/** Kernlogik von GET /profiles/browse (Nachschlagen+Filtern), OHNE das HTTP-Cache-Wrapping von
+ * handleBrowse (siehe withCache dort) - aus handleBrowse herausgelöst (analog zu
+ * computeGroupsBrowse weiter unten), damit der neue "type:players"-Zweig von "/blunion browse"
+ * (siehe handleDiscordBrowse) dieselbe Logik nutzen kann, ohne sie zu duplizieren. Verhalten 1:1
+ * identisch zum vorherigen Code innerhalb des withCache-Callbacks von handleBrowse - nur
+ * ausgeschnitten, nicht verändert; GET /profiles/browse selbst verhält sich dadurch unverändert.
+ *
+ * Liefert alle Profile mit visibility === "listed" auf dem angegebenen Data Center.
  *
  * Bewusst OHNE Sekundär-Index (z.B. "dcindex:<DC>:<key>"): iteriert stattdessen über ALLE
  * "profile:"-Keys per list() und filtert danach in-memory auf dataCenter+visibility. Für die bei
@@ -897,42 +1000,49 @@ async function handlePut(env: Env, request: Request, world: string, characterNam
  * echter DC-Index (z.B. ein zusätzlicher KV-Key pro Data Center mit einer Liste betroffener
  * Profil-Keys, bei jedem PUT/DELETE mitgepflegt) - dann müsste hier nicht mehr jedes einzelne
  * Profil unabhängig vom Data Center gelesen werden. */
+async function computePlayersBrowse(env: Env, dataCenter: string | null): Promise<Response> {
+  if (!dataCenter)
+    return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
+
+  const normalizedDataCenter = dataCenter.toLowerCase();
+  const results: ReturnType<typeof stripForBrowseResponse>[] = [];
+
+  // list() liefert maximal 1000 Keys pro Aufruf (Cloudflare-KV-Limit) - bei mehr Profilen als
+  // das über "cursor" paginiert weiterlesen, bis list_complete true ist.
+  let cursor: string | undefined;
+  do {
+    const listResult = await env.BLUNION_PROFILES.list({ prefix: "profile:", cursor });
+
+    for (const listedKey of listResult.keys) {
+      const stored = await env.BLUNION_PROFILES.get<StoredProfile>(listedKey.name, "json");
+      if (!stored)
+        continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
+
+      if (stored.visibility === "listed" && stored.dataCenter.toLowerCase() === normalizedDataCenter)
+        results.push(stripForBrowseResponse(stored));
+    }
+
+    cursor = listResult.list_complete ? undefined : listResult.cursor;
+  } while (cursor);
+
+  return jsonResponse(results);
+}
+
+/** GET /profiles/browse?dataCenter=<DC> - öffentlicher Gruppenfinder (Phase 2) - dünner
+ * HTTP-Wrapper um computePlayersBrowse (siehe dort für die eigentliche Logik): legt NUR die
+ * Berechnung selbst hinter withCache (siehe dortigen Kommentar zum selben Muster bei
+ * handleGroupsBrowse) - der "dataCenter fehlt"-400-Fehler wird über response.ok in withCache
+ * ohnehin nie gecached. */
 async function handleBrowse(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
-  // NUR die eigentliche Berechnung läuft hinter withCache (siehe dortigen Kommentar) - der
-  // "dataCenter fehlt"-400-Fehler unten wird über response.ok in withCache ohnehin nie gecached,
-  // eine Sonderbehandlung dafür ist deshalb nicht nötig.
-  return withCache(request, ctx, async () => {
+  return withCache(request, ctx, () => {
     const url = new URL(request.url);
-    const dataCenter = url.searchParams.get("dataCenter");
-    if (!dataCenter)
-      return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
-
-    const normalizedDataCenter = dataCenter.toLowerCase();
-    const results: ReturnType<typeof stripForBrowseResponse>[] = [];
-
-    // list() liefert maximal 1000 Keys pro Aufruf (Cloudflare-KV-Limit) - bei mehr Profilen als
-    // das über "cursor" paginiert weiterlesen, bis list_complete true ist.
-    let cursor: string | undefined;
-    do {
-      const listResult = await env.BLUNION_PROFILES.list({ prefix: "profile:", cursor });
-
-      for (const listedKey of listResult.keys) {
-        const stored = await env.BLUNION_PROFILES.get<StoredProfile>(listedKey.name, "json");
-        if (!stored)
-          continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
-
-        if (stored.visibility === "listed" && stored.dataCenter.toLowerCase() === normalizedDataCenter)
-          results.push(stripForBrowseResponse(stored));
-      }
-
-      cursor = listResult.list_complete ? undefined : listResult.cursor;
-    } while (cursor);
-
-    return jsonResponse(results);
+    return computePlayersBrowse(env, url.searchParams.get("dataCenter"));
   });
 }
 
-async function handleDelete(env: Env, request: Request, world: string, characterName: string): Promise<Response> {
+async function handleDelete(
+  env: Env, request: Request, world: string, characterName: string, ctx: ExecutionContext,
+): Promise<Response> {
   const rateLimited = await enforceWriteRateLimit(env, request);
   if (rateLimited)
     return rateLimited;
@@ -951,6 +1061,13 @@ async function handleDelete(env: Env, request: Request, world: string, character
     return errorResponse(403, "editToken stimmt nicht mit dem gespeicherten Profil überein.");
 
   await env.BLUNION_PROFILES.delete(key);
+
+  // Discord-Karten-Aufräumen NACH dem KV-Delete, über ctx.waitUntil statt awaited (identische
+  // Begründung wie in handleGroupDelete) - "existing" wurde bereits VOR dem Delete gelesen und
+  // trägt damit noch die zu löschende discordCard, falls vorhanden.
+  if (existing.discordCard)
+    ctx.waitUntil(removePlayerDiscordCard(env, world, characterName, existing.discordCard));
+
   return jsonResponse({ deleted: true });
 }
 
@@ -1335,8 +1452,13 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
 
   let value = `Mitglieder (${memberCountLabel}):\n${memberList}`;
 
-  if (group.availabilityTags.length > 0)
-    value += `\n\nVerfügbarkeit: ${group.availabilityTags.join(", ")}`;
+  // note UND wantedPlayerCount stecken hier oben bereits jeweils woanders (Feld-"name" unten bzw.
+  // memberCountLabel) - deshalb "" und 0 an formatAvailabilityAndNoteLines übergeben, um sie nicht
+  // ein zweites Mal anzuzeigen; siehe dortige Doc, WARUM die Funktion trotzdem beide Parameter hat
+  // (buildPlayerCardEmbed hat keine der beiden Stellen und übergibt die echten Werte).
+  const extraLines = formatAvailabilityAndNoteLines("", group.availabilityTags, 0);
+  if (extraLines.length > 0)
+    value += `\n\n${extraLines}`;
 
   const targetSpellLabel = formatTargetSpellOrders(group.targetSpellIds);
   if (targetSpellLabel !== undefined)
@@ -1347,6 +1469,45 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
     value,
     inline: false,
   };
+}
+
+/** Formatiert die optionalen Notiz-/Verfügbarkeits-/wantedPlayerCount-bezogenen Zusatzzeilen für
+ * ein Discord-Embed - gemeinsam genutzt von buildGroupEmbedField (Gruppen-Feld in "/blunion
+ * browse" bzw. einer Gruppen-Kanal-Karte) UND buildPlayerCardEmbed (Spieler-Kanal-Karte) weiter
+ * unten, damit sich das Format zwischen beiden nicht auseinanderentwickelt (siehe buildGroupCard
+ * Embed-Doc für dasselbe Prinzip bei Gruppen-Kanal-Karte vs. -Browse-Feld). Bewusst OHNE
+ * Mitgliederliste - die gibt es nur bei Gruppen (StoredGroupProfile.members), nicht bei einzelnen
+ * Spieler-Profilen (StoredProfile), und bleibt deshalb Sache des jeweiligen Aufrufers.
+ *
+ * Jede der drei Zeilen ist einzeln optional (leerer note-String/leere availabilityTags/
+ * wantedPlayerCount <= 0 lassen die jeweilige Zeile schlicht weg, siehe ursprüngliche
+ * Verfügbarkeits-Zeile in buildGroupEmbedField zur Begründung "weniger Rauschen") - das Ergebnis
+ * kann also auch ein leerer String sein, wenn keine der drei zutrifft.
+ *
+ * buildGroupEmbedField zeigt note bereits als eigenes Embed-Feld-"name" und wantedPlayerCount
+ * bereits in der Mitglieder-Kopfzeile (z.B. "3/5") - ruft diese Funktion deshalb mit note="" und
+ * wantedPlayerCount=0 auf, um nichts doppelt anzuzeigen, und nutzt effektiv nur die
+ * Verfügbarkeits-Zeile. buildPlayerCardEmbed hat kein Äquivalent zu diesen beiden Stellen und
+ * übergibt deshalb die echten Werte durch.
+ *
+ * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test. */
+export function formatAvailabilityAndNoteLines(
+  note: string, availabilityTags: string[], wantedPlayerCount: number,
+): string {
+  const lines: string[] = [];
+
+  if (note.length > 0)
+    lines.push(note);
+
+  if (availabilityTags.length > 0)
+    lines.push(`Verfügbarkeit: ${availabilityTags.join(", ")}`);
+
+  // wantedPlayerCount === 0 bedeutet "egal wie viele" (siehe WANTED_PLAYER_COUNT_MIN-Doc oben) -
+  // dafür keine Zeile zeigen statt eines verwirrenden "Gesucht: 0 Mitspieler".
+  if (wantedPlayerCount > 0)
+    lines.push(`Gesucht: ${wantedPlayerCount} Mitspieler`);
+
+  return lines.join("\n\n");
 }
 
 /** Baut das Embed für EINE persistente Gruppen-Karte in einem Regions-Kanal (Phase 1.5, siehe
@@ -1375,6 +1536,35 @@ function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown
     title: `Blue Mage Gruppe auf ${record.dataCenter}`,
     color: 0x2b6cb0,
     fields: [field],
+  };
+}
+
+/** Baut das Embed für EINE persistente Spieler-Karte in einem Regions-Kanal - Spieler-Pendant zu
+ * buildGroupCardEmbed oben (siehe dortige Doc zum "eine Karte pro Kanal-Nachricht"-Prinzip).
+ * Anders als eine Gruppe hat ein einzelnes Spieler-Profil (StoredProfile) keine Mitgliederliste,
+ * deshalb hier nur Titel + formatAvailabilityAndNoteLines (Notiz/Verfügbarkeit/wantedPlayerCount,
+ * siehe dortige Doc) statt eines "fields"-Arrays wie bei der Gruppen-Karte.
+ *
+ * color ist ABSICHTLICH ANDERS als buildGroupCardEmbed (0x2b6cb0, Blau) - Grün (0x2f9e44), damit
+ * Spieler- und Gruppen-Karten im selben Kanal auf den ersten Blick unterscheidbar sind. Das ist
+ * fürs Erste rein FUNKTIONAL gedacht (unterschiedliche Farbe genügt als Unterscheidung); ein
+ * eigener, ausführlicherer visueller Stil für Spielerkarten (z.B. andere Feldstruktur/Icon) steht
+ * noch aus und ist bewusst NICHT Teil dieses Schritts.
+ *
+ * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test von
+ * Titel/Farbe/"keine Mitgliederliste", ohne den kompletten PUT-/Webhook-Weg durchlaufen zu
+ * müssen. */
+export function buildPlayerCardEmbed(stored: StoredProfile): Record<string, unknown> {
+  const lines = formatAvailabilityAndNoteLines(
+    stored.note ?? "",
+    stored.availabilityTags ?? [],
+    stored.wantedPlayerCount ?? 0,
+  );
+
+  return {
+    title: `${stored.characterName} (${stored.world}) sucht Mitspieler`,
+    color: 0x2f9e44,
+    description: lines.length > 0 ? lines : undefined,
   };
 }
 
@@ -1416,6 +1606,39 @@ function discordCardsEqual(a: DiscordCard | undefined, b: DiscordCard | undefine
     return false;
 
   return a.region === b.region && a.channelWebhookId === b.channelWebhookId && a.messageId === b.messageId;
+}
+
+/** Legt für ein (bereits als "listed" bestätigtes) Spieler-Profil eine NEUE Discord-Karte an -
+ * Spieler-Pendant zu createGroupDiscordCard oben (siehe dortige Doc, gilt hier 1:1 analog), von
+ * syncPlayerDiscordCard weiter unten für den "noch keine Karte"- UND den "Region gewechselt"-Fall
+ * genutzt. Pflegt bei Erfolg zusätzlich den playercards:<region>-Index mit (siehe
+ * addPlayerCardIndexEntry/PlayerCardIndexEntry-Doc) - bei einem Fehlschlag (siehe
+ * createWebhookMessage: liefert dann null) bleibt der Index unangetastet und das Profil hat
+ * schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. */
+async function createPlayerDiscordCard(
+  env: Env, region: Region, webhookUrl: string, stored: StoredProfile,
+): Promise<DiscordCard | undefined> {
+  const messageId = await createWebhookMessage(webhookUrl, buildPlayerCardEmbed(stored));
+  if (!messageId)
+    return undefined;
+
+  await addPlayerCardIndexEntry(env, region, stored.world, stored.characterName, messageId);
+  return { region, channelWebhookId: extractWebhookId(webhookUrl) ?? "", messageId };
+}
+
+/** Entfernt die Discord-Karte EINES Spieler-Profils vollständig (Nachricht löschen + Index-Eintrag
+ * entfernen) - Spieler-Pendant zu removeGroupDiscordCard oben (siehe dortige Doc zu den drei
+ * Aufrufstellen mit identischem Verhalten - das gilt hier analog für ein einzelnes Spieler-Profil
+ * statt eine Gruppe). Wirft nie (siehe deleteWebhookMessage/removePlayerCardIndexEntry - beide
+ * fehlerisoliert). */
+async function removePlayerDiscordCard(
+  env: Env, world: string, characterName: string, card: DiscordCard,
+): Promise<void> {
+  const webhookUrl = getRegionWebhookUrl(env, card.region);
+  if (webhookUrl)
+    await deleteWebhookMessage(webhookUrl, card.messageId);
+
+  await removePlayerCardIndexEntry(env, card.region, world, characterName);
 }
 
 /** Nach einem erfolgreichen /group/:groupId-PUT (siehe handleGroupPut) im Hintergrund aufgerufen
@@ -1474,18 +1697,83 @@ async function syncGroupDiscordCard(
   }
 }
 
+/** Spieler-Pendant zu syncGroupDiscordCard oben (siehe dortige ausführliche Doc - der Ablauf ist
+ * hier 1:1 identisch, nur bezogen auf EIN einzelnes Spieler-Profil statt eine Gruppe: legt/
+ * aktualisiert/entfernt die persistente Discord-Kanal-Karte je nach visibility/Region-Wechsel).
+ * Wird aus handlePut per ctx.waitUntil() angestoßen (siehe dort), analog zu syncGroupDiscordCard
+ * aus handleGroupPut.
+ *
+ * `key`/`ttlSeconds` kommen 1:1 vom aufrufenden PUT (wie bei syncGroupDiscordCard) - der
+ * abschließende KV-Put hier unten schreibt NUR ein ggf. geändertes discordCard-Feld, alle anderen
+ * Felder bleiben exakt `stored` wie vom aufrufenden PUT bereits gespeichert.
+ *
+ * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test des
+ * Regionswechsel-Zweigs: anders als bei einer Gruppe (deren dataCenter sich über ein geändertes
+ * members[].world sehr wohl per PUT ändern lässt) ist world+characterName hier zugleich der
+ * KV-Key (siehe kvKey()) - ein "derselbe Spieler, jetzt auf einem anderen Data Center"-PUT gegen
+ * denselben Key ist über die öffentliche Route praktisch nicht herstellbar (dataCenter wird aus
+ * world hergeleitet, ein anderes world wäre ein ANDERER KV-Key). Der Zweig bleibt trotzdem
+ * notwendig (ein reales DC-Reassignment in worlds.ts würde ihn auslösen) und wird deshalb hier
+ * direkt getestet, statt zu versuchen, ihn künstlich über zwei PUTs zu erzwingen. */
+export async function syncPlayerDiscordCard(
+  env: Env, key: string, stored: StoredProfile, ttlSeconds: number,
+): Promise<void> {
+  const existingCard = stored.discordCard;
+  const region = regionForDataCenter(stored.dataCenter);
+  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+
+  let nextCard: DiscordCard | undefined;
+
+  if (stored.visibility !== "listed") {
+    // Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen (siehe
+    // syncGroupDiscordCard-Doc, identisches Prinzip). Über existingCard.region gehen, NICHT über
+    // die (evtl. andere) aktuell berechnete "region" - die alte Karte hängt im WEBHOOK DER ALTEN
+    // Region.
+    if (existingCard)
+      await removePlayerDiscordCard(env, stored.world, stored.characterName, existingCard);
+
+    nextCard = undefined;
+  } else if (!region || !webhookUrl) {
+    // Kein Webhook für diese Region konfiguriert - Kartenfunktion bleibt rein optional (siehe
+    // syncGroupDiscordCard-Doc), eine eventuell BESTEHENDE Karte bleibt unangetastet.
+    nextCard = existingCard;
+  } else if (!existingCard) {
+    nextCard = await createPlayerDiscordCard(env, region, webhookUrl, stored);
+  } else if (existingCard.region !== region) {
+    // Profil auf ein anderes Data Center/eine andere Region verschoben - alte Karte im ALTEN
+    // Webhook löschen, neue im NEUEN Webhook anlegen (siehe syncGroupDiscordCard-Doc).
+    await removePlayerDiscordCard(env, stored.world, stored.characterName, existingCard);
+    nextCard = await createPlayerDiscordCard(env, region, webhookUrl, stored);
+  } else {
+    // Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen.
+    await editWebhookMessage(webhookUrl, existingCard.messageId, buildPlayerCardEmbed(stored));
+    nextCard = existingCard; // region/channelWebhookId/messageId unverändert.
+  }
+
+  // Nur erneut in KV schreiben, wenn sich discordCard tatsächlich geändert hat (siehe
+  // syncGroupDiscordCard-Doc).
+  if (!discordCardsEqual(existingCard, nextCard)) {
+    const updated: StoredProfile = { ...stored, discordCard: nextCard };
+    await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
+  }
+}
+
 /** Discord-Embeds erlauben höchstens 25 "fields" (harte API-Grenze) - mehr Treffer würden von
  * Discord komplett abgelehnt statt nur gekappt. Phase 1 kappt deshalb selbst und weist im
- * description-Feld auf die Kappung hin, statt sich auf Discord zu verlassen. */
-const DISCORD_EMBED_MAX_GROUP_FIELDS = 25;
+ * description-Feld auf die Kappung hin, statt sich auf Discord zu verlassen. Ursprünglich
+ * "..._GROUP_FIELDS" genannt, jetzt umbenannt: buildPlayersBrowseEmbed weiter unten braucht
+ * dieselbe Grenze für Spieler-Felder, die 25 ist eine reine Discord-API-Konstante, keine
+ * gruppenspezifische. */
+const DISCORD_EMBED_MAX_FIELDS = 25;
 
-/** Baut das komplette Discord-Embed für "/blunion browse" aus dem (bereits gefilterten) Ergebnis
- * von computeGroupsBrowse (siehe handleDiscordBrowse) - siehe buildGroupEmbedField für ein
- * einzelnes Gruppen-Feld. dataCenter kommt hier NUR für die Titelzeile zum Einsatz (das Ergebnis
- * selbst enthält kein dataCenter-Feld je Gruppe, siehe DiscordBrowseGroup/computeGroupsBrowse -
- * alle Treffer teilen ohnehin dasselbe, vom Aufrufer angegebene Data Center). */
+/** Baut das komplette Discord-Embed für "/blunion browse type:groups" aus dem (bereits
+ * gefilterten) Ergebnis von computeGroupsBrowse (siehe handleDiscordBrowse) - siehe
+ * buildGroupEmbedField für ein einzelnes Gruppen-Feld. dataCenter kommt hier NUR für die
+ * Titelzeile zum Einsatz (das Ergebnis selbst enthält kein dataCenter-Feld je Gruppe, siehe
+ * DiscordBrowseGroup/computeGroupsBrowse - alle Treffer teilen ohnehin dasselbe, vom Aufrufer
+ * angegebene Data Center). */
 function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]): Record<string, unknown> {
-  const shownGroups = groups.slice(0, DISCORD_EMBED_MAX_GROUP_FIELDS);
+  const shownGroups = groups.slice(0, DISCORD_EMBED_MAX_FIELDS);
 
   return {
     title: `Blue Mage Gruppen auf ${dataCenter}`,
@@ -1494,6 +1782,50 @@ function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]
       : undefined,
     color: 0x2b6cb0,
     fields: shownGroups.map(buildGroupEmbedField),
+  };
+}
+
+/** Baut EIN "field" für das Spieler-Browse-Embed (siehe buildPlayersBrowseEmbed) aus einem
+ * einzelnen Spieler-Profil - Pendant zu buildGroupEmbedField, aber ohne Mitgliederliste (ein
+ * einzelnes Spieler-Gesuch hat keine). Feldname "<CharacterName> (<World>)" statt wie bei
+ * buildGroupEmbedField über note - ein Spieler-Gesuch braucht den Feldnamen nicht für etwas
+ * anderes (dort steht note ja gerade WEIL es keine bessere Kennung für eine Gruppe ohne eigenen
+ * Namen gibt, siehe dortige Doc), ein einzelnes Profil hat mit World+Charakternamen dagegen schon
+ * eine natürliche Kennung.
+ *
+ * value nutzt formatAvailabilityAndNoteLines (siehe dort) mit den ECHTEN note/availabilityTags/
+ * wantedPlayerCount-Werten - anders als buildGroupEmbedField (das note/wantedPlayerCount bereits
+ * über Feldname bzw. Mitglieder-Kopfzeile zeigt und deshalb "" bzw. 0 übergibt) gibt es hier keine
+ * solche andere Stelle. Discord-Embed-Felder dürfen laut API keinen leeren "value" haben, daher
+ * der Platzhalter, falls ein Profil weder Notiz noch Verfügbarkeit noch wantedPlayerCount gesetzt
+ * hat. */
+function buildPlayerEmbedField(
+  player: ReturnType<typeof stripForBrowseResponse>,
+): { name: string; value: string; inline: boolean } {
+  const lines = formatAvailabilityAndNoteLines(player.note, player.availabilityTags, player.wantedPlayerCount);
+
+  return {
+    name: `${player.characterName} (${player.world})`,
+    value: lines.length > 0 ? lines : "(keine weiteren Angaben)",
+    inline: false,
+  };
+}
+
+/** Baut das komplette Discord-Embed für "/blunion browse type:players" aus dem (bereits
+ * gefilterten) Ergebnis von computePlayersBrowse (siehe handleDiscordBrowse) - Pendant zu
+ * buildGroupsBrowseEmbed, siehe dort für die (identische) Kappungs-/Titelzeilen-Logik. */
+function buildPlayersBrowseEmbed(
+  dataCenter: string, players: ReturnType<typeof stripForBrowseResponse>[],
+): Record<string, unknown> {
+  const shownPlayers = players.slice(0, DISCORD_EMBED_MAX_FIELDS);
+
+  return {
+    title: `Blue Mage Spieler-Gesuche auf ${dataCenter}`,
+    description: players.length > shownPlayers.length
+      ? `Zeige ${shownPlayers.length} von ${players.length} gelisteten Spielern.`
+      : undefined,
+    color: 0x2b6cb0,
+    fields: shownPlayers.map(buildPlayerEmbedField),
   };
 }
 
@@ -1526,23 +1858,50 @@ function discordMessageResponse(content: string): Response {
   });
 }
 
-/** "/blunion browse [datacenter]" - reicht dieselbe Kernlogik wie GET /groups/browse (siehe
- * computeGroupsBrowse) durch und formatiert das Ergebnis als Discord-Embed (siehe
- * buildGroupsBrowseEmbed). Nur visibility==="listed"-Gruppen sind überhaupt im Ergebnis von
- * computeGroupsBrowse enthalten (siehe dort) - hier also nichts zusätzlich zu tun, um das
- * sicherzustellen (siehe Aufgabenstellung Punkt 4).
+/** "/blunion browse [datacenter] [type]" - reicht dieselbe Kernlogik wie GET /groups/browse bzw.
+ * GET /profiles/browse durch (siehe computeGroupsBrowse/computePlayersBrowse, je nach `type`) und
+ * formatiert das Ergebnis als Discord-Embed (siehe buildGroupsBrowseEmbed/buildPlayersBrowseEmbed).
+ * Nur visibility==="listed"-Einträge sind überhaupt im jeweiligen Ergebnis enthalten (siehe dort) -
+ * hier also nichts zusätzlich zu tun, um das sicherzustellen (siehe Aufgabenstellung Punkt 4).
  *
- * dataCenter ist die vom Discord-Nutzer als Sub-Command-Option übergebene "datacenter"-Option
- * (siehe handleDiscordApplicationCommand) - anders als beim HTTP-Endpoint hier absichtlich KEIN
- * hartes 400, sondern eine normale Chat-Antwort bei fehlendem/unbekanntem Wert (siehe
- * Aufgabenstellung Punkt 4 "Fehlermeldung analog zum bestehenden Verhalten von GET
- * /groups/browse"): eine rohe HTTP-4xx-Response würde Discord nur als "App hat nicht geantwortet"
- * anzeigen, keine lesbare Fehlermeldung im Kanal. */
-async function handleDiscordBrowse(env: Env, dataCenter: string | undefined): Promise<Response> {
+ * dataCenter/type sind die vom Discord-Nutzer als Sub-Command-Optionen übergebenen "datacenter"-/
+ * "type"-Werte (siehe handleDiscordApplicationCommand, dort auch der Default "groups" für
+ * type) - anders als bei den HTTP-Endpoints hier absichtlich KEIN hartes 400, sondern eine normale
+ * Chat-Antwort bei fehlendem dataCenter (siehe Aufgabenstellung Punkt 4 "Fehlermeldung analog zum
+ * bestehenden Verhalten von GET /groups/browse"): eine rohe HTTP-4xx-Response würde Discord nur
+ * als "App hat nicht geantwortet" anzeigen, keine lesbare Fehlermeldung im Kanal.
+ *
+ * Die beiden Zweige (groups/players) bleiben bewusst als zwei separate, leicht redundante Blöcke
+ * statt generisch über computeXBrowse/buildXBrowseEmbed zusammengefasst - genau wie die übrigen
+ * Gruppen-/Spieler-Pendants in dieser Datei (z.B. createGroupDiscordCard/createPlayerDiscordCard),
+ * jeder Zweig bleibt dadurch für sich lesbar, ohne generische Umwege über Funktionsparameter. */
+async function handleDiscordBrowse(
+  env: Env, dataCenter: string | undefined, type: "groups" | "players",
+): Promise<Response> {
   if (!dataCenter) {
     return discordMessageResponse(
       'Bitte ein Data Center angeben, z.B. "/blunion browse datacenter:Aether".',
     );
+  }
+
+  if (type === "players") {
+    const browseResponse = await computePlayersBrowse(env, dataCenter);
+    if (!browseResponse.ok) {
+      const errorBody = await browseResponse.json().catch(() => null) as { error?: string } | null;
+      return discordMessageResponse(errorBody?.error ?? "Beim Abrufen der Spieler ist ein Fehler aufgetreten.");
+    }
+
+    const players = await browseResponse.json<ReturnType<typeof stripForBrowseResponse>[]>();
+    if (players.length === 0)
+      return discordMessageResponse(`Keine öffentlich gelisteten Spieler auf "${dataCenter}" gefunden.`);
+
+    return jsonResponse({
+      type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        embeds: [buildPlayersBrowseEmbed(dataCenter, players)],
+        components: DISCORD_WEBSITE_LINK_COMPONENTS,
+      },
+    });
   }
 
   const browseResponse = await computeGroupsBrowse(env, dataCenter);
@@ -1599,7 +1958,18 @@ async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInt
     return discordMessageResponse('Unbekannter Sub-Command - aktuell wird nur "browse" unterstützt.');
 
   const dataCenter = findDiscordStringOption(browseSubcommand.options, "datacenter");
-  return handleDiscordBrowse(env, dataCenter);
+
+  // "type" ist optional (siehe register-discord-commands.mjs, required: false) und war zum
+  // Zeitpunkt ihrer Einführung bei bereits registrierten Guild-Commands naturgemäß noch gar nicht
+  // bekannt - fehlt sie ODER trägt sie (sollte bei einer über die Registrierung eingereichten
+  // Interaction nie passieren, siehe findDiscordStringOption-Doc) einen unbekannten Wert, gilt
+  // deshalb "groups" als Default, exakt das bisherige (einzige) Verhalten vor dieser Option -
+  // bestehende Server, die den Command noch nicht neu registriert haben, sehen also weiterhin
+  // Gruppen, keinen Fehler.
+  const rawType = findDiscordStringOption(browseSubcommand.options, "type");
+  const type: "groups" | "players" = rawType === "players" ? "players" : "groups";
+
+  return handleDiscordBrowse(env, dataCenter, type);
 }
 
 /** POST /discord/interactions - Einstiegspunkt der neuen, rein lesenden Discord-Integration Phase
@@ -1654,17 +2024,36 @@ async function handleDiscordInteractions(env: Env, request: Request): Promise<Re
  * "channelWebhookId" im übergebenen DiscordCard-Objekt ist hier bewusst ein Platzhalter (""): der
  * Index (siehe DiscordCardIndexEntry) speichert ihn gar nicht erst mit, weil removeGroupDiscordCard
  * ihn ohnehin nicht braucht (nur region+messageId fließen in deleteWebhookMessage/
- * getRegionWebhookUrl ein) - eine vierte, hier nutzlose Kopie des Werts zu pflegen wäre unnötig. */
+ * getRegionWebhookUrl ein) - eine vierte, hier nutzlose Kopie des Werts zu pflegen wäre unnötig.
+ *
+ * Räumt PRO REGION zusätzlich denselben Fall für einzelne Spieler-Profile auf - zweite, eigene
+ * Schleife über playerCardsIndexKey(region)/PlayerCardIndexEntry (siehe dortige Doc, WARUM das ein
+ * eigener Index statt Wiederverwendung von discordcards:<region> ist) statt die Einträge in
+ * dieselbe Schleife zu mischen, weil die beiden Eintragstypen unterschiedlich identifiziert (
+ * groupId vs. world+characterName) und unterschiedlich aufgelöst/entfernt werden (groupKvKey/
+ * removeGroupDiscordCard vs. kvKey/removePlayerDiscordCard) - ansonsten 1:1 dasselbe Prinzip. */
 async function cleanupOrphanedDiscordCards(env: Env): Promise<void> {
   for (const region of ALL_REGIONS) {
-    const entries = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(discordCardsIndexKey(region), "json");
-    if (!entries || entries.length === 0)
-      continue;
+    const groupEntries = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(discordCardsIndexKey(region), "json");
+    if (groupEntries && groupEntries.length > 0) {
+      for (const entry of groupEntries) {
+        const stillExists = await env.BLUNION_PROFILES.get(groupKvKey(entry.groupId));
+        if (stillExists === null) {
+          await removeGroupDiscordCard(env, entry.groupId, { region, channelWebhookId: "", messageId: entry.messageId });
+        }
+      }
+    }
 
-    for (const entry of entries) {
-      const stillExists = await env.BLUNION_PROFILES.get(groupKvKey(entry.groupId));
-      if (stillExists === null)
-        await removeGroupDiscordCard(env, entry.groupId, { region, channelWebhookId: "", messageId: entry.messageId });
+    const playerEntries = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(playerCardsIndexKey(region), "json");
+    if (playerEntries && playerEntries.length > 0) {
+      for (const entry of playerEntries) {
+        const stillExists = await env.BLUNION_PROFILES.get(kvKey(entry.world, entry.characterName));
+        if (stillExists === null) {
+          await removePlayerDiscordCard(
+            env, entry.world, entry.characterName, { region, channelWebhookId: "", messageId: entry.messageId },
+          );
+        }
+      }
     }
   }
 }
@@ -1727,9 +2116,9 @@ export default {
         case "GET":
           return handleGet(env, world, characterName);
         case "PUT":
-          return handlePut(env, request, world, characterName);
+          return handlePut(env, request, world, characterName, ctx);
         case "DELETE":
-          return handleDelete(env, request, world, characterName);
+          return handleDelete(env, request, world, characterName, ctx);
         default:
           return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
       }

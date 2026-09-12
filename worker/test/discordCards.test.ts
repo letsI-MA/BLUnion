@@ -2,9 +2,16 @@ import { env } from "cloudflare:workers";
 import { createExecutionContext, createScheduledController, waitOnExecutionContext } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 import worker from "../src/index";
-import { regionForDataCenter } from "../src/index";
+import {
+  addPlayerCardIndexEntry, buildPlayerCardEmbed, formatAvailabilityAndNoteLines, playerCardsIndexKey,
+  regionForDataCenter, removePlayerCardIndexEntry, syncPlayerDiscordCard,
+} from "../src/index";
+import type { PlayerCardIndexEntry } from "../src/index";
 import { setDiscordFetchForTests } from "../src/discordWebhook";
-import { deleteGroup, KNOWN_SPELL_IDS_SAMPLE, putGroup, uniqueName } from "./helpers";
+import {
+  deleteGroup, deleteProfile, KNOWN_SPELL_IDS_SAMPLE, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, putProfile,
+  uniqueName, validBitmaskBase64,
+} from "./helpers";
 
 /**
  * Tests für die persistenten Discord-Gruppen-Karten (Phase 1.5, siehe DISCORD_INTEGRATION.md und
@@ -39,7 +46,9 @@ const WORLD_BY_REGION: Record<"NA" | "EU" | "JP" | "OC", string> = {
 interface RecordedWebhookCall {
   method: string;
   url: string;
-  body: { embeds?: { title?: string; fields?: { name: string; value: string }[] }[] } | undefined;
+  body: {
+    embeds?: { title?: string; description?: string; fields?: { name: string; value: string }[] }[];
+  } | undefined;
 }
 
 /** Baut eine Fake-fetch-Implementierung, die JEDEN Aufruf aufzeichnet (Methode/URL/Body) und -
@@ -121,6 +130,143 @@ describe("regionForDataCenter", () => {
     // Überlauf-Data-Center (siehe DATA_CENTER_TO_REGION-Doc in src/index.ts) - absichtlich NICHT
     // in DATA_CENTER_TO_REGION hinterlegt.
     expect(regionForDataCenter("Shadow")).toBeNull();
+  });
+});
+
+describe("formatAvailabilityAndNoteLines", () => {
+  // Direkt gegen die exportierte Funktion getestet (siehe regionForDataCenter oben für dasselbe
+  // Muster) statt nur indirekt über ein Embed - deckt die drei Zeilen (Notiz/Verfügbarkeit/
+  // wantedPlayerCount) und ihr Weglassen bei leeren/0-Werten unabhängig voneinander ab.
+  it("returns an empty string when note/availabilityTags/wantedPlayerCount are all empty/zero", () => {
+    expect(formatAvailabilityAndNoteLines("", [], 0)).toBe("");
+  });
+
+  it("includes the note as its own line when set, omits it when empty", () => {
+    expect(formatAvailabilityAndNoteLines("Testnotiz", [], 0)).toBe("Testnotiz");
+    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Testnotiz");
+  });
+
+  it("includes a 'Verfügbarkeit' line only when availabilityTags is non-empty", () => {
+    expect(formatAvailabilityAndNoteLines("", ["evening", "weekend"], 0)).toBe("Verfügbarkeit: evening, weekend");
+    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Verfügbarkeit");
+  });
+
+  it("omits the 'Gesucht'-line for wantedPlayerCount 0 ('egal wie viele'), includes it for >0", () => {
+    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Gesucht");
+    expect(formatAvailabilityAndNoteLines("", [], 5)).toBe("Gesucht: 5 Mitspieler");
+  });
+
+  it("joins multiple present lines with a blank line in between, in note/Verfügbarkeit/Gesucht order", () => {
+    expect(formatAvailabilityAndNoteLines("Notiz", ["evening"], 3)).toBe(
+      "Notiz\n\nVerfügbarkeit: evening\n\nGesucht: 3 Mitspieler",
+    );
+  });
+});
+
+/** Baut ein minimales, aber vollständiges StoredProfile-förmiges Objekt für direkte
+ * buildPlayerCardEmbed-Unit-Tests, ohne den Umweg über einen echten PUT/KV-Roundtrip - dieselbe
+ * Motivation wie beim Exportieren der Funktion selbst (siehe dortige Doc). editTokenHash/
+ * createdAt/updatedAt sind für buildPlayerCardEmbed irrelevant (siehe Doc dort - fließen gar nicht
+ * ins Embed ein), aber Teil des StoredProfile-Typs und deshalb hier trotzdem gesetzt. */
+function fakeStoredProfile(overrides: {
+  characterName?: string;
+  world?: string;
+  note?: string;
+  availabilityTags?: string[];
+  wantedPlayerCount?: number;
+} = {}) {
+  return {
+    characterName: overrides.characterName ?? "Testchar",
+    world: overrides.world ?? KNOWN_WORLD,
+    dataCenter: KNOWN_WORLD_DATA_CENTER,
+    spellBitmaskBase64: validBitmaskBase64(),
+    editTokenHash: "irrelevant-hash",
+    visibility: "listed" as const,
+    availabilityTags: overrides.availabilityTags,
+    note: overrides.note,
+    wantedPlayerCount: overrides.wantedPlayerCount,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+describe("buildPlayerCardEmbed", () => {
+  it("uses the green player-card color, distinct from the blue group-card color (0x2b6cb0)", () => {
+    const embed = buildPlayerCardEmbed(fakeStoredProfile());
+    expect(embed.color).toBe(0x2f9e44);
+  });
+
+  it("titles the embed with character name and world", () => {
+    const embed = buildPlayerCardEmbed(fakeStoredProfile({ characterName: "Klaus", world: KNOWN_WORLD }));
+    expect(embed.title).toBe(`Klaus (${KNOWN_WORLD}) sucht Mitspieler`);
+  });
+
+  it("has no member list ('fields'), unlike a group card (buildGroupCardEmbed)", () => {
+    // Ein einzelnes Spieler-Gesuch hat keine Mitgliederliste (siehe buildPlayerCardEmbed-Doc) -
+    // anders als buildGroupCardEmbed liefert es deshalb gar kein "fields"-Array, sondern nutzt
+    // "description" für Notiz/Verfügbarkeit/wantedPlayerCount.
+    const embed = buildPlayerCardEmbed(fakeStoredProfile({ note: "Testnotiz" }));
+    expect(embed.fields).toBeUndefined();
+    expect(embed.description).toBe("Testnotiz");
+  });
+
+  it("omits the description entirely when note/availabilityTags/wantedPlayerCount are all unset", () => {
+    const embed = buildPlayerCardEmbed(fakeStoredProfile());
+    expect(embed.description).toBeUndefined();
+  });
+});
+
+describe("playerCardsIndexKey / PlayerCardIndexEntry - add/remove cycle", () => {
+  it("formats the key as 'playercards:<region>'", () => {
+    expect(playerCardsIndexKey("NA")).toBe("playercards:NA");
+    expect(playerCardsIndexKey("EU")).toBe("playercards:EU");
+  });
+
+  it("adds an entry that can be read back from KV, and removes it again", async () => {
+    const world = uniqueName("World");
+    const characterName = uniqueName("Char");
+    const key = playerCardsIndexKey("NA");
+
+    await addPlayerCardIndexEntry(env, "NA", world, characterName, "msg-1");
+    const afterAdd = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
+    expect(afterAdd).toEqual([{ world, characterName, messageId: "msg-1" }]);
+
+    await removePlayerCardIndexEntry(env, "NA", world, characterName);
+    const afterRemove = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
+    expect(afterRemove).toEqual([]);
+  });
+
+  it("dedupes a repeated add for the same world+characterName, keeping only the latest messageId", async () => {
+    const world = uniqueName("World");
+    const characterName = uniqueName("Char");
+    const key = playerCardsIndexKey("EU");
+
+    await addPlayerCardIndexEntry(env, "EU", world, characterName, "msg-old");
+    await addPlayerCardIndexEntry(env, "EU", world, characterName, "msg-new");
+
+    const entries = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
+    expect(entries).toEqual([{ world, characterName, messageId: "msg-new" }]);
+  });
+
+  it("does not touch entries for a different world+characterName", async () => {
+    const world = uniqueName("World");
+    const characterName = uniqueName("Char");
+    const otherWorld = uniqueName("OtherWorld");
+    const otherCharacterName = uniqueName("OtherChar");
+    const key = playerCardsIndexKey("JP");
+
+    await addPlayerCardIndexEntry(env, "JP", otherWorld, otherCharacterName, "msg-other");
+    await addPlayerCardIndexEntry(env, "JP", world, characterName, "msg-mine");
+    await removePlayerCardIndexEntry(env, "JP", world, characterName);
+
+    const entries = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
+    expect(entries).toEqual([{ world: otherWorld, characterName: otherCharacterName, messageId: "msg-other" }]);
+  });
+
+  it("removing a non-existent entry does not throw", async () => {
+    await expect(
+      removePlayerCardIndexEntry(env, "OC", uniqueName("World"), uniqueName("Char")),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -446,6 +592,231 @@ describe("cron cleanup of orphaned Discord cards", () => {
       visibility: "listed",
     });
     await env.BLUNION_PROFILES.delete(`group:${groupId}`);
+
+    await callScheduled();
+    await callScheduled();
+
+    expect(calls.filter((call) => call.method === "DELETE")).toHaveLength(1);
+  });
+});
+
+/**
+ * Spieler-Pendant zu den obigen Gruppen-Karten-Tests (siehe syncPlayerDiscordCard/
+ * createPlayerDiscordCard/removePlayerDiscordCard in src/index.ts) - deckt die Verdrahtung aus
+ * handlePut/handleDelete ab, NICHT nochmal jeden Einzelfall, den die Gruppen-Tests oben schon
+ * gegen dieselbe (wiederverwendete) syncGroupDiscordCard-Logik geprüft haben (Regionswechsel,
+ * Discord-Ausfälle, kein Webhook konfiguriert etc. verhalten sich für Spieler-Profile identisch,
+ * siehe syncPlayerDiscordCard-Doc "1:1 analog").
+ */
+describe("persistent Discord player cards", () => {
+  it("creates a card when a profile is published as listed, and removes it again when set back to unlisted", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    const characterName = uniqueName("KartenSpieler");
+    const createResponse = await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+      note: "Spieler-Karten-Test",
+      availabilityTags: ["evening"],
+      wantedPlayerCount: 3,
+    });
+    expect(createResponse.status).toBe(201);
+    const { editToken } = await createResponse.json<{ editToken: string }>();
+
+    const postCalls = calls.filter((call) => call.method === "POST");
+    expect(postCalls).toHaveLength(1);
+    expect(postCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}?wait=true`);
+
+    const embed = postCalls[0]!.body!.embeds![0]!;
+    expect(embed.title).toBe(`${characterName} (${KNOWN_WORLD}) sucht Mitspieler`);
+    expect(embed.description).toContain("Spieler-Karten-Test");
+    expect(embed.description).toContain("Verfügbarkeit: evening");
+    expect(embed.description).toContain("Gesucht: 3 Mitspieler");
+
+    // Zurück auf "unlisted" entfernt die Karte wieder, statt sie z.B. stehen zu lassen.
+    const unlistResponse = await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      editToken,
+      visibility: "unlisted",
+    });
+    expect(unlistResponse.status).toBe(200);
+
+    const deleteCalls = calls.filter((call) => call.method === "DELETE");
+    expect(deleteCalls).toHaveLength(1);
+    expect(deleteCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}/messages/fake-message-1`);
+
+    // Ein erneutes Zurückschalten auf "listed" legt eine NEUE Karte an, statt die alte (gelöschte)
+    // wiederzubeleben (analog zum Gruppen-Pendant oben).
+    await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      editToken,
+      visibility: "listed",
+    });
+    expect(calls.filter((call) => call.method === "POST")).toHaveLength(2);
+  });
+
+  it("removes the card when a listed profile is deleted", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    const characterName = uniqueName("KartenSpielerDelete");
+    const createResponse = await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+    });
+    const { editToken } = await createResponse.json<{ editToken: string }>();
+    expect(calls.filter((call) => call.method === "POST")).toHaveLength(1);
+
+    const deleteResponse = await deleteProfile(KNOWN_WORLD, characterName, editToken);
+    expect(deleteResponse.status).toBe(200);
+
+    const deleteCalls = calls.filter((call) => call.method === "DELETE");
+    expect(deleteCalls).toHaveLength(1);
+    expect(deleteCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}/messages/fake-message-1`);
+  });
+
+  it("does not attempt any Discord call for an unlisted profile", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    await putProfile(KNOWN_WORLD, uniqueName("KeineKarteSpieler"), {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "unlisted",
+    });
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it("does not attempt any Discord call when no webhook is configured for the profile's region", async () => {
+    // Absichtlich KEIN setRegionWebhooks() - alle vier bleiben unconfigured (siehe afterEach).
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    const response = await putProfile(KNOWN_WORLD, uniqueName("KartenSpielerNoRegion"), {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+    });
+
+    expect(response.status).toBe(201);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+/** Regionswechsel-Zweig von syncPlayerDiscordCard - über die öffentliche PUT-Route für ein UND
+ * DASSELBE Profil praktisch nicht herstellbar (siehe syncPlayerDiscordCard-Doc in src/index.ts:
+ * world+characterName SIND der KV-Key, dataCenter wird deterministisch aus world hergeleitet -
+ * ein "derselbe Key, jetzt anderes dataCenter"-PUT würde ein anderes world und damit einen
+ * ANDEREN Key brauchen). Anders als bei den übrigen Kartentests hier deshalb ein DIREKTER Aufruf
+ * der exportierten Funktion statt über putProfile/callWorker. */
+describe("syncPlayerDiscordCard - region change (direct unit test)", () => {
+  it("moves the card to the new region's webhook and removes the old one when dataCenter changes", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA, EU: FAKE_WEBHOOK_URLS.EU });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    const key = `profile:test-move:${uniqueName("char").toLowerCase()}`;
+    const baseRecord = {
+      characterName: "Testchar",
+      world: "Testworld",
+      dataCenter: "Aether", // NA, siehe DATA_CENTER_TO_REGION
+      spellBitmaskBase64: validBitmaskBase64(),
+      editTokenHash: "irrelevant-hash",
+      visibility: "listed" as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await syncPlayerDiscordCard(env, key, baseRecord, 3600);
+    const afterFirstSync = await env.BLUNION_PROFILES.get<typeof baseRecord & { discordCard?: unknown }>(key, "json");
+    expect(afterFirstSync?.discordCard).toBeDefined();
+
+    // Simuliert ein reales DC-Reassignment (world.ts-Änderung) statt eines künstlichen zweiten
+    // PUTs, siehe describe-Doc oben - "Testworld" wandert von Aether/NA zu Chaos/EU.
+    const movedRecord = { ...afterFirstSync!, dataCenter: "Chaos" }; // EU
+    await syncPlayerDiscordCard(env, key, movedRecord, 3600);
+
+    const postCalls = calls.filter((call) => call.method === "POST");
+    const deleteCalls = calls.filter((call) => call.method === "DELETE");
+    expect(postCalls).toHaveLength(2); // eine NA-, eine EU-Karte
+    expect(postCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}?wait=true`);
+    expect(postCalls[1]!.url).toBe(`${FAKE_WEBHOOK_URLS.EU}?wait=true`);
+    expect(deleteCalls).toHaveLength(1); // die alte NA-Karte wird entfernt, nicht editiert
+    expect(deleteCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}/messages/fake-message-1`);
+
+    const finalRecord = await env.BLUNION_PROFILES.get<typeof baseRecord & { discordCard?: { region: string } }>(
+      key, "json");
+    expect(finalRecord?.discordCard?.region).toBe("EU");
+  });
+});
+
+/** Spieler-Pendant zu "cron cleanup of orphaned Discord cards" oben - deckt dieselben drei Fälle
+ * für die ZWEITE, playercards:<region>-Schleife in cleanupOrphanedDiscordCards ab (siehe dortige
+ * Doc). "profile:<world>:<characterName>" statt kvKey() direkt nachgebaut (kvKey ist nicht
+ * exportiert) - analog dazu, wie die Gruppen-Tests oben "group:<groupId>" statt groupKvKey()
+ * direkt schreiben. */
+describe("cron cleanup of orphaned Discord player cards", () => {
+  async function callScheduled(): Promise<void> {
+    const ctx = createExecutionContext();
+    const controller = createScheduledController();
+    await worker.scheduled(controller, env, ctx);
+    await waitOnExecutionContext(ctx);
+  }
+
+  it("removes the card of a profile whose KV entry silently expired (no prior DELETE)", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    const characterName = uniqueName("KartenSpielerOrphan");
+    await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+    });
+    expect(calls.filter((call) => call.method === "POST")).toHaveLength(1);
+
+    // Simuliert den stillen TTL-Ablauf: der "profile:<world>:<characterName>"-Eintrag verschwindet,
+    // OHNE dass DELETE /profile/:world/:characterName aufgerufen wird - der "playercards:NA"-Index
+    // bleibt dabei unverändert bestehen (siehe PlayerCardIndexEntry-Doc in src/index.ts).
+    await env.BLUNION_PROFILES.delete(`profile:${KNOWN_WORLD.toLowerCase()}:${characterName.toLowerCase()}`);
+
+    await callScheduled();
+
+    const deleteCalls = calls.filter((call) => call.method === "DELETE");
+    expect(deleteCalls).toHaveLength(1);
+    expect(deleteCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}/messages/fake-message-1`);
+  });
+
+  it("does not touch cards of profiles that still exist", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    await putProfile(KNOWN_WORLD, uniqueName("KartenSpielerStillAlive"), {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+    });
+    calls.length = 0; // nur die Cron-Aufrufe unten interessieren.
+
+    await callScheduled();
+
+    expect(calls).toHaveLength(0);
+  });
+
+  it("does not attempt to remove the same orphaned card twice on a second run", async () => {
+    setRegionWebhooks({ NA: FAKE_WEBHOOK_URLS.NA });
+    const { fetchImpl, calls } = createRecordingDiscordFetch();
+    setDiscordFetchForTests(fetchImpl);
+
+    const characterName = uniqueName("KartenSpielerOrphanTwice");
+    await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+    });
+    await env.BLUNION_PROFILES.delete(`profile:${KNOWN_WORLD.toLowerCase()}:${characterName.toLowerCase()}`);
 
     await callScheduled();
     await callScheduled();

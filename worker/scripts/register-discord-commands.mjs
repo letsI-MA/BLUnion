@@ -41,16 +41,18 @@ if (!DISCORD_APPLICATION_ID || !DISCORD_BOT_TOKEN || !DISCORD_TEST_GUILD_ID) {
   process.exit(1);
 }
 
-// "/blunion browse [datacenter]" - als Sub-Command unter dem Top-Level-Command "blunion" (type 1
-// = SUB_COMMAND), damit eine spätere Phase 2 (z.B. "/blunion link") denselben Top-Level-Command
-// um weitere Sub-Commands ergänzen kann, ohne einen bestehenden Command zu ersetzen/zu brechen.
+// "/blunion browse [datacenter] [type]" - als Sub-Command unter dem Top-Level-Command "blunion"
+// (type 1 = SUB_COMMAND), damit eine spätere Phase 2 (z.B. "/blunion link") denselben
+// Top-Level-Command um weitere Sub-Commands ergänzen kann, ohne einen bestehenden Command zu
+// ersetzen/zu brechen. "type" (Gruppen/Spieler) ist eine STRING-Option mit choices statt eines
+// eigenen Sub-Commands - dieselbe Kernlogik (browse), nur ein anderer Ergebnis-/Embed-Typ.
 const commandDefinition = {
   name: "blunion",
   description: "BLUnion Gruppenfinder",
   options: [
     {
       name: "browse",
-      description: "Öffentlich gelistete Blue-Mage-Gruppen auf einem Data Center anzeigen",
+      description: "Öffentlich gelistete Blue-Mage-Gruppen oder Spieler-Gesuche auf einem Data Center anzeigen",
       type: 1, // SUB_COMMAND
       options: [
         {
@@ -58,6 +60,16 @@ const commandDefinition = {
           description: 'Data Center, z.B. "Aether", "Chaos", "Light" (optional)',
           type: 3, // STRING
           required: false,
+        },
+        {
+          name: "type",
+          description: 'Was anzeigen: Gruppen (Standard) oder einzelne Spieler-Gesuche (optional)',
+          type: 3, // STRING
+          required: false,
+          choices: [
+            { name: "Gruppen", value: "groups" },
+            { name: "Spieler", value: "players" },
+          ],
         },
       ],
     },

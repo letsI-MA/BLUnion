@@ -50,9 +50,13 @@ public sealed partial class MainWindow
             return;
         }
 
+        // Einmal pro Draw-Aufruf berechnet (nicht pro Zeile!) - GetCommonlyMissingSpells iteriert
+        // intern über alle Spells x alle Party-Mitglieder, ein Aufruf pro Tabellenzeile wäre O(n²).
+        var partyMissingBySpellId = this.GetPartyMissingBySpellId();
+
         if (ImGui.GetContentRegionAvail().X >= TwoColumnLayoutMinWidth)
         {
-            this.DrawSpellbookMasterDetailLayout(rows, learnedSpellIds);
+            this.DrawSpellbookMasterDetailLayout(rows, learnedSpellIds, partyMissingBySpellId);
             return;
         }
 
@@ -77,6 +81,9 @@ public sealed partial class MainWindow
                 var isLearned = learnedSpellIds.Contains(spell.Id);
 
                 var sources = this.spellDataService.GetSourcesForSpell(spell.Id, excludeTotems: false).ToList();
+                var partyMissingEntry = !isLearned && partyMissingBySpellId is not null && partyMissingBySpellId.TryGetValue(spell.Id, out var narrowMissingEntry)
+                    ? narrowMissingEntry
+                    : null;
 
                 ImGui.TableNextRow();
 
@@ -89,7 +96,7 @@ public sealed partial class MainWindow
                 ImGui.TableSetColumnIndex(2);
                 ImGui.Selectable(this.GetSpellName(spell), false, ImGuiSelectableFlags.SpanAllColumns);
 
-                if (ImGui.IsItemHovered() && (spell.Description is not null || sources.Count > 0))
+                if (ImGui.IsItemHovered() && (spell.Description is not null || sources.Count > 0 || partyMissingEntry is not null))
                 {
                     ImGui.BeginTooltip();
 
@@ -113,6 +120,18 @@ public sealed partial class MainWindow
                             UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
                     }
 
+                    if (partyMissingEntry is not null)
+                    {
+                        // Reiner Hinweistext ohne Button, bewusst anders als im Master-Detail-Panel
+                        // (siehe DrawSpellbookDetailContent): ImGui-Tooltips nehmen keine Eingaben
+                        // entgegen, ein Button wäre hier nicht klickbar.
+                        if (spell.Description is not null || sources.Count > 0)
+                            ImGui.Separator();
+
+                        ImGui.TextWrapped(UiStrings.Format(
+                            UiStrings.Key.SpellbookNeededByPartyFormat, this.displayLanguage, partyMissingEntry.PlayersMissingIt.Count));
+                    }
+
                     ImGui.EndTooltip();
                 }
 
@@ -133,7 +152,7 @@ public sealed partial class MainWindow
         }
     }
 
-    private void DrawSpellbookMasterDetailLayout(List<Spell> rows, IReadOnlySet<uint> learnedSpellIds)
+    private void DrawSpellbookMasterDetailLayout(List<Spell> rows, IReadOnlySet<uint> learnedSpellIds, Dictionary<uint, MissingSpellInfo>? partyMissingBySpellId)
     {
         if (this.selectedSpellbookSpell is null || !rows.Contains(this.selectedSpellbookSpell))
             this.selectedSpellbookSpell = rows.FirstOrDefault();
@@ -154,12 +173,12 @@ public sealed partial class MainWindow
 
         ImGui.BeginChild("SpellbookDetail", System.Numerics.Vector2.Zero, true);
         if (this.selectedSpellbookSpell is not null)
-            this.DrawSpellbookDetailContent(this.selectedSpellbookSpell, learnedSpellIds);
+            this.DrawSpellbookDetailContent(this.selectedSpellbookSpell, learnedSpellIds, partyMissingBySpellId);
 
         ImGui.EndChild();
     }
 
-    private void DrawSpellbookDetailContent(Spell spell, IReadOnlySet<uint> learnedSpellIds)
+    private void DrawSpellbookDetailContent(Spell spell, IReadOnlySet<uint> learnedSpellIds, Dictionary<uint, MissingSpellInfo>? partyMissingBySpellId)
     {
         var isLearned = learnedSpellIds.Contains(spell.Id);
         var sources = this.spellDataService.GetSourcesForSpell(spell.Id, excludeTotems: false).ToList();
@@ -194,5 +213,31 @@ public sealed partial class MainWindow
             ImGui.TextUnformatted(UiStrings.Format(
                 UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
         }
+
+        if (!isLearned && partyMissingBySpellId is not null && partyMissingBySpellId.TryGetValue(spell.Id, out var missingEntry))
+        {
+            ImGui.Separator();
+            ImGui.TextWrapped(UiStrings.Format(
+                UiStrings.Key.SpellbookNeededByPartyFormat, this.displayLanguage, missingEntry.PlayersMissingIt.Count));
+
+            if (ImGui.Button(UiStrings.Get(UiStrings.Key.SpellbookGoToComparisonButton, this.displayLanguage)))
+            {
+                this.pendingActiveCategoryTabId = "TabCategoryParty";
+                this.pendingActiveSubTabId = "TabSpellComparison";
+            }
+        }
+    }
+
+    // Einmal pro Draw-Aufruf berechnet statt pro Spell (siehe Aufrufstellen) - GetCommonlyMissingSpells
+    // iteriert intern über alle Spells x alle Party-Mitglieder.
+    private Dictionary<uint, MissingSpellInfo>? GetPartyMissingBySpellId()
+    {
+        var partyStatus = this.syncProvider.GetKnownPartyStatus();
+        if (partyStatus.Count == 0)
+            return null;
+
+        return this.comparisonService
+            .GetCommonlyMissingSpells(this.spellDataService.Spells.Keys, partyStatus)
+            .ToDictionary(m => m.SpellId);
     }
 }

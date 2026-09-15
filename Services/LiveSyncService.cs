@@ -85,6 +85,10 @@ public sealed class LiveSyncService : IDisposable
     private volatile bool devPublishInFlight;
 #endif
 
+    // Rein lesend für die Statuszeile (siehe DrawStatusBar in MainWindow.cs) - pushInFlight/
+    // fetchInFlight selbst bleiben unverändert private und werden weiterhin nur intern gesetzt.
+    public bool IsSyncing => this.pushInFlight || this.fetchInFlight;
+
     public OwnProfileSnapshot? LastKnownOwnProfile { get; private set; }
 
     public IReadOnlyList<GroupFinderEntry> LastBrowseResults { get; private set; } = Array.Empty<GroupFinderEntry>();

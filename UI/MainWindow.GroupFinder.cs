@@ -47,13 +47,36 @@ public sealed partial class MainWindow
         {
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.GroupFinderPublishSubTab, this.displayLanguage)))
             {
-                if (ImGui.CollapsingHeader(
-                        UiStrings.Get(UiStrings.Key.GroupFinderMyEntryHeader, this.displayLanguage),
-                        ImGuiTreeNodeFlags.DefaultOpen))
-                    this.DrawMyEntrySection();
+                // Vorher zwei CollapsingHeader übereinander (Solo-Sichtbarkeit + Gruppen-
+                // Veröffentlichung) - fachlich zwei getrennte Anwendungsfälle, die sich nur durch
+                // Auf-/Zuklappen unterschieden. Jetzt eine klare Moduswahl: es wird immer nur GENAU
+                // einer der beiden Abschnitte gezeichnet.
+                if (ImGui.RadioButton(
+                        UiStrings.Get(UiStrings.Key.GroupPublishModeSolo, this.displayLanguage),
+                        this.groupPublishMode == GroupPublishMode.Solo))
+                    this.groupPublishMode = GroupPublishMode.Solo;
 
-                if (ImGui.CollapsingHeader(UiStrings.Get(UiStrings.Key.GroupPublishHeader, this.displayLanguage)))
+                ImGui.SameLine();
+
+                if (ImGui.RadioButton(
+                        UiStrings.Get(UiStrings.Key.GroupPublishModeGroup, this.displayLanguage),
+                        this.groupPublishMode == GroupPublishMode.Group))
+                    this.groupPublishMode = GroupPublishMode.Group;
+
+                ImGui.Separator();
+
+                if (this.groupPublishMode == GroupPublishMode.Solo)
+                {
+                    this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.GroupFinderMyEntryHeader, this.displayLanguage));
+                    ImGui.Separator();
+                    this.DrawMyEntrySection();
+                }
+                else
+                {
+                    this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.GroupPublishHeader, this.displayLanguage));
+                    ImGui.Separator();
                     this.DrawGroupPublishSection();
+                }
 
                 ImGui.EndTabItem();
             }
@@ -162,12 +185,18 @@ public sealed partial class MainWindow
 
         if (entries.Count == 0)
         {
-            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderNoEntries, this.displayLanguage));
+            this.DrawEmptyState(UiStrings.Get(UiStrings.Key.GroupFinderNoEntries, this.displayLanguage));
             return;
         }
 
         var totalSpellCount = this.spellDataService.Spells.Count;
 
+        // Bewusst NICHT über DrawCard strukturiert (geprüft): DrawCard ist auf variable Höhe im
+        // Vollbreite-Fluss ausgelegt (hängt am Ende DrawSectionGap an) und würde in dieser fest
+        // dimensionierten Grid-Zelle (siehe DrawCardGrid, cardHeight) zu Overflow/Scrollbalken
+        // führen; außerdem läuft DrawCards Titel immer über DrawSectionHeader mit fester
+        // Akzentfarbe, was mit dem hier eigenen Entry-Highlighting (isOwnEntry -> komplett grün)
+        // kollidieren würde.
         this.DrawCardGrid("GroupFinderEntry", entries, entry =>
         {
             var isOwnEntry = string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal);
@@ -222,6 +251,14 @@ public sealed partial class MainWindow
 
     private void DrawGroupPublishSection()
     {
+        // Reine visuelle Gliederung (siehe Aufgabenstellung) - die nackten RadioButtons zur
+        // Mitgliederquelle erklären sich sonst ohne Kontext nicht von selbst, anders als die
+        // Sichtbarkeit/Tags/Notiz/Anzahl-Felder darunter (die schon über ihre eigenen Checkbox-/
+        // Feld-Labels selbsterklärend sind) und der Zielspell-Bereich (hat bereits einen eigenen
+        // DrawSectionHeader, siehe DrawGroupPublishTargetSpellSection) - daher bewusst kein neuer
+        // UiStrings-Key hier, sondern Wiederverwendung von ColumnPlayer ("Spieler").
+        this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.ColumnPlayer, this.displayLanguage));
+
         if (ImGui.RadioButton(
                 UiStrings.Get(UiStrings.Key.GroupPublishSourceParty, this.displayLanguage),
                 this.groupMemberSource == GroupMemberSource.Party))
@@ -240,6 +277,7 @@ public sealed partial class MainWindow
             this.DrawGroupPublishSyncListMemberList();
 
         ImGui.Separator();
+        DrawSectionGap();
 
         ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupPublishVisibleToggle, this.displayLanguage), ref this.groupPublishVisible);
 
@@ -270,8 +308,12 @@ public sealed partial class MainWindow
             ref this.groupPublishWantedPlayerCountBuffer, 2, ImGuiInputTextFlags.CharsDecimal);
 
         ImGui.Separator();
+        DrawSectionGap();
+
         this.DrawGroupPublishTargetSpellSection();
+
         ImGui.Separator();
+        DrawSectionGap();
 
         var selectedCount = this.groupPublishSelectedMembers.Count;
         var canPublish = selectedCount is >= 1 and <= 8;
@@ -445,12 +487,16 @@ public sealed partial class MainWindow
         var groups = this.liveSyncService.LastGroupBrowseResults;
         if (groups.Count == 0)
         {
-            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.GroupFinderNoGroups, this.displayLanguage));
+            this.DrawEmptyState(UiStrings.Get(UiStrings.Key.GroupFinderNoGroups, this.displayLanguage));
             return;
         }
 
         var allSpellIds = this.spellDataService.Spells.Keys;
 
+        // Nicht über DrawCard strukturiert - siehe Begründung in DrawOtherPlayersSection
+        // (dieselbe feste Grid-Zellen-Höhe via DrawCardGrid, zusätzlich pinnt AlignCursorToCardBottom
+        // hier die Action-Buttons abhängig von variabel langem Inhalt darüber ans Kartenende, was
+        // sich nicht sauber in DrawCards festen Content->Spacing->Action-Ablauf einfügt).
         this.DrawCardGrid("GroupBrowseGroup", groups, group => this.DrawGroupBrowseEntry(group, allSpellIds), cardHeight: 220f);
 
         this.DrawGroupTargetSpellDetailPopup();
@@ -582,14 +628,21 @@ public sealed partial class MainWindow
             foreach (var row in rows)
             {
                 var orderText = row.SpellbookOrder == int.MaxValue ? "—" : $"#{row.SpellbookOrder:D3}";
+                var prefix = row.Status.IsLearned ? "✓" : "–";
+                var color = row.Status.IsLearned ? SuccessMessageColor : NotLearnedColor;
 
                 this.DrawSpellIcon(row.IconId);
                 ImGui.SameLine();
 
-                if (row.Status.IsLearned)
-                    ImGui.TextColored(SuccessMessageColor, $"✓ {orderText}  {row.Name}");
-                else
-                    ImGui.TextColored(NotLearnedColor, $"– {orderText}  {row.Name}");
+                ImGui.PushStyleColor(ImGuiCol.Text, color);
+                var clicked = ImGui.Selectable($"{prefix} {orderText}  {row.Name}##GroupTargetSpellPopupRow{row.Status.SpellId}");
+                ImGui.PopStyleColor();
+
+                if (clicked)
+                {
+                    this.JumpToSpellInSpellbook(row.Status.SpellId);
+                    ImGui.CloseCurrentPopup();
+                }
             }
         }
 

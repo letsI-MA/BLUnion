@@ -13,9 +13,11 @@ namespace BLUnion.UI;
 // wurden hierher verschoben.
 public sealed partial class MainWindow
 {
-    private void DrawSpellIcon(uint iconId)
+    private static readonly System.Numerics.Vector2 DefaultSpellIconSize = new(24, 24);
+
+    private void DrawSpellIcon(uint iconId, System.Numerics.Vector2? iconSize = null)
     {
-        var size = new System.Numerics.Vector2(24, 24);
+        var size = iconSize ?? DefaultSpellIconSize;
 
         if (iconId != 0)
         {
@@ -97,8 +99,46 @@ public sealed partial class MainWindow
     }
 
     // Extra separation on top of the global ItemSpacing, for blocks that need more of a break than that alone gives.
-    // Not wired up anywhere yet - callers are added at specific spots in a later step.
     private static void DrawSectionGap() => ImGui.Dummy(new System.Numerics.Vector2(0f, 8f));
+
+    // Leichtgewichtige "Card"-Darstellung (Header + Inhalt + optionale Action-Zeile darunter) für
+    // Dashboard-artige Zusammenfassungen (siehe DrawHomeTab) - bewusst ohne eigenes BeginChild
+    // (die vorhandenen ImGui-Bindings hier bieten nur den einfachen BeginChild(id, size, border)-
+    // Overload ohne Auto-Resize-Höhe, siehe DrawCardGrid/Spellbook-/Loadouts-Master-Detail-Layout,
+    // eine feste Höhe würde bei unterschiedlich langem drawContent aber schlecht aussehen), sondern
+    // als Header+Separator+Inhalt+Gap, analog zum bereits bestehenden Section-Header-Muster.
+    private void DrawCard(string title, Action drawContent, Action? drawAction = null)
+    {
+        this.DrawSectionHeader(title);
+        ImGui.Separator();
+        drawContent();
+
+        if (drawAction is not null)
+        {
+            ImGui.Spacing();
+            drawAction();
+        }
+
+        DrawSectionGap();
+    }
+
+    // Für "hier gibt es noch nichts anzuzeigen"-Zustände (siehe Aufgabenstellung) - bewusst mit
+    // Abstand vor UND nach dem Text (DrawSectionGap), damit der Zustand als eigener, klar
+    // abgegrenzter Block wirkt statt als beiläufige Textzeile zwischen anderem Inhalt.
+    private void DrawEmptyState(string message, (string Label, Action OnClick)? action = null)
+    {
+        DrawSectionGap();
+        this.DrawHintText(message);
+
+        if (action is { } actionValue)
+        {
+            ImGui.Spacing();
+            if (ImGui.Button(actionValue.Label))
+                actionValue.OnClick();
+        }
+
+        DrawSectionGap();
+    }
 
     private void DrawHintText(string text)
     {
@@ -142,6 +182,24 @@ public sealed partial class MainWindow
     }
 
     private void ClearMessage() => this.lastError = null;
+
+    // Gemeinsamer Sprungpunkt "zu diesem Spell im Spellbook" von Party Overview/Comparison/
+    // Learning Plan aus (siehe Aufgabenstellung) - setzt Auswahl + Filter zurück, damit der Spell im
+    // Master-Detail-Layout garantiert sichtbar/ausgewählt ist, und nutzt den bestehenden
+    // pendingActiveCategoryTabId/pendingActiveSubTabId-Mechanismus (siehe MainWindow.cs) für den
+    // Tab-Sprung selbst. Bekannte Einschränkung (bewusst nicht gelöst): bei schmalen Fenstern
+    // (Tabellen- statt Master-Detail-Layout, siehe DrawSpellbookTab) wirkt sich selectedSpellbookSpell
+    // erst sichtbar aus, sobald das Fenster wieder breit genug ist.
+    private void JumpToSpellInSpellbook(uint spellId)
+    {
+        if (this.spellDataService.Spells.TryGetValue(spellId, out var spell))
+            this.selectedSpellbookSpell = spell;
+
+        this.spellbookFilterMode = SpellbookFilterMode.All;
+        this.spellbookFilterText = string.Empty;
+        this.pendingActiveCategoryTabId = "TabCategorySpellbook";
+        this.pendingActiveSubTabId = "TabSpellbook";
+    }
 
     private string GetSpellName(Spell spell) => spell.GetName(this.displayLanguage);
 

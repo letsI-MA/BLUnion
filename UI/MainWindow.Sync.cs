@@ -9,7 +9,7 @@ namespace BLUnion.UI;
 
 public sealed partial class MainWindow
 {
-    private void DrawSyncTab()
+    private void DrawSyncSection()
     {
         var members = this.partyService.GetBlueMagePartyMembers();
 
@@ -32,57 +32,26 @@ public sealed partial class MainWindow
         ImGui.Separator();
 
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.DetermineAndExportButton, this.displayLanguage)))
-        {
-            try
-            {
-                var localPlayerName = this.partyService.GetLocalPlayerName()
-                    ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
-
-                var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
-                this.syncProvider.PublishLocalStatus(status);
-                var code = this.syncProvider.ExportToCode(status);
-
-                ImGui.SetClipboardText(code);
-
-                var sharedToPartyChat = this.TryAutoShareToPartyChat(code);
-                this.SetSuccessMessage(sharedToPartyChat
-                    ? UiStrings.Get(UiStrings.Key.ClipboardCopiedAndSharedMessage, this.displayLanguage)
-                    : UiStrings.Get(UiStrings.Key.ClipboardCopiedMessage, this.displayLanguage));
-            }
-            catch (Exception ex)
-            {
-                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
-            }
-        }
+            this.ExportAndShareOwnStatus();
 
         ImGui.Separator();
-        ImGui.InputText(UiStrings.Get(UiStrings.Key.ImportCodeLabel, this.displayLanguage), ref this.importCodeBuffer, 4096);
-
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.ImportButton, this.displayLanguage)))
-        {
-            try
-            {
-                this.syncProvider.ImportCode(this.importCodeBuffer);
-                this.ClearMessage();
-                this.importCodeBuffer = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.ImportFailed, this.displayLanguage, ex.Message));
-            }
-        }
+        this.DrawImportCodeInput();
 
         ImGui.Separator();
 
-        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoImportAsLeaderToggle, this.displayLanguage), ref this.autoImportAsPartyLeader))
+        var autoImportSyncCodes = this.configuration.AutoImportSyncCodesFromPartyChat;
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoImportSyncCodesToggle, this.displayLanguage), ref autoImportSyncCodes))
         {
-            if (this.autoImportAsPartyLeader)
+            this.configuration.AutoImportSyncCodesFromPartyChat = autoImportSyncCodes;
+            this.configuration.Save();
+
+            if (autoImportSyncCodes)
                 this.chatGui.ChatMessage += this.OnChatMessage;
             else
                 this.chatGui.ChatMessage -= this.OnChatMessage;
         }
 
-        this.DrawHintText(UiStrings.Get(UiStrings.Key.AutoImportAsLeaderHint, this.displayLanguage));
+        this.DrawHintText(UiStrings.Get(UiStrings.Key.AutoImportSyncCodesHint, this.displayLanguage));
 
         ImGui.Separator();
         this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.CurrentlyLoadedPlayersHeader, this.displayLanguage));
@@ -185,6 +154,56 @@ public sealed partial class MainWindow
         }
     }
 #endif
+
+    // Ausgelagert aus DrawSyncSection (siehe Aufgabenstellung "Export-Button auch auf Home
+    // verfügbar machen") - wird sowohl vom bestehenden Button in DrawSyncSection als auch vom neuen
+    // Button in DrawSyncQuickActionsCard (MainWindow.Home.cs) aufgerufen, damit die Logik an genau
+    // einer Stelle steht.
+    private void ExportAndShareOwnStatus()
+    {
+        try
+        {
+            var localPlayerName = this.partyService.GetLocalPlayerName()
+                ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
+
+            var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
+            this.syncProvider.PublishLocalStatus(status);
+            var code = this.syncProvider.ExportToCode(status);
+
+            ImGui.SetClipboardText(code);
+
+            var sharedToPartyChat = this.TryAutoShareToPartyChat(code);
+            this.SetSuccessMessage(sharedToPartyChat
+                ? UiStrings.Get(UiStrings.Key.ClipboardCopiedAndSharedMessage, this.displayLanguage)
+                : UiStrings.Get(UiStrings.Key.ClipboardCopiedMessage, this.displayLanguage));
+        }
+        catch (Exception ex)
+        {
+            this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
+        }
+    }
+
+    // Ausgelagert aus DrawSyncSection, siehe ExportAndShareOwnStatus-Doc - nutzt bewusst dasselbe
+    // importCodeBuffer-Feld, damit ein auf Home angefangener Import nicht verloren geht, wenn man
+    // zwischendurch zu Settings wechselt (oder umgekehrt).
+    private void DrawImportCodeInput()
+    {
+        ImGui.InputText(UiStrings.Get(UiStrings.Key.ImportCodeLabel, this.displayLanguage), ref this.importCodeBuffer, 4096);
+
+        if (ImGui.Button(UiStrings.Get(UiStrings.Key.ImportButton, this.displayLanguage)))
+        {
+            try
+            {
+                this.syncProvider.ImportCode(this.importCodeBuffer);
+                this.ClearMessage();
+                this.importCodeBuffer = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.ImportFailed, this.displayLanguage, ex.Message));
+            }
+        }
+    }
 
     // PlayerSpellStatus.Timestamp wird bei JEDER (Neu-)Erzeugung eines Eintrags frisch gesetzt
     // (Default = DateTimeOffset.UtcNow, siehe Models/PlayerSpellStatus.cs) - egal ob durch

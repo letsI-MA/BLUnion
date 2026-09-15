@@ -15,8 +15,9 @@ public sealed partial class MainWindow
 
         if (partyStatus.Count == 0)
         {
-            ImGui.TextWrapped(UiStrings.Format(
-                UiStrings.Key.NoPlayerDataLoaded, this.displayLanguage, UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage)));
+            this.DrawEmptyState(
+                UiStrings.Format(UiStrings.Key.NoPlayerDataLoaded, this.displayLanguage, UiStrings.Get(UiStrings.Key.TabSettings, this.displayLanguage)),
+                (UiStrings.Get(UiStrings.Key.DashboardGoToSettingsButton, this.displayLanguage), () => this.pendingActiveCategoryTabId = "TabSettings"));
             return;
         }
 
@@ -88,7 +89,8 @@ public sealed partial class MainWindow
                 ImGui.TextUnformatted(orderText);
 
                 ImGui.TableSetColumnIndex(2);
-                ImGui.Selectable(row.Name, false, ImGuiSelectableFlags.SpanAllColumns);
+                if (ImGui.Selectable(row.Name, false, ImGuiSelectableFlags.SpanAllColumns))
+                    this.JumpToSpellInSpellbook(entry.SpellId);
 
                 if (ImGui.IsItemHovered())
                 {

@@ -9,6 +9,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool LiveSyncEnabled { get; set; }
 
+    public bool AutoImportSyncCodesFromPartyChat { get; set; } = true;
+
     public Dictionary<string, string> LiveSyncEditTokens { get; set; } = new();
 
     public Dictionary<string, string> GroupFinderOwnGroupIds { get; set; } = new();

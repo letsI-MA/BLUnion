@@ -19,9 +19,9 @@ namespace BLUnion.UI;
 // ApplyLiveSyncResult (reagiert auf LiveSyncService-Events, die sowohl vom Sync- als auch vom
 // GroupFinder-Tab ausgelöst werden können, siehe dortige LiveSyncEventKind-Fälle) und Dispose().
 //
-// Tab-Dateien: MainWindow.Dashboard.cs, MainWindow.Comparison.cs, MainWindow.LearningPlan.cs,
-// MainWindow.Loadouts.cs, MainWindow.Sync.cs, MainWindow.Spellbook.cs, MainWindow.GroupFinder.cs,
-// MainWindow.Settings.cs - je genau eine Datei pro Draw*Tab()-Methode (plus deren private
+// Tab-Dateien: MainWindow.Home.cs, MainWindow.Party.cs, MainWindow.Comparison.cs,
+// MainWindow.LearningPlan.cs, MainWindow.Loadouts.cs, MainWindow.Sync.cs, MainWindow.Spellbook.cs,
+// MainWindow.GroupFinder.cs, MainWindow.Settings.cs - je genau eine Datei pro Draw*Tab()-Methode (plus deren private
 // Detail-Helper, die NUR von dieser einen Tab-Methode aus erreichbar sind). Tab-übergreifend
 // genutzte kleine Draw-/Format-Helper (DrawSpellIcon, DrawSectionHeader, DrawHintText,
 // DrawCardGrid, DrawLastMessage/SetSuccessMessage/SetErrorMessage, GetSpellName/GetMonsterName
@@ -58,13 +58,13 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private static readonly System.Numerics.Vector4 SectionHeaderColor = new(0.95f, 0.75f, 0.3f, 1f);
 
-    private static readonly System.Numerics.Vector4 CategoryAccentDashboardColor = new(0.55f, 0.55f, 0.6f, 1);
+    private static readonly System.Numerics.Vector4 CategoryAccentHomeColor = new(0.55f, 0.55f, 0.6f, 1);
 
-    private static readonly System.Numerics.Vector4 CategoryAccentProgressColor = new(0.3f, 0.55f, 0.95f, 1);
+    private static readonly System.Numerics.Vector4 CategoryAccentPartyColor = new(0.3f, 0.55f, 0.95f, 1);
 
-    private static readonly System.Numerics.Vector4 CategoryAccentSyncGroupsColor = new(0.75f, 0.45f, 0.95f, 1);
+    private static readonly System.Numerics.Vector4 CategoryAccentGroupsColor = new(0.75f, 0.45f, 0.95f, 1);
 
-    private static readonly System.Numerics.Vector4 CategoryAccentReferenceColor = new(0.95f, 0.65f, 0.15f, 1);
+    private static readonly System.Numerics.Vector4 CategoryAccentSpellbookColor = new(0.95f, 0.65f, 0.15f, 1);
 
     private static readonly System.Numerics.Vector4 CategoryAccentSettingsColor = new(0.8f, 0.35f, 0.3f, 1);
 
@@ -95,11 +95,16 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private bool lastMessageIsError;
 
+    // Eigenes Feld statt lastMessageIsError wiederzuverwenden (siehe DrawStatusBar) - lastError wird
+    // auch für sync-fremde Fehler gesetzt (z.B. ImportFailed, GenericError beim Browser-Öffnen), das
+    // Status-Symbol soll aber ausschließlich den letzten LiveSync-Vorgang widerspiegeln. Nur in
+    // ApplyLiveSyncResult gesetzt: true bei jedem *Failed-Kind, false bei jedem *Succeeded/
+    // *Published-Kind.
+    private bool lastSyncHadError;
+
     private bool autoShareToPartyChat = true;
 
     private DateTimeOffset? lastAutoShareAt;
-
-    private bool autoImportAsPartyLeader;
 
     private bool excludeTotems;
 
@@ -115,17 +120,35 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private string? pendingActiveCategoryTabId;
 
+    // Analog zu pendingActiveCategoryTabId, aber für einen Sub-Tab INNERHALB des per
+    // pendingActiveCategoryTabId angesprungenen Top-Level-Tabs (siehe z.B. DrawHomeTab: "Track"-
+    // Button springt zu Party -> Learning Plan in einem Klick) - gleiches Reset-Verhalten (auf null
+    // nach jedem Frame, siehe Ende von Draw()).
+    private string? pendingActiveSubTabId;
+
     private enum DashboardCategory
     {
         None,
-        Dashboard,
-        Progress,
-        SyncGroups,
-        Reference,
+        Home,
+        Party,
+        Spellbook,
+        Groups,
         Settings,
     }
 
     private DashboardCategory currentActiveCategory = DashboardCategory.None;
+
+    // Trennt die beiden fachlich unterschiedlichen Anwendungsfälle im Publish-Sub-Tab (siehe
+    // DrawGroupFinderTab) - vorher zwei CollapsingHeader übereinander, jetzt eine klare Moduswahl
+    // per RadioButton statt Akkordeon. Solo als Default entspricht dem bisherigen DefaultOpen von
+    // DrawMyEntrySection.
+    private enum GroupPublishMode
+    {
+        Solo,
+        Group,
+    }
+
+    private GroupPublishMode groupPublishMode = GroupPublishMode.Solo;
 
     private bool groupFinderVisible;
     private HashSet<AvailabilityTag> groupFinderTags = new();
@@ -236,6 +259,12 @@ public sealed partial class MainWindow : Window, IDisposable
             Click = _ => Util.OpenLink("https://ko-fi.com/galderia"),
             ShowTooltip = () => ImGui.SetTooltip("Support on Ko-fi"),
         });
+
+        // Behebt einen bestehenden Bug: vorher wurde der Handler NUR bei einer tatsächlichen
+        // Checkbox-Interaktion während der Session registriert (siehe DrawSyncTab), nie automatisch
+        // beim Programmstart, selbst wenn die (jetzt persistierte) Einstellung true war.
+        if (this.configuration.AutoImportSyncCodesFromPartyChat)
+            this.chatGui.ChatMessage += this.OnChatMessage;
     }
 
     // Pushed here (not in Draw()) because Dalamud's WindowHost calls PreDraw() -> ImGui.Begin() -> Draw() -> ImGui.End() -> PostDraw().
@@ -270,31 +299,43 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             this.DrawCategoryAccentStripe();
 
-            var dashboardTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabDashboard, this.displayLanguage) + "###TabDashboard");
-            if (dashboardTabActiveThisFrame)
+            var homeTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabHome, this.displayLanguage) + "###TabHome");
+            if (homeTabActiveThisFrame)
             {
                 this.DrawStatusBar();
-                this.DrawDashboardTab();
+                this.DrawHomeTab();
                 ImGui.EndTabItem();
             }
 
-            var progressCategoryFlags = this.pendingActiveCategoryTabId == "TabCategoryProgress"
+            var partyCategoryFlags = this.pendingActiveCategoryTabId == "TabCategoryParty"
                 ? ImGuiTabItemFlags.SetSelected
                 : ImGuiTabItemFlags.None;
-            var progressCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategoryProgress, this.displayLanguage) + "###TabCategoryProgress", progressCategoryFlags);
-            if (progressCategoryActiveThisFrame)
+            var partyCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategoryParty, this.displayLanguage) + "###TabCategoryParty", partyCategoryFlags);
+            if (partyCategoryActiveThisFrame)
             {
                 this.DrawStatusBar();
 
-                if (ImGui.BeginTabBar("ProgressSubTabs"))
+                if (ImGui.BeginTabBar("PartySubTabs"))
                 {
-                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellComparison, this.displayLanguage) + "###TabSpellComparison"))
+                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabPartyOverview, this.displayLanguage) + "###TabPartyOverview"))
+                    {
+                        this.DrawPartyOverviewTab();
+                        ImGui.EndTabItem();
+                    }
+
+                    var comparisonSubTabFlags = this.pendingActiveSubTabId == "TabSpellComparison"
+                        ? ImGuiTabItemFlags.SetSelected
+                        : ImGuiTabItemFlags.None;
+                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellComparison, this.displayLanguage) + "###TabSpellComparison", comparisonSubTabFlags))
                     {
                         this.DrawComparisonTab();
                         ImGui.EndTabItem();
                     }
 
-                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLearningPlan, this.displayLanguage) + "###TabLearningPlan"))
+                    var learningPlanSubTabFlags = this.pendingActiveSubTabId == "TabLearningPlan"
+                        ? ImGuiTabItemFlags.SetSelected
+                        : ImGuiTabItemFlags.None;
+                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLearningPlan, this.displayLanguage) + "###TabLearningPlan", learningPlanSubTabFlags))
                     {
                         this.DrawLearningPlanTab();
                         ImGui.EndTabItem();
@@ -306,77 +347,66 @@ public sealed partial class MainWindow : Window, IDisposable
                 ImGui.EndTabItem();
             }
 
-            var syncGroupsCategoryFlags = this.pendingActiveCategoryTabId == "TabCategorySyncGroups"
+            var spellbookCategoryFlags = this.pendingActiveCategoryTabId == "TabCategorySpellbook"
                 ? ImGuiTabItemFlags.SetSelected
                 : ImGuiTabItemFlags.None;
-            var syncGroupsCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategorySyncGroups, this.displayLanguage) + "###TabCategorySyncGroups", syncGroupsCategoryFlags);
-            if (syncGroupsCategoryActiveThisFrame)
+            var spellbookCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategorySpellbook, this.displayLanguage) + "###TabCategorySpellbook", spellbookCategoryFlags);
+            if (spellbookCategoryActiveThisFrame)
             {
                 this.DrawStatusBar();
 
-                if (ImGui.BeginTabBar("SyncGroupsSubTabs"))
+                if (ImGui.BeginTabBar("SpellbookSubTabs"))
                 {
-                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage) + "###TabSync"))
+                    var spellbookSubTabFlags = this.pendingActiveSubTabId == "TabSpellbook"
+                        ? ImGuiTabItemFlags.SetSelected
+                        : ImGuiTabItemFlags.None;
+                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellbook, this.displayLanguage) + "###TabSpellbook", spellbookSubTabFlags))
                     {
-                        this.DrawSyncTab();
+                        this.DrawSpellbookTab();
                         ImGui.EndTabItem();
                     }
 
-                    var groupFinderTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabGroupFinder, this.displayLanguage) + "###TabGroupFinder");
-                    if (groupFinderTabActiveThisFrame)
-                    {
-                        var now = DateTimeOffset.UtcNow;
-                        var justOpened = !this.groupFinderTabWasActive;
-                        if (justOpened || this.lastGroupFinderAutoRefreshAt is null
-                            || now - this.lastGroupFinderAutoRefreshAt >= GroupFinderAutoRefreshInterval)
-                        {
-                            this.liveSyncService.TriggerBrowse();
-
-                            this.liveSyncService.TriggerGroupBrowse();
-                            this.lastGroupFinderAutoRefreshAt = now;
-                        }
-
-                        this.DrawGroupFinderTab();
-                        ImGui.EndTabItem();
-                    }
-
-                    this.groupFinderTabWasActive = groupFinderTabActiveThisFrame;
-
-                    ImGui.EndTabBar();
-                }
-
-                ImGui.EndTabItem();
-            }
-
-            var referenceCategoryFlags = this.pendingActiveCategoryTabId == "TabCategoryReference"
-                ? ImGuiTabItemFlags.SetSelected
-                : ImGuiTabItemFlags.None;
-            var referenceCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategoryReference, this.displayLanguage) + "###TabCategoryReference", referenceCategoryFlags);
-            if (referenceCategoryActiveThisFrame)
-            {
-                this.DrawStatusBar();
-
-                if (ImGui.BeginTabBar("ReferenceSubTabs"))
-                {
                     if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLoadouts, this.displayLanguage) + "###TabLoadouts"))
                     {
                         this.DrawLoadoutsTab();
                         ImGui.EndTabItem();
                     }
 
-                    if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellbook, this.displayLanguage) + "###TabSpellbook"))
-                    {
-                        this.DrawSpellbookTab();
-                        ImGui.EndTabItem();
-                    }
-
                     ImGui.EndTabBar();
                 }
 
                 ImGui.EndTabItem();
             }
 
-            var settingsTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSettings, this.displayLanguage) + "###TabSettings");
+            var groupsTabFlags = this.pendingActiveCategoryTabId == "TabGroupFinder"
+                ? ImGuiTabItemFlags.SetSelected
+                : ImGuiTabItemFlags.None;
+            var groupsTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabGroupFinder, this.displayLanguage) + "###TabGroupFinder", groupsTabFlags);
+            if (groupsTabActiveThisFrame)
+            {
+                this.DrawStatusBar();
+
+                var now = DateTimeOffset.UtcNow;
+                var justOpened = !this.groupFinderTabWasActive;
+                if (justOpened || this.lastGroupFinderAutoRefreshAt is null
+                    || now - this.lastGroupFinderAutoRefreshAt >= GroupFinderAutoRefreshInterval)
+                {
+                    this.liveSyncService.TriggerBrowse();
+
+                    this.liveSyncService.TriggerGroupBrowse();
+                    this.lastGroupFinderAutoRefreshAt = now;
+                }
+
+                this.DrawGroupFinderTab();
+                ImGui.EndTabItem();
+            }
+
+            this.groupFinderTabWasActive = groupsTabActiveThisFrame;
+
+            var settingsTabFlags = this.pendingActiveCategoryTabId == "TabSettings"
+                ? ImGuiTabItemFlags.SetSelected
+                : ImGuiTabItemFlags.None;
+            var settingsTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSettings, this.displayLanguage) + "###TabSettings", settingsTabFlags);
             if (settingsTabActiveThisFrame)
             {
                 this.DrawStatusBar();
@@ -386,29 +416,30 @@ public sealed partial class MainWindow : Window, IDisposable
 
             ImGui.EndTabBar();
 
-            if (dashboardTabActiveThisFrame)
-                this.currentActiveCategory = DashboardCategory.Dashboard;
-            else if (progressCategoryActiveThisFrame)
-                this.currentActiveCategory = DashboardCategory.Progress;
-            else if (syncGroupsCategoryActiveThisFrame)
-                this.currentActiveCategory = DashboardCategory.SyncGroups;
-            else if (referenceCategoryActiveThisFrame)
-                this.currentActiveCategory = DashboardCategory.Reference;
+            if (homeTabActiveThisFrame)
+                this.currentActiveCategory = DashboardCategory.Home;
+            else if (partyCategoryActiveThisFrame)
+                this.currentActiveCategory = DashboardCategory.Party;
+            else if (spellbookCategoryActiveThisFrame)
+                this.currentActiveCategory = DashboardCategory.Spellbook;
+            else if (groupsTabActiveThisFrame)
+                this.currentActiveCategory = DashboardCategory.Groups;
             else if (settingsTabActiveThisFrame)
                 this.currentActiveCategory = DashboardCategory.Settings;
         }
 
         this.pendingActiveCategoryTabId = null;
+        this.pendingActiveSubTabId = null;
     }
 
     private void DrawCategoryAccentStripe()
     {
         var color = this.currentActiveCategory switch
         {
-            DashboardCategory.Dashboard => CategoryAccentDashboardColor,
-            DashboardCategory.Progress => CategoryAccentProgressColor,
-            DashboardCategory.SyncGroups => CategoryAccentSyncGroupsColor,
-            DashboardCategory.Reference => CategoryAccentReferenceColor,
+            DashboardCategory.Home => CategoryAccentHomeColor,
+            DashboardCategory.Party => CategoryAccentPartyColor,
+            DashboardCategory.Spellbook => CategoryAccentSpellbookColor,
+            DashboardCategory.Groups => CategoryAccentGroupsColor,
             DashboardCategory.Settings => CategoryAccentSettingsColor,
             _ => (System.Numerics.Vector4?)null,
         };
@@ -449,6 +480,27 @@ public sealed partial class MainWindow : Window, IDisposable
         ImGui.SameLine();
         if (this.configuration.LiveSyncEnabled)
         {
+            // Grauer "↻" = gerade ein Push/Fetch aktiv (LiveSyncService.IsSyncing), schlägt den
+            // Fehler-Zustand NICHT (kein Sonderfall nötig, siehe Aufgabenstellung) - grüner Punkt =
+            // zuletzt erfolgreich, rotes Warndreieck = letzter Sync-Vorgang fehlgeschlagen (siehe
+            // lastSyncHadError/ApplyLiveSyncResult). Kein Symbol, wenn Live-Sync deaktiviert ist
+            // (siehe else-Zweig unten).
+            if (this.liveSyncService.IsSyncing)
+            {
+                ImGui.TextColored(HintTextColor, "↻");
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip(UiStrings.Get(UiStrings.Key.StatusBarSyncingTooltip, this.displayLanguage));
+            }
+            else if (this.lastSyncHadError)
+            {
+                ImGui.TextColored(ErrorMessageColor, "⚠");
+            }
+            else
+            {
+                ImGui.TextColored(SuccessMessageColor, "●");
+            }
+
+            ImGui.SameLine();
             ImGui.TextColored(SuccessMessageColor, UiStrings.Get(UiStrings.Key.StatusBarLiveSyncActive, this.displayLanguage));
         }
         else
@@ -459,6 +511,28 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private void ApplyLiveSyncResult(LiveSyncEventKind kind, string? detail)
     {
+        // Exhaustiv über alle LiveSyncEventKind-Werte (nicht nur die klassischen Push/Fetch/Delete-
+        // Fälle) - GroupPublish/GroupUnpublish/GroupBrowse/DevTestProfiles laufen über denselben
+        // LiveSyncService-Backend-Zugriff, ein Fehlschlag dort ist für die Sync-Status-Anzeige
+        // genauso relevant.
+        this.lastSyncHadError = kind switch
+        {
+            LiveSyncEventKind.PushFailed
+                or LiveSyncEventKind.FetchFailed
+                or LiveSyncEventKind.DeleteFailed
+                or LiveSyncEventKind.BrowseFailed
+                or LiveSyncEventKind.GroupBrowseFailed
+                or LiveSyncEventKind.DevTestProfilesFailed
+                or LiveSyncEventKind.GroupPublishFailed
+                or LiveSyncEventKind.GroupUnpublishFailed => true,
+            LiveSyncEventKind.PushSucceeded
+                or LiveSyncEventKind.DeleteSucceeded
+                or LiveSyncEventKind.DevTestProfilesPublished
+                or LiveSyncEventKind.GroupPublishSucceeded
+                or LiveSyncEventKind.GroupUnpublishSucceeded => false,
+            _ => this.lastSyncHadError,
+        };
+
         switch (kind)
         {
             case LiveSyncEventKind.PushSucceeded:

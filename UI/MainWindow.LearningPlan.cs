@@ -15,8 +15,9 @@ public sealed partial class MainWindow
 
         if (partyStatus.Count == 0)
         {
-            ImGui.TextWrapped(UiStrings.Format(
-                UiStrings.Key.NoPlayerDataLoaded, this.displayLanguage, UiStrings.Get(UiStrings.Key.TabSync, this.displayLanguage)));
+            this.DrawEmptyState(
+                UiStrings.Format(UiStrings.Key.NoPlayerDataLoaded, this.displayLanguage, UiStrings.Get(UiStrings.Key.TabSettings, this.displayLanguage)),
+                (UiStrings.Get(UiStrings.Key.DashboardGoToSettingsButton, this.displayLanguage), () => this.pendingActiveCategoryTabId = "TabSettings"));
             return;
         }
 
@@ -68,6 +69,7 @@ public sealed partial class MainWindow
                     var hasSpell = this.spellDataService.Spells.TryGetValue(spellId, out var spell);
                     return new
                     {
+                        SpellId = spellId,
                         Name = hasSpell ? this.GetSpellName(spell!) : UiStrings.Format(UiStrings.Key.SpellFallback, this.displayLanguage, spellId),
                         SpellbookOrder = hasSpell ? spell!.SpellbookOrder : int.MaxValue,
                         IconId = hasSpell ? spell!.IconId : 0u,
@@ -89,7 +91,10 @@ public sealed partial class MainWindow
 
                 this.DrawSpellIcon(row.IconId);
                 ImGui.SameLine();
-                ImGui.TextUnformatted($"{orderText}  {row.Name}");
+
+                var label = $"{orderText}  {row.Name}##LearningPlanSpell{group.MonsterId}_{row.SpellId}";
+                if (ImGui.Selectable(label))
+                    this.JumpToSpellInSpellbook(row.SpellId);
             }
 
             ImGui.Separator();

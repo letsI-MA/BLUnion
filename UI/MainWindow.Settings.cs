@@ -42,6 +42,16 @@ public sealed partial class MainWindow
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.LiveSyncDeleteProfileButton, this.displayLanguage)))
             this.liveSyncService.DeleteOwnProfile();
         ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // Sync (Export/Import/Auto-Import/Dev-Tools/Web-Companion, siehe DrawSyncSection in
+        // MainWindow.Sync.cs) ist hierher verschoben worden - vorher eigener Top-Level-Tab, jetzt
+        // ein Standard-zugeklappter "Erweitert"-Abschnitt, da diese Bedienfelder nach der
+        // Live-Sync-Umstellung nur noch für den manuellen Code-Austausch (Fallback) gebraucht
+        // werden, nicht mehr im normalen Alltagsfluss.
+        if (ImGui.CollapsingHeader(UiStrings.Get(UiStrings.Key.SettingsAdvancedSyncHeader, this.displayLanguage)))
+            this.DrawSyncSection();
     }
 
     private static string GetNativeLanguageName(DisplayLanguage language) => language switch

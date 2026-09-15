@@ -9,23 +9,30 @@ public static class UiStrings
         WindowTitle,
         TabSpellComparison,
         TabLearningPlan,
-        TabSync,
         TabSettings,
-        TabCategoryProgress,
-        TabCategorySyncGroups,
-        TabCategoryReference,
-        TabDashboard,
-        DashboardProgressFormat,
-        DashboardPartyFormat,
-        DashboardLiveSyncEnabled,
-        DashboardLiveSyncDisabled,
-        DashboardDataCenterFormat,
-        DashboardGoToProgressButton,
-        DashboardGoToSyncGroupsButton,
-        DashboardGoToReferenceButton,
+        TabCategoryParty,
+        TabCategorySpellbook,
+        TabHome,
+        TabPartyOverview,
+        HomeEmptyStateText,
+        HomePartyProgressFormat,
+        HomeNextBestTargetHeader,
+        HomeNextBestTargetFormat,
+        HomeTrackButton,
+        HomeSyncCardTitle,
+        DashboardGoToPartyButton,
+        DashboardGoToGroupsButton,
+        DashboardGoToSettingsButton,
+        DashboardGoToSpellbookButton,
+        PartyOverviewHeader,
+        PartyOverviewMissingCountFormat,
+        PartyOverviewNoMissingSpells,
+        ColumnPlayer,
+        ColumnProgress,
         StatusBarSeparator,
         StatusBarProgressFormat,
         StatusBarLiveSyncActive,
+        StatusBarSyncingTooltip,
         StatusBarLiveSyncInactive,
         NoBlueMagesInParty,
         PartyMemberEntry,
@@ -78,12 +85,13 @@ public static class UiStrings
         ClipboardCopiedAndSharedMessage,
         AutoShareToPartyChatToggle,
         AutoShareToPartyChatHint,
-        AutoImportAsLeaderToggle,
-        AutoImportAsLeaderHint,
+        AutoImportSyncCodesToggle,
+        AutoImportSyncCodesHint,
         AutoImportedMessage,
         LiveSyncEnabledToggle,
         LiveSyncEnabledHint,
         LiveSyncDeleteProfileButton,
+        SettingsAdvancedSyncHeader,
         LiveSyncPushSucceeded,
         LiveSyncPushFailed,
         LiveSyncFetchFailed,
@@ -123,6 +131,8 @@ public static class UiStrings
         GroupFinderWantedPlayerCountEntryFormat,
 
         GroupPublishHeader,
+        GroupPublishModeSolo,
+        GroupPublishModeGroup,
         GroupPublishSourceParty,
         GroupPublishSourceSyncList,
         GroupFinderUnknownWorldHint,
@@ -159,6 +169,8 @@ public static class UiStrings
         SpellbookFilterMissing,
         SpellbookNoResults,
         SpellbookDescriptionGermanOnlyHint,
+        SpellbookNeededByPartyFormat,
+        SpellbookGoToComparisonButton,
         ColumnStars,
         ColumnLearned,
 
@@ -194,13 +206,6 @@ public static class UiStrings
             [DisplayLanguage.French] = "Plan d'apprentissage",
             [DisplayLanguage.Japanese] = "習得プラン",
         },
-        [Key.TabSync] = new()
-        {
-            [DisplayLanguage.German] = "Sync",
-            [DisplayLanguage.English] = "Sync",
-            [DisplayLanguage.French] = "Synchro",
-            [DisplayLanguage.Japanese] = "同期",
-        },
         [Key.TabSettings] = new()
         {
             [DisplayLanguage.German] = "Settings",
@@ -208,89 +213,146 @@ public static class UiStrings
             [DisplayLanguage.French] = "Paramètres",
             [DisplayLanguage.Japanese] = "設定",
         },
-        [Key.TabCategoryProgress] = new()
+        [Key.TabCategoryParty] = new()
         {
-            [DisplayLanguage.German] = "Fortschritt",
-            [DisplayLanguage.English] = "Progress",
-            [DisplayLanguage.French] = "Progression",
-            [DisplayLanguage.Japanese] = "進捗",
+            [DisplayLanguage.German] = "Party",
+            [DisplayLanguage.English] = "Party",
+            [DisplayLanguage.French] = "Groupe",
+            [DisplayLanguage.Japanese] = "パーティ",
         },
-        [Key.TabCategorySyncGroups] = new()
+        [Key.TabCategorySpellbook] = new()
         {
-            [DisplayLanguage.German] = "Sync & Gruppen",
-            [DisplayLanguage.English] = "Sync & Groups",
-            [DisplayLanguage.French] = "Synchro et groupes",
-            [DisplayLanguage.Japanese] = "同期とグループ",
+            [DisplayLanguage.German] = "Spellbook",
+            [DisplayLanguage.English] = "Spellbook",
+            [DisplayLanguage.French] = "Grimoire",
+            [DisplayLanguage.Japanese] = "スペルブック",
         },
-        [Key.TabCategoryReference] = new()
-        {
-            [DisplayLanguage.German] = "Referenz",
-            [DisplayLanguage.English] = "Reference",
-            [DisplayLanguage.French] = "Référence",
-            [DisplayLanguage.Japanese] = "リファレンス",
-        },
-        [Key.TabDashboard] = new()
+        [Key.TabHome] = new()
         {
             [DisplayLanguage.German] = "Übersicht",
             [DisplayLanguage.English] = "Overview",
             [DisplayLanguage.French] = "Aperçu",
             [DisplayLanguage.Japanese] = "概要",
         },
-        [Key.DashboardProgressFormat] = new()
+        [Key.TabPartyOverview] = new()
         {
-            [DisplayLanguage.German] = "{0} von {1} Spells gelernt ({2}%)",
-            [DisplayLanguage.English] = "{0} of {1} spells learned ({2}%)",
-            [DisplayLanguage.French] = "{0} sorts appris sur {1} ({2} %)",
-            [DisplayLanguage.Japanese] = "{1}個中{0}個のスペルを習得済み（{2}%）",
+            [DisplayLanguage.German] = "Übersicht",
+            [DisplayLanguage.English] = "Overview",
+            [DisplayLanguage.French] = "Aperçu",
+            [DisplayLanguage.Japanese] = "概要",
         },
-        [Key.DashboardPartyFormat] = new()
+        [Key.HomeEmptyStateText] = new()
         {
-            [DisplayLanguage.German] = "{0} Blue Mages in der aktuellen Party",
-            [DisplayLanguage.English] = "{0} Blue Mages in the current party",
-            [DisplayLanguage.French] = "{0} Mages bleus dans le groupe actuel",
-            [DisplayLanguage.Japanese] = "現在のパーティに青魔道士が{0}人",
+            [DisplayLanguage.German] =
+                "Noch keine Party-Daten geladen. Nutze den Gruppenfinder, um Mitspieler zu finden, " +
+                "oder schau dir in der Zwischenzeit schon mal dein Spellbook an.",
+            [DisplayLanguage.English] =
+                "No party data loaded yet. Use the Group Finder to find party members, or check out " +
+                "your spellbook in the meantime.",
+            [DisplayLanguage.French] =
+                "Aucune donnée de groupe chargée pour l'instant. Utilise la recherche de groupe pour " +
+                "trouver des coéquipiers, ou consulte déjà ton grimoire en attendant.",
+            [DisplayLanguage.Japanese] =
+                "まだパーティデータが読み込まれていません。グループファインダーでパーティメンバーを" +
+                "探すか、その間にスペルブックを確認してみましょう。",
         },
-        [Key.DashboardLiveSyncEnabled] = new()
+        [Key.HomePartyProgressFormat] = new()
         {
-            [DisplayLanguage.German] = "Live-Sync: aktiviert",
-            [DisplayLanguage.English] = "Live sync: enabled",
-            [DisplayLanguage.French] = "Synchro en direct : activée",
-            [DisplayLanguage.Japanese] = "ライブ同期：有効",
+            [DisplayLanguage.German] = "Party-Fortschritt: im Schnitt {0}% gelernt ({1} Spieler)",
+            [DisplayLanguage.English] = "Party progress: {0}% learned on average ({1} players)",
+            [DisplayLanguage.French] = "Progression du groupe : {0} % appris en moyenne ({1} joueurs)",
+            [DisplayLanguage.Japanese] = "パーティの進捗: 平均{0}%習得済み ({1}人)",
         },
-        [Key.DashboardLiveSyncDisabled] = new()
+        [Key.HomeNextBestTargetHeader] = new()
         {
-            [DisplayLanguage.German] = "Live-Sync: deaktiviert",
-            [DisplayLanguage.English] = "Live sync: disabled",
-            [DisplayLanguage.French] = "Synchro en direct : désactivée",
-            [DisplayLanguage.Japanese] = "ライブ同期：無効",
+            [DisplayLanguage.German] = "Nächstes sinnvolles Ziel",
+            [DisplayLanguage.English] = "Next best target",
+            [DisplayLanguage.French] = "Prochain objectif",
+            [DisplayLanguage.Japanese] = "次に狙うべき目標",
         },
-        [Key.DashboardDataCenterFormat] = new()
+        [Key.HomeNextBestTargetFormat] = new()
         {
-            [DisplayLanguage.German] = "Rechenzentrum: {0}",
-            [DisplayLanguage.English] = "Data center: {0}",
-            [DisplayLanguage.French] = "Centre de données : {0}",
-            [DisplayLanguage.Japanese] = "データセンター：{0}",
+            [DisplayLanguage.German] = "{0} — fehlt {1} Spieler(n), lernbar bei {2}",
+            [DisplayLanguage.English] = "{0} — missing for {1} player(s), learnable at {2}",
+            [DisplayLanguage.French] = "{0} — manque à {1} joueur(s), apprenable auprès de {2}",
+            [DisplayLanguage.Japanese] = "{0} — {1}人が未習得、{2}で習得可能",
         },
-        [Key.DashboardGoToProgressButton] = new()
+        [Key.HomeTrackButton] = new()
         {
-            [DisplayLanguage.German] = "Zu Fortschritt",
-            [DisplayLanguage.English] = "Go to Progress",
-            [DisplayLanguage.French] = "Aller à Progression",
-            [DisplayLanguage.Japanese] = "進捗へ",
+            [DisplayLanguage.German] = "Verfolgen",
+            [DisplayLanguage.English] = "Track",
+            [DisplayLanguage.French] = "Suivre",
+            [DisplayLanguage.Japanese] = "追跡",
         },
-        [Key.DashboardGoToSyncGroupsButton] = new()
+        [Key.HomeSyncCardTitle] = new()
         {
-            [DisplayLanguage.German] = "Zu Sync & Gruppen",
-            [DisplayLanguage.English] = "Go to Sync & Groups",
-            [DisplayLanguage.French] = "Aller à Synchro et groupes",
-            [DisplayLanguage.Japanese] = "同期とグループへ",
+            [DisplayLanguage.German] = "Sync (Code-Austausch)",
+            [DisplayLanguage.English] = "Sync (code exchange)",
+            [DisplayLanguage.French] = "Synchro (échange de code)",
+            [DisplayLanguage.Japanese] = "同期 (コード交換)",
         },
-        [Key.DashboardGoToReferenceButton] = new()
+        [Key.DashboardGoToPartyButton] = new()
         {
-            [DisplayLanguage.German] = "Zu Referenz",
-            [DisplayLanguage.English] = "Go to Reference",
-            [DisplayLanguage.French] = "Aller à Référence",
-            [DisplayLanguage.Japanese] = "リファレンスへ",
+            [DisplayLanguage.German] = "Zu Party",
+            [DisplayLanguage.English] = "Go to Party",
+            [DisplayLanguage.French] = "Aller au Groupe",
+            [DisplayLanguage.Japanese] = "パーティへ",
+        },
+        [Key.DashboardGoToGroupsButton] = new()
+        {
+            [DisplayLanguage.German] = "Zum Gruppenfinder",
+            [DisplayLanguage.English] = "Go to Group Finder",
+            [DisplayLanguage.French] = "Aller à la recherche de groupe",
+            [DisplayLanguage.Japanese] = "グループファインダーへ",
+        },
+        [Key.DashboardGoToSettingsButton] = new()
+        {
+            [DisplayLanguage.German] = "Zu Settings",
+            [DisplayLanguage.English] = "Go to Settings",
+            [DisplayLanguage.French] = "Aller aux Paramètres",
+            [DisplayLanguage.Japanese] = "設定へ",
+        },
+        [Key.DashboardGoToSpellbookButton] = new()
+        {
+            [DisplayLanguage.German] = "Zum Spellbook",
+            [DisplayLanguage.English] = "Go to Spellbook",
+            [DisplayLanguage.French] = "Aller au Grimoire",
+            [DisplayLanguage.Japanese] = "スペルブックへ",
+        },
+        [Key.PartyOverviewHeader] = new()
+        {
+            [DisplayLanguage.German] = "Party-Mitglieder",
+            [DisplayLanguage.English] = "Party members",
+            [DisplayLanguage.French] = "Membres du groupe",
+            [DisplayLanguage.Japanese] = "パーティメンバー",
+        },
+        [Key.PartyOverviewMissingCountFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0} fehlend",
+            [DisplayLanguage.English] = "{0} missing",
+            [DisplayLanguage.French] = "{0} manquant(s)",
+            [DisplayLanguage.Japanese] = "未習得 {0} 個",
+        },
+        [Key.PartyOverviewNoMissingSpells] = new()
+        {
+            [DisplayLanguage.German] = "Alle Spells gelernt.",
+            [DisplayLanguage.English] = "All spells learned.",
+            [DisplayLanguage.French] = "Tous les sorts appris.",
+            [DisplayLanguage.Japanese] = "すべてのスペルを習得済みです。",
+        },
+        [Key.ColumnPlayer] = new()
+        {
+            [DisplayLanguage.German] = "Spieler",
+            [DisplayLanguage.English] = "Player",
+            [DisplayLanguage.French] = "Joueur",
+            [DisplayLanguage.Japanese] = "プレイヤー",
+        },
+        [Key.ColumnProgress] = new()
+        {
+            [DisplayLanguage.German] = "Fortschritt",
+            [DisplayLanguage.English] = "Progress",
+            [DisplayLanguage.French] = "Progression",
+            [DisplayLanguage.Japanese] = "進捗",
         },
         [Key.StatusBarSeparator] = new()
         {
@@ -312,6 +374,13 @@ public static class UiStrings
             [DisplayLanguage.English] = "Live sync active",
             [DisplayLanguage.French] = "Synchro en direct active",
             [DisplayLanguage.Japanese] = "ライブ同期：有効",
+        },
+        [Key.StatusBarSyncingTooltip] = new()
+        {
+            [DisplayLanguage.German] = "Sync läuft...",
+            [DisplayLanguage.English] = "Syncing...",
+            [DisplayLanguage.French] = "Synchronisation en cours...",
+            [DisplayLanguage.Japanese] = "同期中...",
         },
         [Key.StatusBarLiveSyncInactive] = new()
         {
@@ -724,14 +793,14 @@ public static class UiStrings
                 "現在パーティに参加している場合のみ実行され、最短でも10秒間隔です。「エクスポート」を" +
                 "連続でクリックしてもチャットがスパムされません。",
         },
-        [Key.AutoImportAsLeaderToggle] = new()
+        [Key.AutoImportSyncCodesToggle] = new()
         {
-            [DisplayLanguage.German] = "Als Gruppenanführer eingehende Sync-Codes automatisch übernehmen",
-            [DisplayLanguage.English] = "As party leader, automatically import incoming sync codes",
-            [DisplayLanguage.French] = "En tant que chef de groupe, importer automatiquement les codes de synchro reçus",
-            [DisplayLanguage.Japanese] = "パーティリーダーとして、受信した同期コードを自動的に取り込む",
+            [DisplayLanguage.German] = "Eingehende Sync-Codes aus dem Party-Chat automatisch übernehmen",
+            [DisplayLanguage.English] = "Automatically import incoming sync codes from party chat",
+            [DisplayLanguage.French] = "Importer automatiquement les codes de synchro reçus dans le chat de groupe",
+            [DisplayLanguage.Japanese] = "パーティチャットで受信した同期コードを自動的に取り込む",
         },
-        [Key.AutoImportAsLeaderHint] = new()
+        [Key.AutoImportSyncCodesHint] = new()
         {
             [DisplayLanguage.German] =
                 "Durchsucht alle Chat-Kanäle nach Codes im Format \"BLU:...\" - deine eigenen Codes " +
@@ -788,6 +857,13 @@ public static class UiStrings
             [DisplayLanguage.English] = "Delete my profile",
             [DisplayLanguage.French] = "Supprimer mon profil",
             [DisplayLanguage.Japanese] = "自分のプロフィールを削除",
+        },
+        [Key.SettingsAdvancedSyncHeader] = new()
+        {
+            [DisplayLanguage.German] = "Erweitert: Sync",
+            [DisplayLanguage.English] = "Advanced: Sync",
+            [DisplayLanguage.French] = "Avancé : Synchro",
+            [DisplayLanguage.Japanese] = "詳細設定: 同期",
         },
         [Key.LiveSyncPushSucceeded] = new()
         {
@@ -1063,6 +1139,20 @@ public static class UiStrings
             [DisplayLanguage.French] = "Publier mon groupe :",
             [DisplayLanguage.Japanese] = "自分のグループを公開:",
         },
+        [Key.GroupPublishModeSolo] = new()
+        {
+            [DisplayLanguage.German] = "Solo",
+            [DisplayLanguage.English] = "Solo",
+            [DisplayLanguage.French] = "Solo",
+            [DisplayLanguage.Japanese] = "ソロ",
+        },
+        [Key.GroupPublishModeGroup] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe",
+            [DisplayLanguage.English] = "Group",
+            [DisplayLanguage.French] = "Groupe",
+            [DisplayLanguage.Japanese] = "グループ",
+        },
         [Key.GroupPublishSourceParty] = new()
         {
             [DisplayLanguage.German] = "Party",
@@ -1313,6 +1403,20 @@ public static class UiStrings
             [DisplayLanguage.English] = "(only available in German)",
             [DisplayLanguage.French] = "(disponible uniquement en allemand)",
             [DisplayLanguage.Japanese] = "(ドイツ語のみ利用可能)",
+        },
+        [Key.SpellbookNeededByPartyFormat] = new()
+        {
+            [DisplayLanguage.German] = "Wird von {0} Mitspieler(n) noch benötigt.",
+            [DisplayLanguage.English] = "Still needed by {0} party member(s).",
+            [DisplayLanguage.French] = "Encore nécessaire pour {0} coéquipier(s).",
+            [DisplayLanguage.Japanese] = "あと{0}人のパーティメンバーが未習得です。",
+        },
+        [Key.SpellbookGoToComparisonButton] = new()
+        {
+            [DisplayLanguage.German] = "Zum Vergleich",
+            [DisplayLanguage.English] = "Go to Comparison",
+            [DisplayLanguage.French] = "Aller à la comparaison",
+            [DisplayLanguage.Japanese] = "比較へ",
         },
         [Key.ColumnStars] = new()
         {

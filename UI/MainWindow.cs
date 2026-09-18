@@ -31,7 +31,6 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
     private readonly ComparisonService comparisonService;
-    private readonly GroupTargetSpellService groupTargetSpellService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
     private readonly Configuration configuration;
@@ -235,7 +234,6 @@ public sealed partial class MainWindow : Window, IDisposable
         PartyService partyService,
         SpellDataService spellDataService,
         ComparisonService comparisonService,
-        GroupTargetSpellService groupTargetSpellService,
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
         Configuration configuration,
@@ -249,7 +247,6 @@ public sealed partial class MainWindow : Window, IDisposable
         this.partyService = partyService;
         this.spellDataService = spellDataService;
         this.comparisonService = comparisonService;
-        this.groupTargetSpellService = groupTargetSpellService;
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;
         this.configuration = configuration;

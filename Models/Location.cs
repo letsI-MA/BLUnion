@@ -16,12 +16,6 @@ public sealed class Location
 
     public string? DutyName { get; init; }
 
-    public string GetZoneName(DisplayLanguage language) => language switch
-    {
-        DisplayLanguage.German => this.ZoneNameDe,
-        DisplayLanguage.English => this.ZoneNameEn,
-        DisplayLanguage.French => this.ZoneNameFr,
-        DisplayLanguage.Japanese => this.ZoneNameJa,
-        _ => this.ZoneNameEn,
-    };
+    public string GetZoneName(DisplayLanguage language) =>
+        DisplayLanguageText.Select(language, this.ZoneNameDe, this.ZoneNameEn, this.ZoneNameFr, this.ZoneNameJa);
 }

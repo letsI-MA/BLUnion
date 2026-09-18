@@ -49,7 +49,7 @@ public sealed class LiveSyncService : IDisposable
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
-    private readonly ISyncProvider syncProvider;
+    private readonly ManualCodeSyncProvider syncProvider;
     private readonly Configuration configuration;
     private readonly IPluginLog log;
 
@@ -100,7 +100,7 @@ public sealed class LiveSyncService : IDisposable
         PartyService partyService,
         SpellDataService spellDataService,
         LocalSpellUnlockService localSpellUnlockService,
-        ISyncProvider syncProvider,
+        ManualCodeSyncProvider syncProvider,
         Configuration configuration,
         IPluginLog log)
     {
@@ -226,11 +226,7 @@ public sealed class LiveSyncService : IDisposable
                 {
                     DataCenter = responseBody!.DataCenter!,
                     VisibleInGroupFinder = responseBody.Visibility == "listed",
-                    AvailabilityTags = (responseBody.AvailabilityTags ?? new List<string>())
-                        .Select(AvailabilityTagExtensions.FromWireValue)
-                        .Where(tag => tag is not null)
-                        .Select(tag => tag!.Value)
-                        .ToList(),
+                    AvailabilityTags = ParseAvailabilityTags(responseBody.AvailabilityTags),
                     Note = responseBody.Note ?? string.Empty,
                     WantedPlayerCount = responseBody.WantedPlayerCount ?? 0,
                 };
@@ -388,11 +384,7 @@ public sealed class LiveSyncService : IDisposable
                         CharacterName = entry.CharacterName,
                         World = entry.World ?? string.Empty,
                         LearnedSpellIds = learnedIds,
-                        AvailabilityTags = (entry.AvailabilityTags ?? new List<string>())
-                            .Select(AvailabilityTagExtensions.FromWireValue)
-                            .Where(tag => tag is not null)
-                            .Select(tag => tag!.Value)
-                            .ToList(),
+                        AvailabilityTags = ParseAvailabilityTags(entry.AvailabilityTags),
                         Note = entry.Note ?? string.Empty,
                         WantedPlayerCount = entry.WantedPlayerCount ?? 0,
                         TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
@@ -472,11 +464,7 @@ public sealed class LiveSyncService : IDisposable
                     {
                         GroupId = entry.GroupId!,
                         Members = members,
-                        AvailabilityTags = (entry.AvailabilityTags ?? new List<string>())
-                            .Select(AvailabilityTagExtensions.FromWireValue)
-                            .Where(tag => tag is not null)
-                            .Select(tag => tag!.Value)
-                            .ToList(),
+                        AvailabilityTags = ParseAvailabilityTags(entry.AvailabilityTags),
                         Note = entry.Note ?? string.Empty,
                         WantedPlayerCount = entry.WantedPlayerCount ?? 0,
                         TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
@@ -893,6 +881,19 @@ public sealed class LiveSyncService : IDisposable
             this.pendingResultDetail = detail;
         }
     }
+
+    // Wandelt die vom Worker gelieferten Wire-Werte (z.B. "evening") in AvailabilityTag-Enumwerte
+    // um - unbekannte/nicht (mehr) unterstützte Werte werden über FromWireValue/Where stillschweigend
+    // übersprungen statt einen Fehler zu werfen (ein älterer Client könnte künftig neue Werte
+    // liefern, mit denen dieser Client noch nichts anfangen kann). Gemeinsam genutzt von
+    // PushOwnProfileAsync (eigenes Profil), TriggerBrowseAsync (Spieler-Browse) und
+    // TriggerGroupBrowseAsync (Gruppen-Browse) - vorher an allen drei Stellen identisch dupliziert.
+    private static List<AvailabilityTag> ParseAvailabilityTags(List<string>? wireValues) =>
+        (wireValues ?? new List<string>())
+            .Select(AvailabilityTagExtensions.FromWireValue)
+            .Where(tag => tag is not null)
+            .Select(tag => tag!.Value)
+            .ToList();
 
     private static string DescribeHttpFailure(HttpStatusCode statusCode, string? reasonPhrase) =>
         string.IsNullOrEmpty(reasonPhrase) ? $"HTTP {(int)statusCode}" : $"HTTP {(int)statusCode} {reasonPhrase}";

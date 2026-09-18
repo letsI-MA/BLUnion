@@ -857,10 +857,11 @@ public sealed partial class MainWindow
 
     // Zeigt targetSpellIds der zuletzt per "Ziel-Spells anzeigen"-Button ausgewählten Gruppe
     // (siehe groupTargetSpellDetailPopupEntry-Doc in MainWindow.cs) markiert danach, ob der lokale
-    // Spieler den jeweiligen Spell schon gelernt hat - Abgleich läuft über GroupTargetSpellService
-    // statt die Logik hier zu duplizieren (siehe Aufgabenstellung). ImGui.BeginPopup() MUSS JEDEN
-    // Frame aufgerufen werden (liefert nur dann true, wenn zuvor ImGui.OpenPopup() mit derselben
-    // ID aufgerufen wurde), nicht nur wenn ein Klick stattfand - Standard-ImGui-Popup-Muster.
+    // Spieler den jeweiligen Spell schon gelernt hat (reiner Abgleich gegen die eigene Lernliste,
+    // daher direkt inline statt über einen eigenen Service - siehe Audit-Refactoring). ImGui.
+    // BeginPopup() MUSS JEDEN Frame aufgerufen werden (liefert nur dann true, wenn zuvor
+    // ImGui.OpenPopup() mit derselben ID aufgerufen wurde), nicht nur wenn ein Klick stattfand -
+    // Standard-ImGui-Popup-Muster.
     private void DrawGroupTargetSpellDetailPopup()
     {
         if (!ImGui.BeginPopup(GroupTargetSpellDetailPopupId))
@@ -873,7 +874,9 @@ public sealed partial class MainWindow
             ImGui.Separator();
 
             var learnedSpellIds = this.localSpellUnlockService.GetLearnedSpellIds();
-            var statuses = this.groupTargetSpellService.GetTargetSpellStatus(group.TargetSpellIds, learnedSpellIds);
+            var statuses = group.TargetSpellIds
+                .Select(spellId => (SpellId: spellId, IsLearned: learnedSpellIds.Contains(spellId)))
+                .ToList();
 
             var rows = statuses
                 .Select(status =>

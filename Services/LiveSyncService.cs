@@ -183,69 +183,62 @@ public sealed class LiveSyncService : IDisposable
         _ = this.PushOwnProfileAsync();
     }
 
-    private async Task PushOwnProfileAsync()
-    {
-        try
-        {
-            var localName = this.partyService.GetLocalPlayerName();
-            var localWorld = this.partyService.GetLocalPlayerWorld();
-
-            if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
+    private Task PushOwnProfileAsync() =>
+        this.RunGuardedAsync(
+            async () =>
             {
-                return;
-            }
+                var localName = this.partyService.GetLocalPlayerName();
+                var localWorld = this.partyService.GetLocalPlayerWorld();
 
-            var learnedIds = this.localSpellUnlockService.GetLearnedSpellIds();
-            var bitmaskBase64 = ManualCodeSyncProvider.ToBase64Url(
-                ManualCodeSyncProvider.EncodeBitmask(this.spellDataService, learnedIds));
-
-            var tokenKey = BuildTokenKey(localName, localWorld);
-            this.configuration.LiveSyncEditTokens.TryGetValue(tokenKey, out var existingToken);
-
-            var requestBody = this.BuildPushRequestBody(bitmaskBase64, existingToken);
-            var url = BuildProfileUrl(localWorld, localName);
-
-            using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
-                this.log.Warning($"LiveSyncService: Push fehlgeschlagen ({detail}) für \"{localName}@{localWorld}\".");
-                this.SetPendingResult(LiveSyncEventKind.PushFailed, detail);
-                return;
-            }
-
-            var responseBody = await response.Content.ReadFromJsonAsync<PushResponseBody>(JsonOptions).ConfigureAwait(false);
-            if (!string.IsNullOrEmpty(responseBody?.EditToken))
-            {
-                this.configuration.LiveSyncEditTokens[tokenKey] = responseBody!.EditToken!;
-                this.configuration.Save();
-            }
-
-            if (!string.IsNullOrEmpty(responseBody?.DataCenter))
-            {
-                this.LastKnownOwnProfile = new OwnProfileSnapshot
+                if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
                 {
-                    DataCenter = responseBody!.DataCenter!,
-                    VisibleInGroupFinder = responseBody.Visibility == "listed",
-                    AvailabilityTags = ParseAvailabilityTags(responseBody.AvailabilityTags),
-                    Note = responseBody.Note ?? string.Empty,
-                    WantedPlayerCount = responseBody.WantedPlayerCount ?? 0,
-                };
-            }
+                    return;
+                }
 
-            this.SetPendingResult(LiveSyncEventKind.PushSucceeded, null);
-        }
-        catch (Exception ex)
-        {
-            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Push des eigenen Profils.");
-            this.SetPendingResult(LiveSyncEventKind.PushFailed, ex.Message);
-        }
-        finally
-        {
-            this.pushInFlight = false;
-        }
-    }
+                var learnedIds = this.localSpellUnlockService.GetLearnedSpellIds();
+                var bitmaskBase64 = ManualCodeSyncProvider.ToBase64Url(
+                    ManualCodeSyncProvider.EncodeBitmask(this.spellDataService, learnedIds));
+
+                var tokenKey = BuildTokenKey(localName, localWorld);
+                this.configuration.LiveSyncEditTokens.TryGetValue(tokenKey, out var existingToken);
+
+                var requestBody = this.BuildPushRequestBody(bitmaskBase64, existingToken);
+                var url = BuildProfileUrl(localWorld, localName);
+
+                using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
+                    this.log.Warning($"LiveSyncService: Push fehlgeschlagen ({detail}) für \"{localName}@{localWorld}\".");
+                    this.SetPendingResult(LiveSyncEventKind.PushFailed, detail);
+                    return;
+                }
+
+                var responseBody = await response.Content.ReadFromJsonAsync<PushResponseBody>(JsonOptions).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(responseBody?.EditToken))
+                {
+                    this.configuration.LiveSyncEditTokens[tokenKey] = responseBody!.EditToken!;
+                    this.configuration.Save();
+                }
+
+                if (!string.IsNullOrEmpty(responseBody?.DataCenter))
+                {
+                    this.LastKnownOwnProfile = new OwnProfileSnapshot
+                    {
+                        DataCenter = responseBody!.DataCenter!,
+                        VisibleInGroupFinder = responseBody.Visibility == "listed",
+                        AvailabilityTags = ParseAvailabilityTags(responseBody.AvailabilityTags),
+                        Note = responseBody.Note ?? string.Empty,
+                        WantedPlayerCount = responseBody.WantedPlayerCount ?? 0,
+                    };
+                }
+
+                this.SetPendingResult(LiveSyncEventKind.PushSucceeded, null);
+            },
+            () => this.pushInFlight = false,
+            LiveSyncEventKind.PushFailed,
+            "LiveSyncService: unerwarteter Fehler beim Push des eigenen Profils.");
 
     // Aus PushOwnProfileAsync herausgelöst (siehe BLUnion.Tests/LiveSyncServiceTests.cs) - nimmt
     // spellBitmaskBase64/editToken bewusst als Parameter statt sie selbst zu ermitteln, damit diese
@@ -367,63 +360,56 @@ public sealed class LiveSyncService : IDisposable
         _ = this.TriggerBrowseAsync(dataCenter);
     }
 
-    private async Task TriggerBrowseAsync(string dataCenter)
-    {
-        try
-        {
-            var url = $"{WorkerBaseUrl}/profiles/browse?dataCenter={Uri.EscapeDataString(dataCenter)}";
-            using var response = await this.httpClient.GetAsync(url).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+    private Task TriggerBrowseAsync(string dataCenter) =>
+        this.RunGuardedAsync(
+            async () =>
             {
-                this.SetPendingResult(LiveSyncEventKind.BrowseFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
-                return;
-            }
+                var url = $"{WorkerBaseUrl}/profiles/browse?dataCenter={Uri.EscapeDataString(dataCenter)}";
+                using var response = await this.httpClient.GetAsync(url).ConfigureAwait(false);
 
-            var entries = await response.Content.ReadFromJsonAsync<List<BrowseResponseEntry>>(JsonOptions).ConfigureAwait(false)
-                ?? new List<BrowseResponseEntry>();
-
-            var results = new List<GroupFinderEntry>();
-
-            foreach (var entry in entries)
-            {
-                if (string.IsNullOrEmpty(entry.CharacterName) || string.IsNullOrEmpty(entry.SpellBitmaskBase64))
-                    continue;
-
-                try
+                if (!response.IsSuccessStatusCode)
                 {
-                    var learnedIds = ManualCodeSyncProvider.DecodeBitmask(
-                        this.spellDataService, ManualCodeSyncProvider.FromBase64Url(entry.SpellBitmaskBase64));
+                    this.SetPendingResult(LiveSyncEventKind.BrowseFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
+                    return;
+                }
 
-                    results.Add(new GroupFinderEntry
+                var entries = await response.Content.ReadFromJsonAsync<List<BrowseResponseEntry>>(JsonOptions).ConfigureAwait(false)
+                    ?? new List<BrowseResponseEntry>();
+
+                var results = new List<GroupFinderEntry>();
+
+                foreach (var entry in entries)
+                {
+                    if (string.IsNullOrEmpty(entry.CharacterName) || string.IsNullOrEmpty(entry.SpellBitmaskBase64))
+                        continue;
+
+                    try
                     {
-                        CharacterName = entry.CharacterName,
-                        World = entry.World ?? string.Empty,
-                        LearnedSpellIds = learnedIds,
-                        AvailabilityTags = ParseAvailabilityTags(entry.AvailabilityTags),
-                        Note = entry.Note ?? string.Empty,
-                        WantedPlayerCount = entry.WantedPlayerCount ?? 0,
-                        TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
-                    });
-                }
-                catch (Exception exEntry)
-                {
-                    this.log.Debug(exEntry, $"LiveSyncService: Gruppenfinder-Eintrag für \"{entry.CharacterName}\" übersprungen (ungültige Daten).");
-                }
-            }
+                        var learnedIds = ManualCodeSyncProvider.DecodeBitmask(
+                            this.spellDataService, ManualCodeSyncProvider.FromBase64Url(entry.SpellBitmaskBase64));
 
-            this.LastBrowseResults = results;
-        }
-        catch (Exception ex)
-        {
-            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Abrufen des Gruppenfinders.");
-            this.SetPendingResult(LiveSyncEventKind.BrowseFailed, ex.Message);
-        }
-        finally
-        {
-            this.browseInFlight = false;
-        }
-    }
+                        results.Add(new GroupFinderEntry
+                        {
+                            CharacterName = entry.CharacterName,
+                            World = entry.World ?? string.Empty,
+                            LearnedSpellIds = learnedIds,
+                            AvailabilityTags = ParseAvailabilityTags(entry.AvailabilityTags),
+                            Note = entry.Note ?? string.Empty,
+                            WantedPlayerCount = entry.WantedPlayerCount ?? 0,
+                            TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
+                        });
+                    }
+                    catch (Exception exEntry)
+                    {
+                        this.log.Debug(exEntry, $"LiveSyncService: Gruppenfinder-Eintrag für \"{entry.CharacterName}\" übersprungen (ungültige Daten).");
+                    }
+                }
+
+                this.LastBrowseResults = results;
+            },
+            () => this.browseInFlight = false,
+            LiveSyncEventKind.BrowseFailed,
+            "LiveSyncService: unerwarteter Fehler beim Abrufen des Gruppenfinders.");
 
     public void TriggerGroupBrowse()
     {
@@ -438,72 +424,65 @@ public sealed class LiveSyncService : IDisposable
         _ = this.TriggerGroupBrowseAsync(dataCenter);
     }
 
-    private async Task TriggerGroupBrowseAsync(string dataCenter)
-    {
-        try
-        {
-            var url = $"{WorkerBaseUrl}/groups/browse?dataCenter={Uri.EscapeDataString(dataCenter)}";
-            using var response = await this.httpClient.GetAsync(url).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+    private Task TriggerGroupBrowseAsync(string dataCenter) =>
+        this.RunGuardedAsync(
+            async () =>
             {
-                this.SetPendingResult(LiveSyncEventKind.GroupBrowseFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
-                return;
-            }
+                var url = $"{WorkerBaseUrl}/groups/browse?dataCenter={Uri.EscapeDataString(dataCenter)}";
+                using var response = await this.httpClient.GetAsync(url).ConfigureAwait(false);
 
-            var entries = await response.Content.ReadFromJsonAsync<List<GroupBrowseResponseEntry>>(JsonOptions).ConfigureAwait(false)
-                ?? new List<GroupBrowseResponseEntry>();
-
-            var results = new List<GroupFinderGroupEntry>();
-
-            foreach (var entry in entries)
-            {
-                if (string.IsNullOrEmpty(entry.GroupId))
-                    continue;
-
-                try
+                if (!response.IsSuccessStatusCode)
                 {
-                    var members = (entry.Members ?? new List<GroupBrowseResponseMember>())
-                        .Where(m => !string.IsNullOrEmpty(m.CharacterName) && !string.IsNullOrEmpty(m.World))
-                        .Select(m => new GroupFinderGroupMember
-                        {
-                            World = m.World!,
-                            CharacterName = m.CharacterName!,
-                            LearnedSpellIds = string.IsNullOrEmpty(m.SpellBitmaskBase64)
-                                ? null
-                                : ManualCodeSyncProvider.DecodeBitmask(
-                                    this.spellDataService, ManualCodeSyncProvider.FromBase64Url(m.SpellBitmaskBase64)),
-                        })
-                        .ToList();
+                    this.SetPendingResult(LiveSyncEventKind.GroupBrowseFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
+                    return;
+                }
 
-                    results.Add(new GroupFinderGroupEntry
+                var entries = await response.Content.ReadFromJsonAsync<List<GroupBrowseResponseEntry>>(JsonOptions).ConfigureAwait(false)
+                    ?? new List<GroupBrowseResponseEntry>();
+
+                var results = new List<GroupFinderGroupEntry>();
+
+                foreach (var entry in entries)
+                {
+                    if (string.IsNullOrEmpty(entry.GroupId))
+                        continue;
+
+                    try
                     {
-                        GroupId = entry.GroupId!,
-                        Members = members,
-                        AvailabilityTags = ParseAvailabilityTags(entry.AvailabilityTags),
-                        Note = entry.Note ?? string.Empty,
-                        WantedPlayerCount = entry.WantedPlayerCount ?? 0,
-                        TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
-                    });
-                }
-                catch (Exception exEntry)
-                {
-                    this.log.Debug(exEntry, $"LiveSyncService: Gruppen-Eintrag \"{entry.GroupId}\" übersprungen (ungültige Daten).");
-                }
-            }
+                        var members = (entry.Members ?? new List<GroupBrowseResponseMember>())
+                            .Where(m => !string.IsNullOrEmpty(m.CharacterName) && !string.IsNullOrEmpty(m.World))
+                            .Select(m => new GroupFinderGroupMember
+                            {
+                                World = m.World!,
+                                CharacterName = m.CharacterName!,
+                                LearnedSpellIds = string.IsNullOrEmpty(m.SpellBitmaskBase64)
+                                    ? null
+                                    : ManualCodeSyncProvider.DecodeBitmask(
+                                        this.spellDataService, ManualCodeSyncProvider.FromBase64Url(m.SpellBitmaskBase64)),
+                            })
+                            .ToList();
 
-            this.LastGroupBrowseResults = results;
-        }
-        catch (Exception ex)
-        {
-            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Abrufen der Gruppen-Listungen.");
-            this.SetPendingResult(LiveSyncEventKind.GroupBrowseFailed, ex.Message);
-        }
-        finally
-        {
-            this.groupBrowseInFlight = false;
-        }
-    }
+                        results.Add(new GroupFinderGroupEntry
+                        {
+                            GroupId = entry.GroupId!,
+                            Members = members,
+                            AvailabilityTags = ParseAvailabilityTags(entry.AvailabilityTags),
+                            Note = entry.Note ?? string.Empty,
+                            WantedPlayerCount = entry.WantedPlayerCount ?? 0,
+                            TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
+                        });
+                    }
+                    catch (Exception exEntry)
+                    {
+                        this.log.Debug(exEntry, $"LiveSyncService: Gruppen-Eintrag \"{entry.GroupId}\" übersprungen (ungültige Daten).");
+                    }
+                }
+
+                this.LastGroupBrowseResults = results;
+            },
+            () => this.groupBrowseInFlight = false,
+            LiveSyncEventKind.GroupBrowseFailed,
+            "LiveSyncService: unerwarteter Fehler beim Abrufen der Gruppen-Listungen.");
 
     // Dev-Only: veröffentlicht die festen Alice/Bob/Charles-Testprofile aus DevTestFixtures im
     // Gruppenfinder (siehe UI/MainWindow.cs DrawSyncTab, "Dev: Testprofile im Gruppenfinder
@@ -550,6 +529,13 @@ public sealed class LiveSyncService : IDisposable
             new List<uint> { 11426, 11427, 11428 }), // Feather Rain, Eruption, Mountain Buster
     };
 
+    // Nutzt RunGuardedAsync (siehe dortige Doc) BEWUSST NICHT: anders als die übrigen sechs
+    // *Async-Methoden hat diese hier KEINEN einzelnen Erfolg/Fehlschlag, sondern veröffentlicht
+    // DREI Fixtures unabhängig voneinander (jede mit eigenem inneren try/catch) und leitet das
+    // Gesamtergebnis erst danach aus succeededNames/failedDetails ab (Published nur bei
+    // Fehler:0, sonst Failed mit der Sammel-Fehlermeldung aller drei) - es gibt also gar keine
+    // einzelne "geworfene Exception", die RunGuardedAsync uniform in einen Kind/ex.Message
+    // umwandeln könnte, ohne die Semantik zu verbiegen.
     private async Task PublishDevTestProfilesAsync(string localWorld)
     {
         try
@@ -644,54 +630,47 @@ public sealed class LiveSyncService : IDisposable
         _ = this.DeleteOwnProfileAsync();
     }
 
-    private async Task DeleteOwnProfileAsync()
-    {
-        try
-        {
-            var localName = this.partyService.GetLocalPlayerName();
-            var localWorld = this.partyService.GetLocalPlayerWorld();
-            if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
+    private Task DeleteOwnProfileAsync() =>
+        this.RunGuardedAsync(
+            async () =>
             {
-                this.SetPendingResult(LiveSyncEventKind.DeleteFailed, null);
-                return;
-            }
+                var localName = this.partyService.GetLocalPlayerName();
+                var localWorld = this.partyService.GetLocalPlayerWorld();
+                if (string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld))
+                {
+                    this.SetPendingResult(LiveSyncEventKind.DeleteFailed, null);
+                    return;
+                }
 
-            var tokenKey = BuildTokenKey(localName, localWorld);
-            if (!this.configuration.LiveSyncEditTokens.TryGetValue(tokenKey, out var token))
-            {
-                this.SetPendingResult(LiveSyncEventKind.DeleteFailed, null);
-                return;
-            }
+                var tokenKey = BuildTokenKey(localName, localWorld);
+                if (!this.configuration.LiveSyncEditTokens.TryGetValue(tokenKey, out var token))
+                {
+                    this.SetPendingResult(LiveSyncEventKind.DeleteFailed, null);
+                    return;
+                }
 
-            var url = BuildProfileUrl(localWorld, localName);
-            using var request = new HttpRequestMessage(HttpMethod.Delete, url);
-            request.Headers.Add("X-Edit-Token", token);
+                var url = BuildProfileUrl(localWorld, localName);
+                using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+                request.Headers.Add("X-Edit-Token", token);
 
-            using var response = await this.httpClient.SendAsync(request).ConfigureAwait(false);
+                using var response = await this.httpClient.SendAsync(request).ConfigureAwait(false);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                this.SetPendingResult(LiveSyncEventKind.DeleteFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
-                return;
-            }
+                if (!response.IsSuccessStatusCode)
+                {
+                    this.SetPendingResult(LiveSyncEventKind.DeleteFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
+                    return;
+                }
 
-            this.configuration.LiveSyncEditTokens.Remove(tokenKey);
+                this.configuration.LiveSyncEditTokens.Remove(tokenKey);
 
-            this.configuration.LiveSyncEnabled = false;
-            this.configuration.Save();
+                this.configuration.LiveSyncEnabled = false;
+                this.configuration.Save();
 
-            this.SetPendingResult(LiveSyncEventKind.DeleteSucceeded, null);
-        }
-        catch (Exception ex)
-        {
-            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Löschen des eigenen Profils.");
-            this.SetPendingResult(LiveSyncEventKind.DeleteFailed, ex.Message);
-        }
-        finally
-        {
-            this.deleteInFlight = false;
-        }
-    }
+                this.SetPendingResult(LiveSyncEventKind.DeleteSucceeded, null);
+            },
+            () => this.deleteInFlight = false,
+            LiveSyncEventKind.DeleteFailed,
+            "LiveSyncService: unerwarteter Fehler beim Löschen des eigenen Profils.");
 
     private const int GroupMemberCountMin = 1;
     private const int GroupMemberCountMax = 8;
@@ -740,7 +719,7 @@ public sealed class LiveSyncService : IDisposable
         _ = this.PublishGroupAsync(members, visible, tags, note, wantedPlayerCount, targetSpellIds, localName, localWorld);
     }
 
-    private async Task PublishGroupAsync(
+    private Task PublishGroupAsync(
         IReadOnlyList<(string World, string CharacterName)> members,
         bool visible,
         IReadOnlyCollection<AvailabilityTag> tags,
@@ -748,50 +727,43 @@ public sealed class LiveSyncService : IDisposable
         int wantedPlayerCount,
         IReadOnlyCollection<uint> targetSpellIds,
         string localName,
-        string localWorld)
-    {
-        try
-        {
-            var tokenKey = BuildTokenKey(localName, localWorld);
-            var isUpdate = this.configuration.GroupFinderOwnGroupIds.TryGetValue(tokenKey, out var existingGroupId);
-            var groupId = isUpdate ? existingGroupId! : Guid.NewGuid().ToString();
-
-            string? editToken = null;
-            if (isUpdate)
-                this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out editToken);
-
-            var requestBody = BuildPutGroupRequestBody(members, visible, tags, note, wantedPlayerCount, targetSpellIds, editToken);
-
-            var url = BuildGroupUrl(groupId);
-            using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+        string localWorld) =>
+        this.RunGuardedAsync(
+            async () =>
             {
-                var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
-                this.log.Warning($"LiveSyncService: Gruppen-Publish fehlgeschlagen ({detail}) für groupId \"{groupId}\".");
-                this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, detail);
-                return;
-            }
+                var tokenKey = BuildTokenKey(localName, localWorld);
+                var isUpdate = this.configuration.GroupFinderOwnGroupIds.TryGetValue(tokenKey, out var existingGroupId);
+                var groupId = isUpdate ? existingGroupId! : Guid.NewGuid().ToString();
 
-            var responseBody = await response.Content.ReadFromJsonAsync<PutGroupResponseBody>(JsonOptions).ConfigureAwait(false);
+                string? editToken = null;
+                if (isUpdate)
+                    this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out editToken);
 
-            this.configuration.GroupFinderOwnGroupIds[tokenKey] = groupId;
-            if (!string.IsNullOrEmpty(responseBody?.EditToken))
-                this.configuration.GroupFinderGroupEditTokens[groupId] = responseBody!.EditToken!;
-            this.configuration.Save();
+                var requestBody = BuildPutGroupRequestBody(members, visible, tags, note, wantedPlayerCount, targetSpellIds, editToken);
 
-            this.SetPendingResult(LiveSyncEventKind.GroupPublishSucceeded, null);
-        }
-        catch (Exception ex)
-        {
-            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Veröffentlichen der Gruppe.");
-            this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, ex.Message);
-        }
-        finally
-        {
-            this.groupPublishInFlight = false;
-        }
-    }
+                var url = BuildGroupUrl(groupId);
+                using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
+                    this.log.Warning($"LiveSyncService: Gruppen-Publish fehlgeschlagen ({detail}) für groupId \"{groupId}\".");
+                    this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, detail);
+                    return;
+                }
+
+                var responseBody = await response.Content.ReadFromJsonAsync<PutGroupResponseBody>(JsonOptions).ConfigureAwait(false);
+
+                this.configuration.GroupFinderOwnGroupIds[tokenKey] = groupId;
+                if (!string.IsNullOrEmpty(responseBody?.EditToken))
+                    this.configuration.GroupFinderGroupEditTokens[groupId] = responseBody!.EditToken!;
+                this.configuration.Save();
+
+                this.SetPendingResult(LiveSyncEventKind.GroupPublishSucceeded, null);
+            },
+            () => this.groupPublishInFlight = false,
+            LiveSyncEventKind.GroupPublishFailed,
+            "LiveSyncService: unerwarteter Fehler beim Veröffentlichen der Gruppe.");
 
     public bool HasPublishedGroup()
     {
@@ -824,44 +796,37 @@ public sealed class LiveSyncService : IDisposable
         _ = this.DeletePublishedGroupAsync(tokenKey, groupId);
     }
 
-    private async Task DeletePublishedGroupAsync(string tokenKey, string groupId)
-    {
-        try
-        {
-            if (!this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out var token))
+    private Task DeletePublishedGroupAsync(string tokenKey, string groupId) =>
+        this.RunGuardedAsync(
+            async () =>
             {
-                this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, null);
-                return;
-            }
+                if (!this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out var token))
+                {
+                    this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, null);
+                    return;
+                }
 
-            var url = BuildGroupUrl(groupId);
-            using var request = new HttpRequestMessage(HttpMethod.Delete, url);
-            request.Headers.Add("X-Edit-Token", token);
+                var url = BuildGroupUrl(groupId);
+                using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+                request.Headers.Add("X-Edit-Token", token);
 
-            using var response = await this.httpClient.SendAsync(request).ConfigureAwait(false);
+                using var response = await this.httpClient.SendAsync(request).ConfigureAwait(false);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
-                return;
-            }
+                if (!response.IsSuccessStatusCode)
+                {
+                    this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, DescribeHttpFailure(response.StatusCode, response.ReasonPhrase));
+                    return;
+                }
 
-            this.configuration.GroupFinderOwnGroupIds.Remove(tokenKey);
-            this.configuration.GroupFinderGroupEditTokens.Remove(groupId);
-            this.configuration.Save();
+                this.configuration.GroupFinderOwnGroupIds.Remove(tokenKey);
+                this.configuration.GroupFinderGroupEditTokens.Remove(groupId);
+                this.configuration.Save();
 
-            this.SetPendingResult(LiveSyncEventKind.GroupUnpublishSucceeded, null);
-        }
-        catch (Exception ex)
-        {
-            this.log.Warning(ex, "LiveSyncService: unerwarteter Fehler beim Löschen der eigenen Gruppen-Listung.");
-            this.SetPendingResult(LiveSyncEventKind.GroupUnpublishFailed, ex.Message);
-        }
-        finally
-        {
-            this.groupDeleteInFlight = false;
-        }
-    }
+                this.SetPendingResult(LiveSyncEventKind.GroupUnpublishSucceeded, null);
+            },
+            () => this.groupDeleteInFlight = false,
+            LiveSyncEventKind.GroupUnpublishFailed,
+            "LiveSyncService: unerwarteter Fehler beim Löschen der eigenen Gruppen-Listung.");
 
     public bool TryTakePendingResult(out LiveSyncEventKind kind, out string? detail)
     {
@@ -888,6 +853,30 @@ public sealed class LiveSyncService : IDisposable
         {
             this.pendingResultKind = kind;
             this.pendingResultDetail = detail;
+        }
+    }
+
+    // Gemeinsames try/catch/finally-Gerüst für sechs der sieben *Async-Methoden mit In-Flight-Flag
+    // (alle außer PublishDevTestProfilesAsync, siehe dortige Doc für den Grund) - vorher an jeder
+    // einzeln dupliziert. clearInFlight setzt NUR das jeweilige Flag zurück auf false; der
+    // "bereits in Flight"-Guard-Check UND das Setzen auf true bleiben bewusst in den öffentlichen
+    // Trigger-Methoden (z.B. PushOwnProfile()) - die haben teils eigene zusätzliche
+    // Vorbedingungen (z.B. PublishGroups Mitglieder-/Zielspell-Zahl-Prüfung), die sich nicht
+    // generisch fassen lassen, ohne den Helfer unnötig zu verbiegen.
+    private async Task RunGuardedAsync(Func<Task> work, Action clearInFlight, LiveSyncEventKind failureKind, string failureLogMessage)
+    {
+        try
+        {
+            await work().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            this.log.Warning(ex, failureLogMessage);
+            this.SetPendingResult(failureKind, ex.Message);
+        }
+        finally
+        {
+            clearInFlight();
         }
     }
 

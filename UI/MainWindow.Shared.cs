@@ -75,13 +75,40 @@ public sealed partial class MainWindow
         float cardWidth = 220f,
         float cardHeight = 160f)
     {
+        this.DrawCardGridCore(gridId, items, drawCardContent, cardWidth, _ => cardHeight);
+    }
+
+    // Gleiches Grid-Layout wie der cardHeight-Overload oben, aber mit INDIVIDUELL pro Element
+    // berechneter Höhe (heightSelector) statt einer für alle Karten identischen festen Höhe - siehe
+    // ComputeGroupBrowseCardHeight/ComputePlayerBrowseCardHeight in MainWindow.GroupFinder.cs für
+    // die beiden Aufrufer (Gruppen- bzw. Spieler-Browse-Karten). Unterschiedlich hohe Karten können
+    // dadurch in derselben Grid-Zeile nebeneinander stehen; die kürzere Karte hat dann unten
+    // Leerraum - ein akzeptierter optischer Kompromiss für jetzt, KEINE Masonry-artige
+    // Neuanordnung.
+    private void DrawCardGrid<T>(
+        string gridId,
+        IReadOnlyList<T> items,
+        Action<T> drawCardContent,
+        Func<T, float> heightSelector,
+        float cardWidth = 220f)
+    {
+        this.DrawCardGridCore(gridId, items, drawCardContent, cardWidth, heightSelector);
+    }
+
+    private void DrawCardGridCore<T>(
+        string gridId,
+        IReadOnlyList<T> items,
+        Action<T> drawCardContent,
+        float cardWidth,
+        Func<T, float> heightSelector)
+    {
         var availableWidth = ImGui.GetContentRegionAvail().X;
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         var columns = Math.Max(1, (int)((availableWidth + spacing) / (cardWidth + spacing)));
 
         for (var i = 0; i < items.Count; i++)
         {
-            ImGui.BeginChild($"{gridId}Card{i}", new System.Numerics.Vector2(cardWidth, cardHeight), true);
+            ImGui.BeginChild($"{gridId}Card{i}", new System.Numerics.Vector2(cardWidth, heightSelector(items[i])), true);
             drawCardContent(items[i]);
             ImGui.EndChild();
 
@@ -90,12 +117,18 @@ public sealed partial class MainWindow
         }
     }
 
-    private static void AlignCursorToCardBottom()
+    // buttonRowCount: Anzahl der untereinander stehenden Button-Zeilen, die unten in der Karte
+    // reserviert werden sollen (Standard 1, siehe DrawOtherPlayersSection - dort gibt es immer nur
+    // EINEN Button). DrawGroupBrowseEntry übergibt hier 2, wenn zusätzlich zum immer vorhandenen
+    // Vergleich-Button auch der bedingte "Ziel-Spells anzeigen"-Button gezeichnet wird (siehe Teil A
+    // der Aufgabenstellung: beide Buttons stehen seitdem untereinander statt nebeneinander).
+    private static void AlignCursorToCardBottom(int buttonRowCount = 1)
     {
         var remainingHeight = ImGui.GetContentRegionAvail().Y;
-        var buttonHeight = ImGui.GetFrameHeight();
-        if (remainingHeight > buttonHeight)
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + remainingHeight - buttonHeight);
+        var buttonRowsHeight = ImGui.GetFrameHeight() * buttonRowCount
+            + ImGui.GetStyle().ItemSpacing.Y * Math.Max(0, buttonRowCount - 1);
+        if (remainingHeight > buttonRowsHeight)
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + remainingHeight - buttonRowsHeight);
     }
 
     // Extra separation on top of the global ItemSpacing, for blocks that need more of a break than that alone gives.

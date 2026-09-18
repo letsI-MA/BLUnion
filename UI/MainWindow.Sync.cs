@@ -148,6 +148,18 @@ public sealed partial class MainWindow
         if (ImGui.Button(label))
         {
             var fixture = createFixture(this.spellDataService);
+
+            // Ohne World bleibt die Fixture in der Sync-Liste-Mitgliederauswahl beim
+            // Gruppen-Publish dauerhaft ausgegraut ("(?)", siehe DrawGroupPublishSyncListMemberList
+            // in MainWindow.GroupFinder.cs) - dieselbe World wie PublishDevTestProfilesAsync
+            // (localWorld, siehe LiveSyncService) sorgt dafür, dass lokale Sync-Liste-Kopie und
+            // server-seitig veröffentlichtes Profil dieselbe Identität (world+characterName) teilen.
+            // Bleibt localWorld null/leer (kein eingeloggter Charakter erkannt), bleibt die Fixture
+            // unverändert - ein Randfall, der beim normalen Testen nicht auftritt.
+            var localWorld = this.partyService.GetLocalPlayerWorld();
+            if (!string.IsNullOrEmpty(localWorld))
+                fixture = fixture with { World = localWorld };
+
             this.syncProvider.PublishLocalStatus(fixture);
             this.SetSuccessMessage(UiStrings.Format(
                 UiStrings.Key.DevFixtureLoaded, this.displayLanguage, fixture.CharacterName, fixture.LearnedSpellIds.Count));

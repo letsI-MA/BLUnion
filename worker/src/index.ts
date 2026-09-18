@@ -220,12 +220,13 @@ const DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE = 4;
  * erneut irgendwo einzuführen. */
 const DISCORD_RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 
-/** Obergrenze für StoredGroupProfile.targetSpellIds (siehe handleGroupPut/isValidTargetSpellIds) -
- * bewusst deutlich unter der Gesamtzahl bekannter Spells (siehe KNOWN_SPELL_IDS, aktuell 124):
- * eine "Ziel-Spell-Liste" für eine gemeinsame Farm-Session soll ein konkretes, erreichbares
- * Session-Ziel bleiben, kein Abbild der kompletten Spellliste. 0 (leeres Array) ist gültig - eine
- * Gruppe muss keine Ziel-Spells angeben. */
-const GROUP_TARGET_SPELL_COUNT_MAX = 30;
+/** Obergrenze für StoredProfile.targetSpellIds/StoredGroupProfile.targetSpellIds (siehe
+ * handlePut/handleGroupPut/isValidTargetSpellIds) - bewusst deutlich unter der Gesamtzahl
+ * bekannter Spells (siehe KNOWN_SPELL_IDS, aktuell 124): eine "Ziel-Spell-Liste" für eine
+ * (gemeinsame oder solo) Farm-Session soll ein konkretes, erreichbares Session-Ziel bleiben, kein
+ * Abbild der kompletten Spellliste. 0 (leeres Array) ist gültig - weder ein einzelnes Profil noch
+ * eine Gruppe müssen Ziel-Spells angeben. */
+const TARGET_SPELL_COUNT_MAX = 30;
 
 /** FFXIV-Region ("physische" Server-Region, NICHT das einzelne Data Center) - siehe
  * DATA_CENTER_TO_REGION-Doc direkt unten für die eigentliche Begründung, warum die Discord-Karten
@@ -322,6 +323,11 @@ interface StoredProfile {
   availabilityTags?: string[];
   note?: string;
   wantedPlayerCount?: number;
+  /** Spieler-Pendant zu StoredGroupProfile.targetSpellIds (siehe dortige Doc, gilt hier 1:1 analog
+   * inkl. TARGET_SPELL_COUNT_MAX/isValidTargetSpellIds) - die Spells, die DIESER Solo-Spieler
+   * selbst farmen möchte, unabhängig von einer etwaigen Gruppen-Mitgliedschaft. Optional aus
+   * demselben Rückwärtskompatibilitätsgrund wie die übrigen Phase-2-Felder. */
+  targetSpellIds?: number[];
   /** Spieler-Pendant zu StoredGroupProfile.discordCard (siehe dortige ausführliche Doc, gilt hier
    * 1:1 analog) - rein additives, optionales Feld für eine persistente Discord-Kanal-Karte dieses
    * EINZELNEN Spieler-Profils, siehe syncPlayerDiscordCard weiter unten. NOCH NICHT verdrahtet
@@ -339,6 +345,7 @@ interface PutRequestBody {
   availabilityTags?: unknown;
   note?: unknown;
   wantedPlayerCount?: unknown;
+  targetSpellIds?: unknown;
   ttlHours?: unknown;
 }
 
@@ -741,6 +748,7 @@ function stripForResponse(stored: StoredProfile) {
     availabilityTags: stored.availabilityTags ?? [],
     note: stored.note ?? "",
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
+    targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
   };
 }
@@ -759,6 +767,7 @@ function stripForBrowseResponse(stored: StoredProfile) {
     availabilityTags: stored.availabilityTags ?? [],
     note: stored.note ?? "",
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
+    targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
   };
 }
@@ -814,11 +823,12 @@ function isValidWantedPlayerCount(value: unknown): value is number {
 }
 
 /** Analog zu isValidAvailabilityTags, aber gegen KNOWN_SPELL_IDS statt ALLOWED_AVAILABILITY_TAGS
- * geprüft (siehe handleGroupPut) - jede ID muss eine tatsächlich existierende Spell-ID sein, dazu
- * die Obergrenze GROUP_TARGET_SPELL_COUNT_MAX. Leeres Array ist gültig (siehe dortige Doc). */
+ * geprüft (siehe handlePut/handleGroupPut) - jede ID muss eine tatsächlich existierende Spell-ID
+ * sein, dazu die Obergrenze TARGET_SPELL_COUNT_MAX. Leeres Array ist gültig (siehe dortige Doc).
+ * Von Profilen UND Gruppen gemeinsam genutzt, keine gruppenspezifische Prüfung. */
 function isValidTargetSpellIds(value: unknown): value is number[] {
   return Array.isArray(value)
-    && value.length <= GROUP_TARGET_SPELL_COUNT_MAX
+    && value.length <= TARGET_SPELL_COUNT_MAX
     && value.every((id) => typeof id === "number" && Number.isInteger(id) && KNOWN_SPELL_IDS.has(id));
 }
 
@@ -923,6 +933,21 @@ async function handlePut(
     );
   }
 
+  // Gleiches optional/nur-bei-Vorhandensein-validiert-Muster wie die übrigen Phase-2-Felder oben
+  // (siehe StoredProfile-Doc) - identisch zum Gruppen-Pendant in handleGroupPut, inklusive
+  // vollständiger statt gekappter Ablehnung bei ungültigen IDs.
+  let targetSpellIds: number[];
+  if (body.targetSpellIds === undefined) {
+    targetSpellIds = existing?.targetSpellIds ?? [];
+  } else if (isValidTargetSpellIds(body.targetSpellIds)) {
+    targetSpellIds = body.targetSpellIds;
+  } else {
+    return errorResponse(
+      400,
+      `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
+    );
+  }
+
   let editTokenHash: string;
   let createdAt: string;
   // Nur bei einem NEU angelegten Profil gesetzt - der Klartext-Token wird genau einmal
@@ -957,6 +982,7 @@ async function handlePut(
     availabilityTags,
     note,
     wantedPlayerCount,
+    targetSpellIds,
     // Unverändert aus "existing" übernommen (siehe DiscordCard-Doc) - discordCard wird
     // AUSSCHLIESSLICH von syncPlayerDiscordCard weiter unten geschrieben, NIE hier direkt gesetzt
     // (1:1 dieselbe Begründung wie beim Gruppen-Pendant in handleGroupPut).
@@ -1184,7 +1210,7 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
   } else {
     return errorResponse(
       400,
-      `targetSpellIds muss ein Array aus höchstens ${GROUP_TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
+      `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
     );
   }
 

@@ -74,6 +74,7 @@ public sealed class LiveSyncService : IDisposable
     private List<string>? pendingAvailabilityTags;
     private string? pendingNote;
     private int? pendingWantedPlayerCount;
+    private List<uint>? pendingTargetSpellIds;
 
     private volatile bool browseInFlight;
 
@@ -198,7 +199,8 @@ public sealed class LiveSyncService : IDisposable
                 this.pendingVisibility,
                 this.pendingAvailabilityTags,
                 this.pendingNote,
-                this.pendingWantedPlayerCount);
+                this.pendingWantedPlayerCount,
+                this.pendingTargetSpellIds);
             var url = BuildProfileUrl(localWorld, localName);
 
             using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
@@ -329,6 +331,11 @@ public sealed class LiveSyncService : IDisposable
         this.pendingAvailabilityTags = tags.Select(tag => tag.ToWireValue()).ToList();
     }
 
+    public void SetGroupFinderTargetSpellIds(IReadOnlyCollection<uint> spellIds)
+    {
+        this.pendingTargetSpellIds = spellIds.ToList();
+    }
+
     public void SetGroupFinderNoteAndWantedPlayerCount(string note, int wantedPlayerCount)
     {
         this.pendingNote = note;
@@ -388,6 +395,7 @@ public sealed class LiveSyncService : IDisposable
                             .ToList(),
                         Note = entry.Note ?? string.Empty,
                         WantedPlayerCount = entry.WantedPlayerCount ?? 0,
+                        TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
                     });
                 }
                 catch (Exception exEntry)
@@ -519,13 +527,23 @@ public sealed class LiveSyncService : IDisposable
         Func<SpellDataService, PlayerSpellStatus> CreateFixture,
         List<string> AvailabilityTags,
         string Note,
-        int WantedPlayerCount);
+        int WantedPlayerCount,
+        IReadOnlyList<uint> TargetSpellIds);
 
+    // TargetSpellIds sind jeweils Spells aus Data/spells.json, die die jeweilige Fixture laut
+    // DevTestFixtures.CreateFixture (Filter "Stars <= maxStars") NICHT gelernt hat - nur so liefert
+    // ein Test des Browse-Zielspell-Filters (siehe DrawBrowseTargetSpellFilterSection in
+    // MainWindow.GroupFinder.cs) sinnvolle "fehlt noch"-Ergebnisse statt bereits gelernter Spells.
+    // Alice (maxStars 1): 2-Stern-Spells. Bob (maxStars 3): 4-Stern-Spells.
+    // Charles (maxStars 4): 5-Stern-Spells (das aktuelle Maximum).
     private static readonly IReadOnlyList<DevTestProfileSpec> DevTestProfileSpecs = new List<DevTestProfileSpec>
     {
-        new("Alice", DevTestFixtures.CreateAlice, new List<string> { "evening" }, "Testgruppe mit Charles", 1),
-        new("Bob", DevTestFixtures.CreateBob, new List<string> { "flexible" }, "Suche Gruppe", 3),
-        new("Charles", DevTestFixtures.CreateCharles, new List<string> { "evening" }, "Testgruppe mit Alice", 1),
+        new("Alice", DevTestFixtures.CreateAlice, new List<string> { "evening" }, "Testgruppe mit Charles", 1,
+            new List<uint> { 11386, 11391, 11393 }), // Song of Torment, Plaincracker, Bristle
+        new("Bob", DevTestFixtures.CreateBob, new List<string> { "flexible" }, "Suche Gruppe", 3,
+            new List<uint> { 11383, 11384, 11387 }), // Snort, 4-tonze Weight, High Voltage
+        new("Charles", DevTestFixtures.CreateCharles, new List<string> { "evening" }, "Testgruppe mit Alice", 1,
+            new List<uint> { 11426, 11427, 11428 }), // Feather Rain, Eruption, Mountain Buster
     };
 
     private async Task PublishDevTestProfilesAsync(string localWorld)
@@ -567,7 +585,8 @@ public sealed class LiveSyncService : IDisposable
                         "listed",
                         spec.AvailabilityTags,
                         spec.Note,
-                        spec.WantedPlayerCount);
+                        spec.WantedPlayerCount,
+                        spec.TargetSpellIds.ToList());
 
                     using var putResponse = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
 
@@ -893,7 +912,8 @@ public sealed class LiveSyncService : IDisposable
         string? Visibility,
         List<string>? AvailabilityTags,
         string? Note,
-        int? WantedPlayerCount);
+        int? WantedPlayerCount,
+        List<uint>? TargetSpellIds);
 
     private sealed record PushResponseBody(
         string? EditToken,
@@ -925,6 +945,7 @@ public sealed class LiveSyncService : IDisposable
         List<string>? AvailabilityTags,
         string? Note,
         int? WantedPlayerCount,
+        List<uint>? TargetSpellIds,
         string? UpdatedAt);
 
     private sealed record GroupBrowseResponseMember(string? World, string? CharacterName, string? SpellBitmaskBase64);

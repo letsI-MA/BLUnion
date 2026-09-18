@@ -140,13 +140,14 @@ describe("handlePut (PUT /profile/:world/:characterName)", () => {
     expect(response.status).toBe(400);
   });
 
-  it("accepts and echoes the optional Phase-2 fields (visibility, availabilityTags, note, wantedPlayerCount)", async () => {
+  it("accepts and echoes the optional Phase-2 fields (visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds)", async () => {
     const response = await putProfile(KNOWN_WORLD, uniqueName("Optional"), {
       spellBitmaskBase64: validBitmaskBase64(),
       visibility: "listed",
       availabilityTags: ["evening", "weekend"],
       note: "Testnotiz",
       wantedPlayerCount: 3,
+      targetSpellIds: KNOWN_SPELL_IDS_SAMPLE,
     });
     const json = await response.json<Record<string, unknown>>();
 
@@ -155,6 +156,35 @@ describe("handlePut (PUT /profile/:world/:characterName)", () => {
     expect(json.availabilityTags).toEqual(["evening", "weekend"]);
     expect(json.note).toBe("Testnotiz");
     expect(json.wantedPlayerCount).toBe(3);
+    expect(json.targetSpellIds).toEqual(KNOWN_SPELL_IDS_SAMPLE);
+  });
+
+  it("rejects a targetSpellIds entry that is not a known spell ID with 400", async () => {
+    const response = await putProfile(KNOWN_WORLD, uniqueName("BadTarget"), {
+      spellBitmaskBase64: validBitmaskBase64(),
+      targetSpellIds: [999999999],
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects more than TARGET_SPELL_COUNT_MAX (30) targetSpellIds entries with 400", async () => {
+    const tooMany = Array.from({ length: 31 }, () => KNOWN_SPELL_IDS_SAMPLE[0]);
+    const response = await putProfile(KNOWN_WORLD, uniqueName("TooManyTargets"), {
+      spellBitmaskBase64: validBitmaskBase64(),
+      targetSpellIds: tooMany,
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it("defaults targetSpellIds to an empty array when never set", async () => {
+    const response = await putProfile(KNOWN_WORLD, uniqueName("NoTargets"), {
+      spellBitmaskBase64: validBitmaskBase64(),
+    });
+    const json = await response.json<{ targetSpellIds: number[] }>();
+
+    expect(json.targetSpellIds).toEqual([]);
   });
 
   it("rejects an invalid availabilityTags entry with 400", async () => {
@@ -202,6 +232,23 @@ describe("handlePut (PUT /profile/:world/:characterName)", () => {
     const json = await updated.json<{ note: string }>();
 
     expect(json.note).toBe("Bleibt erhalten");
+  });
+
+  it("leaves targetSpellIds at its previous value on update when omitted", async () => {
+    const name = uniqueName("KeepTargets");
+    const created = await putProfile(KNOWN_WORLD, name, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      targetSpellIds: KNOWN_SPELL_IDS_SAMPLE,
+    });
+    const { editToken } = await created.json<{ editToken: string }>();
+
+    const updated = await putProfile(KNOWN_WORLD, name, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      editToken,
+    });
+    const json = await updated.json<{ targetSpellIds: number[] }>();
+
+    expect(json.targetSpellIds).toEqual(KNOWN_SPELL_IDS_SAMPLE);
   });
 });
 
@@ -333,6 +380,7 @@ describe("handleBrowse (GET /profiles/browse)", () => {
       availabilityTags: ["evening", "weekend"],
       note: "Shape-Testnotiz",
       wantedPlayerCount: 2,
+      targetSpellIds: KNOWN_SPELL_IDS_SAMPLE,
     });
 
     const response = await browseProfiles(KNOWN_WORLD_DATA_CENTER);
@@ -346,11 +394,12 @@ describe("handleBrowse (GET /profiles/browse)", () => {
       availabilityTags: ["evening", "weekend"],
       note: "Shape-Testnotiz",
       wantedPlayerCount: 2,
+      targetSpellIds: KNOWN_SPELL_IDS_SAMPLE,
       updatedAt: expect.any(String),
     });
   });
 
-  it("defaults availabilityTags/note/wantedPlayerCount to []/''/0 when never set", async () => {
+  it("defaults availabilityTags/note/wantedPlayerCount/targetSpellIds to []/''/0/[] when never set", async () => {
     const name = uniqueName("BrowseDefaults");
     await putProfile(KNOWN_WORLD, name, { spellBitmaskBase64: validBitmaskBase64(), visibility: "listed" });
 
@@ -361,6 +410,7 @@ describe("handleBrowse (GET /profiles/browse)", () => {
     expect(entry?.availabilityTags).toEqual([]);
     expect(entry?.note).toBe("");
     expect(entry?.wantedPlayerCount).toBe(0);
+    expect(entry?.targetSpellIds).toEqual([]);
   });
 });
 
@@ -460,7 +510,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
     expect(response.status).toBe(400);
   });
 
-  it("rejects more than GROUP_TARGET_SPELL_COUNT_MAX (30) targetSpellIds entries with 400", async () => {
+  it("rejects more than TARGET_SPELL_COUNT_MAX (30) targetSpellIds entries with 400", async () => {
     // KNOWN_SPELL_IDS_SAMPLE hat nur 2 Einträge - für 31 gültige IDs wiederholen wir absichtlich
     // (der Validator prüft laut Code nur "jede ID bekannt" + "Länge <= 30", KEINE Eindeutigkeit -
     // 31 wiederholte, aber jeweils gültige IDs reichen also, um ausschließlich die Längengrenze zu

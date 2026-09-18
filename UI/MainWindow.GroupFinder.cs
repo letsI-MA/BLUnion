@@ -11,9 +11,10 @@ public sealed partial class MainWindow
     // clientseitig (siehe DrawGroupPublishSection-Zeichenzähler unten).
     private const int GroupNoteMaxLength = 60;
 
-    // Feste ScrollY-Höhe der Ziel-Spell-Auswahlliste (siehe DrawGroupPublishTargetSpellSection) -
+    // Feste ScrollY-Höhe der Ziel-Spell-Auswahl-/Filterlisten (siehe DrawSpellCheckboxFilterList) -
     // kleiner als ScrollingTableHeight (MainWindow.cs), weil diese Liste innerhalb einer bereits
-    // aufgeklappten CollapsingHeader-Sektion mit weiterem Inhalt darüber/darunter sitzt.
+    // aufgeklappten Sektion mit weiterem Inhalt darüber/darunter sitzt. Gemeinsam genutzt von
+    // Gruppen-/Solo-Zielspell-Auswahl beim Veröffentlichen UND vom Browse-Zielspell-Filter.
     private const float TargetSpellListHeight = 180f;
 
     // ImGui-Popup-ID für DrawGroupTargetSpellDetailPopup - als Konstante statt an beiden
@@ -135,6 +136,14 @@ public sealed partial class MainWindow
             this.liveSyncService.SetGroupFinderNoteAndWantedPlayerCount(this.groupFinderNoteBuffer, wantedPlayerCount);
         }
 
+        ImGui.Separator();
+        DrawSectionGap();
+
+        this.DrawMyEntryTargetSpellSection();
+
+        ImGui.Separator();
+        DrawSectionGap();
+
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderPublishButton, this.displayLanguage)))
         {
             this.liveSyncService.PushOwnProfile();
@@ -178,25 +187,49 @@ public sealed partial class MainWindow
 
         ImGui.Separator();
 
+        this.DrawBrowseTargetSpellFilterSection("BrowseFilterPlayers");
+
         var localPlayerName = this.partyService.GetLocalPlayerName();
-        var entries = this.liveSyncService.LastBrowseResults
-            .OrderByDescending(entry => string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal))
-            .ToList();
+        var allResults = this.liveSyncService.LastBrowseResults;
+
+        // Ohne Filterauswahl bleibt die bestehende Sortierung (eigener Eintrag zuerst) unverändert.
+        // Mit Filterauswahl wird zusätzlich primär nach ANZAHL der Übereinstimmungen mit
+        // browseFilterSpellIds absteigend sortiert (mehr Treffer zuerst), die bisherige Sortierung
+        // dient dabei nur noch als sekundäres Kriterium bei Gleichstand (siehe Aufgabenstellung).
+        IReadOnlyList<GroupFinderEntry> entries = this.browseFilterSpellIds.Count > 0
+            ? allResults
+                .Select(entry => (Entry: entry, MatchCount: entry.TargetSpellIds.Count(this.browseFilterSpellIds.Contains)))
+                .Where(match => match.MatchCount > 0)
+                .OrderByDescending(match => match.MatchCount)
+                .ThenByDescending(match => string.Equals(match.Entry.CharacterName, localPlayerName, StringComparison.Ordinal))
+                .Select(match => match.Entry)
+                .ToList()
+            : allResults
+                .OrderByDescending(entry => string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal))
+                .ToList();
 
         if (entries.Count == 0)
         {
-            this.DrawEmptyState(UiStrings.Get(UiStrings.Key.GroupFinderNoEntries, this.displayLanguage));
+            var emptyStateKey = allResults.Count > 0 && this.browseFilterSpellIds.Count > 0
+                ? UiStrings.Key.BrowseTargetSpellFilterNoMatches
+                : UiStrings.Key.GroupFinderNoEntries;
+            this.DrawEmptyState(UiStrings.Get(emptyStateKey, this.displayLanguage));
             return;
         }
 
         var totalSpellCount = this.spellDataService.Spells.Count;
 
         // Bewusst NICHT über DrawCard strukturiert (geprüft): DrawCard ist auf variable Höhe im
-        // Vollbreite-Fluss ausgelegt (hängt am Ende DrawSectionGap an) und würde in dieser fest
-        // dimensionierten Grid-Zelle (siehe DrawCardGrid, cardHeight) zu Overflow/Scrollbalken
-        // führen; außerdem läuft DrawCards Titel immer über DrawSectionHeader mit fester
-        // Akzentfarbe, was mit dem hier eigenen Entry-Highlighting (isOwnEntry -> komplett grün)
-        // kollidieren würde.
+        // Vollbreite-Fluss ausgelegt (hängt am Ende DrawSectionGap an) und würde in dieser als
+        // Grid-Zelle angelegten Karte (siehe DrawCardGrid) zu Overflow/Scrollbalken führen;
+        // außerdem läuft DrawCards Titel immer über DrawSectionHeader mit fester Akzentfarbe, was
+        // mit dem hier eigenen Entry-Highlighting (isOwnEntry -> komplett grün) kollidieren würde.
+        //
+        // Höhe wie bei den Gruppen-Karten NICHT mehr fest, sondern über den heightSelector-Overload
+        // von DrawCardGrid individuell je Eintrag berechnet (siehe ComputePlayerBrowseCardHeight) -
+        // eine feste Höhe müsste sonst für den ungünstigsten Fall (Notiz gesetzt, fremder statt
+        // eigener Eintrag mit Button) dimensioniert sein, obwohl die meisten Einträge weniger
+        // Inhalt haben.
         this.DrawCardGrid("GroupFinderEntry", entries, entry =>
         {
             var isOwnEntry = string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal);
@@ -246,7 +279,34 @@ public sealed partial class MainWindow
                     this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.GroupFinderAddedToComparisonMessage, this.displayLanguage, entry.CharacterName));
                 }
             }
-        });
+        }, entry => this.ComputePlayerBrowseCardHeight(entry, localPlayerName));
+    }
+
+    // Individuelle Kartenhöhe je Spieler-Eintrag für den heightSelector-Overload von DrawCardGrid
+    // (siehe MainWindow.Shared.cs) - gleiches Vorgehen wie ComputeGroupBrowseCardHeight weiter
+    // unten: grobe Zeilen-Heuristik statt pixelgenauer Textvermessung, mit
+    // ImGui.GetTextLineHeightWithSpacing()/ImGui.GetFrameHeightWithSpacing() statt hart codierter
+    // Pixelwerte, damit es bei anderen Schriftgrößen/UI-Skalierungen konsistent mitskaliert.
+    //
+    // Basis (immer gezeichnet): Namenskopf + Fortschritts-Zeile (GroupFinderProgressFormat) +
+    // Tags-Zeile + Gesucht-Zeile = 4 Text-Zeilen. Optional oben drauf: +1 Text-Zeile, wenn die
+    // Notiz nicht leer ist. Der "Zur Vergleich hinzufügen"-Button ist die einzige Action hier
+    // (siehe DrawOtherPlayersSection) und wird NUR für fremde Einträge gezeichnet, nie für den
+    // eigenen (isOwnEntry) - entsprechend wird auch nur dort eine Button-Zeile reserviert.
+    private float ComputePlayerBrowseCardHeight(GroupFinderEntry entry, string? localPlayerName)
+    {
+        var baseTextLines = 4;
+        if (!string.IsNullOrEmpty(entry.Note))
+            baseTextLines++;
+
+        var isOwnEntry = string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal);
+        var buttonRowCount = isOwnEntry ? 0 : 1;
+
+        var textHeight = baseTextLines * ImGui.GetTextLineHeightWithSpacing();
+        var buttonsHeight = buttonRowCount * ImGui.GetFrameHeightWithSpacing();
+        var childPadding = ImGui.GetStyle().WindowPadding.Y * 2;
+
+        return textHeight + buttonsHeight + childPadding;
     }
 
     private void DrawGroupPublishSection()
@@ -479,27 +539,225 @@ public sealed partial class MainWindow
         ImGui.EndChild();
     }
 
+    // Ziel-Spell-Auswahl beim Veröffentlichen des eigenen Solo-Profils (siehe StoredProfile.
+    // targetSpellIds im Worker/GroupFinderEntry.TargetSpellIds) - fachlich identisch zu
+    // DrawGroupPublishTargetSpellSection oben (gleicher Scope-Umschalter "nur eigene fehlende
+    // Spells" vs. "alle Spells", siehe dortige Doc), nutzt aber die eigenen groupFinderTargetSpell*-
+    // Felder (siehe deren Doc in MainWindow.cs) statt der Gruppen-Publish-Felder, und ruft bei jeder
+    // Auswahländerung sofort SetGroupFinderTargetSpellIds auf - analog zum bestehenden
+    // Speicher-Zeitpunkt von Tags/Notiz/Anzahl weiter oben in DrawMyEntrySection (die Auswahl wird
+    // also nicht erst beim "Veröffentlichen"-Klick übernommen, sondern läuft wie die übrigen
+    // Solo-Felder direkt in liveSyncService mit).
+    private void DrawMyEntryTargetSpellSection()
+    {
+        this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.GroupPublishTargetSpellHeader, this.displayLanguage));
+
+        if (ImGui.RadioButton(
+                $"{UiStrings.Get(UiStrings.Key.GroupPublishTargetSpellScopeOnlyMissing, this.displayLanguage)}##GroupFinderTargetSpellScopeOnlyMissing",
+                this.groupFinderTargetSpellScope == GroupPublishTargetSpellScope.OnlyMissing))
+            this.groupFinderTargetSpellScope = GroupPublishTargetSpellScope.OnlyMissing;
+
+        ImGui.SameLine();
+
+        if (ImGui.RadioButton(
+                $"{UiStrings.Get(UiStrings.Key.GroupPublishTargetSpellScopeAll, this.displayLanguage)}##GroupFinderTargetSpellScopeAll",
+                this.groupFinderTargetSpellScope == GroupPublishTargetSpellScope.All))
+            this.groupFinderTargetSpellScope = GroupPublishTargetSpellScope.All;
+
+        var learnedSpellIds = this.localSpellUnlockService.GetLearnedSpellIds();
+        var candidateSpells = this.spellDataService.Spells.Values
+            .Where(s => this.groupFinderTargetSpellScope != GroupPublishTargetSpellScope.OnlyMissing || !learnedSpellIds.Contains(s.Id));
+
+        ImGui.TextUnformatted(UiStrings.Format(
+            UiStrings.Key.GroupPublishTargetSpellCountFormat, this.displayLanguage, this.groupFinderTargetSpellIds.Count));
+
+        if (this.DrawSpellCheckboxFilterList(
+                "GroupFinderTargetSpell",
+                ref this.groupFinderTargetSpellFilterText,
+                ref this.groupFinderTargetSpellHideTotems,
+                this.groupFinderTargetSpellIds,
+                candidateSpells))
+            this.liveSyncService.SetGroupFinderTargetSpellIds(this.groupFinderTargetSpellIds);
+    }
+
+    // Zeichnet Suchfeld + "Totems ausblenden"-Toggle + scrollbare Mehrfachauswahl-Checkbox-Liste für
+    // eine Menge auswählbarer Spells (candidateSpells - bereits nach Scope/Sichtbarkeit gefiltert
+    // vom Aufrufer, siehe z.B. DrawMyEntryTargetSpellSection) - gemeinsamer Kern von
+    // DrawMyEntryTargetSpellSection (Solo-Zielspells) und DrawBrowseTargetSpellFilterSection
+    // (Browse-Filter). idSuffix macht die ImGui-Widget-IDs je Aufrufer eindeutig; filterText/
+    // hideTotems/selectedSpellIds bleiben dagegen bewusst eigene Instanzen JE AUFRUFER (siehe
+    // jeweilige Feld-Docs in MainWindow.cs), damit ein Wechsel in einer Sektion die anderen nicht
+    // beeinflusst. DrawGroupPublishTargetSpellSection oben nutzt diese Methode bewusst NICHT
+    // (bleibt unverändert) - nur die beiden neu hinzugekommenen Sektionen tun das.
+    //
+    // Rückgabewert: ob sich selectedSpellIds in diesem Frame geändert hat - für Aufrufer, die bei
+    // jeder Änderung sofort einen Folgeeffekt auslösen müssen (siehe SetGroupFinderTargetSpellIds
+    // oben); Aufrufer, die die Auswahl erst bei einem separaten "Veröffentlichen"-Klick auslesen,
+    // können den Rückgabewert ignorieren.
+    private bool DrawSpellCheckboxFilterList(
+        string idSuffix,
+        ref string filterText,
+        ref bool hideTotems,
+        HashSet<uint> selectedSpellIds,
+        IEnumerable<Spell> candidateSpells)
+    {
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint(
+            $"##{idSuffix}Filter",
+            UiStrings.Get(UiStrings.Key.SpellFilterHint, this.displayLanguage),
+            ref filterText, 128);
+        ImGui.Checkbox(
+            $"{UiStrings.Get(UiStrings.Key.HideTotemsToggle, this.displayLanguage)}##{idSuffix}HideTotems", ref hideTotems);
+
+        // ref-Parameter dürfen nicht direkt in Lambdas erfasst werden (CS1628) - lokale Kopien.
+        var hideTotemsValue = hideTotems;
+        var filterTextValue = filterText;
+
+        var rows = candidateSpells
+            .OrderBy(s => s.SpellbookOrder)
+            .Where(s => !hideTotemsValue || !this.spellDataService.IsOnlyLearnableViaTotem(s.Id))
+            .Where(s => SpellFilter.Matches(this.GetSpellName(s), s.SpellbookOrder, filterTextValue))
+            .ToList();
+
+        if (rows.Count == 0)
+        {
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.SpellbookNoResults, this.displayLanguage));
+            return false;
+        }
+
+        var changed = false;
+
+        ImGui.BeginChild($"{idSuffix}List", new System.Numerics.Vector2(0, TargetSpellListHeight), true);
+        foreach (var spell in rows)
+        {
+            var selected = selectedSpellIds.Contains(spell.Id);
+
+            if (ImGui.Checkbox($"##{idSuffix}Spell{spell.Id}", ref selected))
+            {
+                if (selected)
+                    selectedSpellIds.Add(spell.Id);
+                else
+                    selectedSpellIds.Remove(spell.Id);
+
+                changed = true;
+            }
+
+            ImGui.SameLine();
+            this.DrawSpellIcon(spell.IconId);
+            ImGui.SameLine();
+            ImGui.TextUnformatted($"#{spell.SpellbookOrder:D3}  {this.GetSpellName(spell)}");
+        }
+
+        ImGui.EndChild();
+
+        return changed;
+    }
+
+    // Gemeinsamer Ziel-Spell-Filter für BEIDE Browse-Listen (Spieler UND Gruppen, siehe
+    // DrawOtherPlayersSection/DrawGroupBrowseSection) - EIN geteilter Filter-/Auswahl-Zustand
+    // (browseFilterSpellIds/-FilterText/-HideTotems, siehe deren Doc in MainWindow.cs), weil ein
+    // Nutzer, der nach bestimmten Ziel-Spells sucht, typischerweise in BEIDEN Listen danach sucht.
+    // idSuffix unterscheidet NUR die beiden CollapsingHeader-Instanzen selbst (je eine pro Liste,
+    // unabhängig auf-/zuklappbar) - der eigentliche Filterzustand bleibt trotzdem identisch, weil
+    // beide Aufrufe dieselben Felder lesen/schreiben; eine Auswahländerung in der einen Liste zeigt
+    // sich dadurch sofort auch in der anderen.
+    private void DrawBrowseTargetSpellFilterSection(string idSuffix)
+    {
+        if (!ImGui.CollapsingHeader($"{UiStrings.Get(UiStrings.Key.BrowseTargetSpellFilterHeader, this.displayLanguage)}##{idSuffix}"))
+            return;
+
+        ImGui.TextUnformatted(UiStrings.Format(
+            UiStrings.Key.GroupPublishTargetSpellCountFormat, this.displayLanguage, this.browseFilterSpellIds.Count));
+
+        this.DrawSpellCheckboxFilterList(
+            idSuffix,
+            ref this.browseFilterSpellFilterText,
+            ref this.browseFilterSpellHideTotems,
+            this.browseFilterSpellIds,
+            this.spellDataService.Spells.Values);
+
+        DrawSectionGap();
+    }
+
     private void DrawGroupBrowseSection()
     {
         this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.GroupFinderGroupsHeader, this.displayLanguage));
         ImGui.Separator();
 
-        var groups = this.liveSyncService.LastGroupBrowseResults;
+        this.DrawBrowseTargetSpellFilterSection("BrowseFilterGroups");
+
+        var allGroups = this.liveSyncService.LastGroupBrowseResults;
+
+        // Gleiches Filter-/Sortierprinzip wie DrawOtherPlayersSection (siehe dortiger Kommentar) -
+        // OrderByDescending ist stabil, ohne Filterauswahl bleibt die bisherige (unveränderte)
+        // Reihenfolge von LastGroupBrowseResults also erhalten, mit Filterauswahl dient sie nur noch
+        // als sekundäres Kriterium bei gleicher Trefferanzahl.
+        IReadOnlyList<GroupFinderGroupEntry> groups = this.browseFilterSpellIds.Count > 0
+            ? allGroups
+                .Select(group => (Group: group, MatchCount: group.TargetSpellIds.Count(this.browseFilterSpellIds.Contains)))
+                .Where(match => match.MatchCount > 0)
+                .OrderByDescending(match => match.MatchCount)
+                .Select(match => match.Group)
+                .ToList()
+            : allGroups;
+
         if (groups.Count == 0)
         {
-            this.DrawEmptyState(UiStrings.Get(UiStrings.Key.GroupFinderNoGroups, this.displayLanguage));
+            var emptyStateKey = allGroups.Count > 0 && this.browseFilterSpellIds.Count > 0
+                ? UiStrings.Key.BrowseTargetSpellFilterNoMatches
+                : UiStrings.Key.GroupFinderNoGroups;
+            this.DrawEmptyState(UiStrings.Get(emptyStateKey, this.displayLanguage));
             return;
         }
 
         var allSpellIds = this.spellDataService.Spells.Keys;
 
         // Nicht über DrawCard strukturiert - siehe Begründung in DrawOtherPlayersSection
-        // (dieselbe feste Grid-Zellen-Höhe via DrawCardGrid, zusätzlich pinnt AlignCursorToCardBottom
+        // (dieselbe Grid-Zellen-Logik via DrawCardGrid, zusätzlich pinnt AlignCursorToCardBottom
         // hier die Action-Buttons abhängig von variabel langem Inhalt darüber ans Kartenende, was
         // sich nicht sauber in DrawCards festen Content->Spacing->Action-Ablauf einfügt).
-        this.DrawCardGrid("GroupBrowseGroup", groups, group => this.DrawGroupBrowseEntry(group, allSpellIds), cardHeight: 220f);
+        //
+        // cardWidth gegenüber dem DrawCardGrid-Standard (220f) leicht erhöht (260f) - verkürzt die
+        // Notiz-Zeilenumbrüche (bei max. 60 Zeichen von ca. 3 auf 2 Zeilen), was wiederum Höhe
+        // spart. Die HÖHE selbst ist NICHT mehr fest (siehe vorheriger Fixwert 280f), sondern nutzt
+        // den heightSelector-Overload von DrawCardGrid: ComputeGroupBrowseCardHeight berechnet sie
+        // je Gruppe individuell aus deren tatsächlichem Inhalt (Notiz gesetzt? Zielspells vorhanden?
+        // siehe dortige Doc) - eine einzelne feste Höhe müsste sonst immer für den ungünstigsten Fall
+        // aller Gruppen dimensioniert sein, auch wenn die meisten deutlich weniger Inhalt haben.
+        this.DrawCardGrid(
+            "GroupBrowseGroup", groups, group => this.DrawGroupBrowseEntry(group, allSpellIds),
+            this.ComputeGroupBrowseCardHeight, cardWidth: 260f);
 
         this.DrawGroupTargetSpellDetailPopup();
+    }
+
+    // Individuelle Kartenhöhe je Gruppe für den heightSelector-Overload von DrawCardGrid (siehe
+    // MainWindow.Shared.cs) - bewusst eine grobe Zeilen-Heuristik statt einer pixelgenauen
+    // Vorausberechnung über ImGui.CalcTextSize (würde u.a. Zeilenumbrüche innerhalb einer einzelnen
+    // ImGui.TextWrapped-Zeile mitberücksichtigen müssen): zählt stattdessen die in DrawGroupBrowseEntry
+    // gezeichneten LOGISCHEN Zeilen/Elemente und multipliziert mit ImGui.GetTextLineHeightWithSpacing()
+    // bzw. ImGui.GetFrameHeightWithSpacing() (statt hart codierter Pixelwerte), damit die Höhe bei
+    // anderen Schriftgrößen/UI-Skalierungen konsistent mitskaliert.
+    //
+    // Basis (immer gezeichnet): Mitgliederkopf + Tags-Zeile + Gesucht-Zeile + die zwei
+    // Beitrags-Vorschau-Zeilen = 5 Text-Zeilen, plus IMMER eine Button-Zeile für den (ggf.
+    // deaktivierten, aber immer gezeichneten) "Zur Vergleich hinzufügen"-Button.
+    // Optional oben drauf: +1 Text-Zeile, wenn die Notiz nicht leer ist, UND +1 Button-Zeile, wenn
+    // die Gruppe Zielspells hat (dann kommt der "Ziel-Spells anzeigen"-Button als zweite Button-
+    // Zeile hinzu, siehe Teil A/DrawGroupBrowseEntry).
+    private float ComputeGroupBrowseCardHeight(GroupFinderGroupEntry group)
+    {
+        var baseTextLines = 5;
+        if (!string.IsNullOrEmpty(group.Note))
+            baseTextLines++;
+
+        var buttonRowCount = group.TargetSpellIds.Count > 0 ? 2 : 1;
+
+        var textHeight = baseTextLines * ImGui.GetTextLineHeightWithSpacing();
+        var buttonsHeight = buttonRowCount * ImGui.GetFrameHeightWithSpacing();
+        var childPadding = ImGui.GetStyle().WindowPadding.Y * 2;
+
+        return textHeight + buttonsHeight + childPadding;
     }
 
     private void DrawGroupBrowseEntry(GroupFinderGroupEntry group, IEnumerable<uint> allSpellIds)
@@ -552,23 +810,30 @@ public sealed partial class MainWindow
             ImGui.TextWrapped(UiStrings.Format(UiStrings.Key.GroupFinderYouWouldStillMiss, this.displayLanguage, stillMissingForYouCount));
         }
 
-        AlignCursorToCardBottom();
+        // Beide Buttons stehen untereinander statt nebeneinander (siehe Aufgabenstellung Teil A) -
+        // die kombinierte Breite beider Labels (v.a. in Französisch/Japanisch, siehe UiStrings)
+        // sprengt ohnehin die Kartenbreite; volle Kartenbreite je Button (Vector2(-1, 0)) vermeidet
+        // dadurch das bisherige Abschneiden/Quetschen. AlignCursorToCardBottom reserviert dafür
+        // entsprechend 1 oder 2 Button-Zeilen (siehe dortiger Parameter buttonRowCount).
+        AlignCursorToCardBottom(group.TargetSpellIds.Count > 0 ? 2 : 1);
 
         // Nur anzeigen, wenn die Gruppe überhaupt Ziel-Spells hat - ein Popup ohne Inhalt zu öffnen
         // brächte nichts (siehe DrawGroupTargetSpellDetailPopup).
         if (group.TargetSpellIds.Count > 0)
         {
-            if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderShowTargetSpellsButton, this.displayLanguage)}##GroupBrowseTargetSpells{group.GroupId}"))
+            if (ImGui.Button(
+                    $"{UiStrings.Get(UiStrings.Key.GroupFinderShowTargetSpellsButton, this.displayLanguage)}##GroupBrowseTargetSpells{group.GroupId}",
+                    new System.Numerics.Vector2(-1, 0)))
             {
                 this.groupTargetSpellDetailPopupEntry = group;
                 ImGui.OpenPopup(GroupTargetSpellDetailPopupId);
             }
-
-            ImGui.SameLine();
         }
 
         ImGui.BeginDisabled(availableMembers.Count == 0);
-        if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddGroupToComparisonButton, this.displayLanguage)}##GroupBrowseAdd{group.GroupId}"))
+        if (ImGui.Button(
+                $"{UiStrings.Get(UiStrings.Key.GroupFinderAddGroupToComparisonButton, this.displayLanguage)}##GroupBrowseAdd{group.GroupId}",
+                new System.Numerics.Vector2(-1, 0)))
         {
             foreach (var member in availableMembers)
             {

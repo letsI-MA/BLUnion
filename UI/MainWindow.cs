@@ -155,6 +155,17 @@ public sealed partial class MainWindow : Window, IDisposable
     private string groupFinderNoteBuffer = string.Empty;
     private string groupFinderWantedPlayerCountBuffer = "0";
 
+    // Ziel-Spell-Auswahl beim Veröffentlichen des eigenen Solo-Profils (siehe
+    // DrawMyEntryTargetSpellSection in MainWindow.GroupFinder.cs) - fachlich analog zu
+    // groupPublishTargetSpellIds/-FilterText/-HideTotems/-Scope (Gruppen-Publish), aber bewusst
+    // eine EIGENE Instanz: ein Wechsel hier soll den Gruppen-Publish-Filter nicht mitbeeinflussen
+    // und umgekehrt, da beide Auswahlen fachlich unabhängig sind (eigene Ziel-Spells vs. die einer
+    // veröffentlichten Gruppe).
+    private readonly HashSet<uint> groupFinderTargetSpellIds = new();
+    private string groupFinderTargetSpellFilterText = string.Empty;
+    private bool groupFinderTargetSpellHideTotems;
+    private GroupPublishTargetSpellScope groupFinderTargetSpellScope = GroupPublishTargetSpellScope.OnlyMissing;
+
     private enum GroupMemberSource
     {
         Party,
@@ -185,6 +196,17 @@ public sealed partial class MainWindow : Window, IDisposable
     }
 
     private GroupPublishTargetSpellScope groupPublishTargetSpellScope = GroupPublishTargetSpellScope.OnlyMissing;
+
+    // Ziel-Spell-Filter für BEIDE Browse-Listen (Spieler UND Gruppen, siehe
+    // DrawBrowseTargetSpellFilterSection in MainWindow.GroupFinder.cs) - bewusst EIN gemeinsamer
+    // Zustand statt je Liste ein eigener: ein Nutzer, der nach bestimmten Ziel-Spells sucht, sucht
+    // damit typischerweise sowohl unter den Spieler- als auch den Gruppen-Einträgen danach. Anders
+    // als beim Veröffentlichen (siehe groupPublishTargetSpellIds/groupFinderTargetSpellIds oben)
+    // gibt es hier bewusst KEINEN Scope ("nur fehlende"/"alle") - der Filter dient nur der Auswahl,
+    // wonach gesucht wird, nicht der Eingrenzung einer zu veröffentlichenden Liste.
+    private readonly HashSet<uint> browseFilterSpellIds = new();
+    private string browseFilterSpellFilterText = string.Empty;
+    private bool browseFilterSpellHideTotems;
 
     // Momentan im Detail-Popup angezeigte Gruppe (siehe DrawGroupTargetSpellDetailPopup) - hält
     // bewusst eine reine Objektreferenz auf den zum Klickzeitpunkt aktuellen LastGroupBrowseResults-

@@ -162,6 +162,8 @@ public static class UiStrings
         GroupFinderShowTargetSpellsButton,
         GroupTargetSpellPopupHeader,
         GroupBrowseFailed,
+        BrowseTargetSpellFilterHeader,
+        BrowseTargetSpellFilterNoMatches,
 
         TabSpellbook,
         SpellbookFilterAll,
@@ -1360,6 +1362,20 @@ public static class UiStrings
             [DisplayLanguage.English] = "Group finder: failed to fetch other groups ({0})",
             [DisplayLanguage.French] = "Recherche de groupe : échec de la récupération des autres groupes ({0})",
             [DisplayLanguage.Japanese] = "グループファインダー: 他グループの取得に失敗しました ({0})",
+        },
+        [Key.BrowseTargetSpellFilterHeader] = new()
+        {
+            [DisplayLanguage.German] = "Nach Ziel-Spells filtern",
+            [DisplayLanguage.English] = "Filter by target spells",
+            [DisplayLanguage.French] = "Filtrer par sorts cibles",
+            [DisplayLanguage.Japanese] = "目標スペルで絞り込む",
+        },
+        [Key.BrowseTargetSpellFilterNoMatches] = new()
+        {
+            [DisplayLanguage.German] = "Keine Treffer für diese Ziel-Spell-Auswahl.",
+            [DisplayLanguage.English] = "No matches for this target spell selection.",
+            [DisplayLanguage.French] = "Aucun résultat pour cette sélection de sorts cibles.",
+            [DisplayLanguage.Japanese] = "この目標スペルの選択に一致する結果はありません。",
         },
 
         [Key.TabSpellbook] = new()

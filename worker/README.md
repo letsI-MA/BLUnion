@@ -9,7 +9,8 @@ Bewusst **eigenständig** vom .NET-Plugin-Code (eigener `package.json`/`tsconfig
 Build-Schritt des Plugins hängt hiervon ab, und umgekehrt.
 
 **Phase 2 (aktuell):** öffentlicher Gruppenfinder (`GET /profiles/browse`, siehe unten) -
-erweitert dasselbe Profil um `visibility`/`availabilityTags`/`note`/`wantedPlayerCount`. Es gibt
+erweitert dasselbe Profil um `visibility`/`availabilityTags`/`note`/`wantedPlayerCount`/
+`targetSpellIds`. Es gibt
 **kein separates Gruppenfinder-Profil und keinen eigenständigen Login** - Sichtbarkeit im
 Gruppenfinder setzt zwingend voraus, dass für den Charakter bereits ein Live-Sync-Profil (Phase 1,
 mit `editToken`) existiert.
@@ -31,6 +32,7 @@ Ein Profil (KV-Value, JSON) sieht so aus:
   "availabilityTags": ["evening", "weekend"],
   "note": "Suche noch 3 Spells, gerne auch mehrfach am Abend",
   "wantedPlayerCount": 0,
+  "targetSpellIds": [11383, 11384],
   "createdAt": "2026-08-20T12:00:00.000Z",
   "updatedAt": "2026-08-20T12:00:00.000Z"
 }
@@ -45,7 +47,9 @@ KV-Key bzw. im `characterName`-Feld.
 Rückwärtskompatibilität unten) oder `"listed"` (im Gruppenfinder sichtbar). `availabilityTags`
 sind 0-5 Werte aus `morning`/`afternoon`/`evening`/`weekend`/`flexible` (intern englisch, siehe
 Übersetzung im Plugin über `UiStrings`). `note` ist serverseitig auf 60 Zeichen gekappt.
-`wantedPlayerCount` ist eine ganze Zahl 0-8 (`0` = "egal wie viele").
+`wantedPlayerCount` ist eine ganze Zahl 0-8 (`0` = "egal wie viele"). `targetSpellIds` sind die
+Spells, die dieser Solo-Spieler farmen möchte - ein Array aus höchstens 30 bekannten Spell-IDs
+(leeres Array = keine Angabe), exakt dieselbe Regel wie bei Gruppen-Listungen (siehe unten).
 
 Profile laufen automatisch nach 90 Tagen Inaktivität ab (KV `expirationTtl`, wird bei jedem
 Update neu gesetzt) - kein Cron-Job nötig.
@@ -63,14 +67,15 @@ Update neu gesetzt) - kein Cron-Job nötig.
 `:world` und `:characterName` müssen URI-komponenten-kodiert werden (Charakternamen enthalten
 oft Leerzeichen/Apostrophe).
 
-`visibility`/`availabilityTags`/`note`/`wantedPlayerCount` sind im `PUT`-Body allesamt optional -
-fehlt eines, bleibt der bisherige gespeicherte Wert unverändert (bzw. der jeweilige Default bei
-einem neuen Profil). Ein reiner Spell-Status-Push (Phase 1, kennt diese Felder nicht) leert die
-Gruppenfinder-Angaben dadurch nicht versehentlich. Ein tatsächlich übergebener, aber ungültiger
-Wert (z.B. ein nicht erlaubter `availabilityTags`-Eintrag) führt zu `400`.
+`visibility`/`availabilityTags`/`note`/`wantedPlayerCount`/`targetSpellIds` sind im `PUT`-Body
+allesamt optional - fehlt eines, bleibt der bisherige gespeicherte Wert unverändert (bzw. der
+jeweilige Default bei einem neuen Profil). Ein reiner Spell-Status-Push (Phase 1, kennt diese
+Felder nicht) leert die Gruppenfinder-Angaben dadurch nicht versehentlich. Ein tatsächlich
+übergebener, aber ungültiger Wert (z.B. ein nicht erlaubter `availabilityTags`-Eintrag oder eine
+unbekannte Spell-ID in `targetSpellIds`) führt zu `400`.
 
 `GET /profiles/browse` liefert je Treffer `{ characterName, world, spellBitmaskBase64,
-availabilityTags, note, wantedPlayerCount, updatedAt }` - nie `dataCenter` (redundant, der
+availabilityTags, note, wantedPlayerCount, targetSpellIds, updatedAt }` - nie `dataCenter` (redundant, der
 Aufrufer hat es selbst übergeben) und nie `editTokenHash`. Iteriert aktuell über ALLE
 `profile:`-Keys und filtert in-memory (siehe Kommentar bei `handleBrowse` in `src/index.ts`) -
 bei sehr vielen Profilen (>1000) sollte das durch einen echten Data-Center-Index ersetzt werden;

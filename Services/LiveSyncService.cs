@@ -45,7 +45,7 @@ public sealed class LiveSyncService : IDisposable
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly HttpClient httpClient;
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
@@ -96,14 +96,23 @@ public sealed class LiveSyncService : IDisposable
 
     public IReadOnlyList<GroupFinderGroupEntry> LastGroupBrowseResults { get; private set; } = Array.Empty<GroupFinderGroupEntry>();
 
+    // httpMessageHandler ist ausschließlich ein Testbarkeits-Seam (siehe BLUnion.Tests/
+    // LiveSyncServiceTests.cs) - ohne Angabe (der einzige Produktionsaufruf in Plugin.cs) ist das
+    // Verhalten exakt wie zuvor (neuer HttpClient mit demselben Timeout). Der HttpClient übernimmt
+    // per Default-Konstruktor-Verhalten den Besitz des Handlers (disposeHandler: true) - Dispose()
+    // unten schließt beide.
     public LiveSyncService(
         PartyService partyService,
         SpellDataService spellDataService,
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
         Configuration configuration,
-        IPluginLog log)
+        IPluginLog log,
+        HttpMessageHandler? httpMessageHandler = null)
     {
+        this.httpClient = httpMessageHandler is null
+            ? new HttpClient { Timeout = TimeSpan.FromSeconds(10) }
+            : new HttpClient(httpMessageHandler) { Timeout = TimeSpan.FromSeconds(10) };
         this.partyService = partyService;
         this.spellDataService = spellDataService;
         this.localSpellUnlockService = localSpellUnlockService;
@@ -193,14 +202,7 @@ public sealed class LiveSyncService : IDisposable
             var tokenKey = BuildTokenKey(localName, localWorld);
             this.configuration.LiveSyncEditTokens.TryGetValue(tokenKey, out var existingToken);
 
-            var requestBody = new PushRequestBody(
-                bitmaskBase64,
-                existingToken,
-                this.pendingVisibility,
-                this.pendingAvailabilityTags,
-                this.pendingNote,
-                this.pendingWantedPlayerCount,
-                this.pendingTargetSpellIds);
+            var requestBody = this.BuildPushRequestBody(bitmaskBase64, existingToken);
             var url = BuildProfileUrl(localWorld, localName);
 
             using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
@@ -244,6 +246,20 @@ public sealed class LiveSyncService : IDisposable
             this.pushInFlight = false;
         }
     }
+
+    // Aus PushOwnProfileAsync herausgelöst (siehe BLUnion.Tests/LiveSyncServiceTests.cs) - nimmt
+    // spellBitmaskBase64/editToken bewusst als Parameter statt sie selbst zu ermitteln, damit diese
+    // reine Body-Bau-Logik ohne PartyService/LocalSpellUnlockService (beide nicht isoliert testbar,
+    // siehe TEST_REPORT.md) testbar ist.
+    private PushRequestBody BuildPushRequestBody(string spellBitmaskBase64, string? editToken) =>
+        new(
+            spellBitmaskBase64,
+            editToken,
+            this.pendingVisibility,
+            this.pendingAvailabilityTags,
+            this.pendingNote,
+            this.pendingWantedPlayerCount,
+            this.pendingTargetSpellIds);
 
     public void TriggerFetch() => this.TriggerFetch(this.GetOtherBlueMagePartyMembers());
 
@@ -744,14 +760,7 @@ public sealed class LiveSyncService : IDisposable
             if (isUpdate)
                 this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out editToken);
 
-            var requestBody = new PutGroupRequestBody(
-                members.Select(m => new GroupMemberWire(m.World, m.CharacterName)).ToList(),
-                editToken,
-                visible ? "listed" : "unlisted",
-                tags.Select(tag => tag.ToWireValue()).ToList(),
-                note,
-                wantedPlayerCount,
-                targetSpellIds.ToList());
+            var requestBody = BuildPutGroupRequestBody(members, visible, tags, note, wantedPlayerCount, targetSpellIds, editToken);
 
             var url = BuildGroupUrl(groupId);
             using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
@@ -904,6 +913,26 @@ public sealed class LiveSyncService : IDisposable
         $"{WorkerBaseUrl}/profile/{Uri.EscapeDataString(world)}/{Uri.EscapeDataString(characterName)}";
 
     private static string BuildGroupUrl(string groupId) => $"{WorkerBaseUrl}/group/{Uri.EscapeDataString(groupId)}";
+
+    // Aus PublishGroupAsync herausgelöst (siehe BuildPushRequestBody-Doc für denselben Grund) -
+    // bewusst static, da außer editToken (Config-Lookup, braucht PartyService für den tokenKey)
+    // alle Werte bereits als Parameter von PublishGroup/PublishGroupAsync durchgereicht werden.
+    private static PutGroupRequestBody BuildPutGroupRequestBody(
+        IReadOnlyList<(string World, string CharacterName)> members,
+        bool visible,
+        IReadOnlyCollection<AvailabilityTag> tags,
+        string note,
+        int wantedPlayerCount,
+        IReadOnlyCollection<uint> targetSpellIds,
+        string? editToken) =>
+        new(
+            members.Select(m => new GroupMemberWire(m.World, m.CharacterName)).ToList(),
+            editToken,
+            visible ? "listed" : "unlisted",
+            tags.Select(tag => tag.ToWireValue()).ToList(),
+            note,
+            wantedPlayerCount,
+            targetSpellIds.ToList());
 
     public void Dispose() => this.httpClient.Dispose();
 

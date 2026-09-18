@@ -120,7 +120,11 @@ public static class UiStrings
         GroupFinderWantedPlayerCountLabel,
         GroupFinderWantedPlayerCountAny,
         GroupFinderPublishButton,
+        GroupFinderUpdateButton,
         GroupFinderPublishedMessage,
+        GroupFinderDiscordChannelHintFormat,
+        GroupFinderDiscordChannelHintGeneric,
+        OpenDiscordChannelButton,
         GroupFinderOthersHeader,
         GroupFinderDeterminingDataCenter,
         GroupFinderRefreshButton,
@@ -145,6 +149,7 @@ public static class UiStrings
         GroupPublishTargetSpellScopeAll,
         GroupPublishTargetSpellCountFormat,
         GroupPublishButton,
+        GroupUpdateButton,
         GroupUnpublishButton,
         GroupPublishSucceededMessage,
         GroupPublishFailedMessage,
@@ -1070,12 +1075,40 @@ public static class UiStrings
             [DisplayLanguage.French] = "Publier maintenant",
             [DisplayLanguage.Japanese] = "今すぐ公開",
         },
+        [Key.GroupFinderUpdateButton] = new()
+        {
+            [DisplayLanguage.German] = "Aktualisieren",
+            [DisplayLanguage.English] = "Update",
+            [DisplayLanguage.French] = "Mettre à jour",
+            [DisplayLanguage.Japanese] = "更新",
+        },
         [Key.GroupFinderPublishedMessage] = new()
         {
             [DisplayLanguage.German] = "Gruppenfinder-Eintrag aktualisiert.",
             [DisplayLanguage.English] = "Group Finder entry updated.",
             [DisplayLanguage.French] = "Entrée du chercheur de groupe mise à jour.",
             [DisplayLanguage.Japanese] = "グループファインダーの登録内容を更新しました。",
+        },
+        [Key.GroupFinderDiscordChannelHintFormat] = new()
+        {
+            [DisplayLanguage.German] = "Sichtbar in der Gruppensuche · Discord: #{0}",
+            [DisplayLanguage.English] = "Visible in the group finder · Discord: #{0}",
+            [DisplayLanguage.French] = "Visible dans la recherche de groupe · Discord : #{0}",
+            [DisplayLanguage.Japanese] = "グループファインダーに表示中 · Discord: #{0}",
+        },
+        [Key.GroupFinderDiscordChannelHintGeneric] = new()
+        {
+            [DisplayLanguage.German] = "Sichtbar in der Gruppensuche · Discord verfügbar",
+            [DisplayLanguage.English] = "Visible in the group finder · Discord available",
+            [DisplayLanguage.French] = "Visible dans la recherche de groupe · Discord disponible",
+            [DisplayLanguage.Japanese] = "グループファインダーに表示中 · Discordあり",
+        },
+        [Key.OpenDiscordChannelButton] = new()
+        {
+            [DisplayLanguage.German] = "Discord-Kanal öffnen",
+            [DisplayLanguage.English] = "Open Discord channel",
+            [DisplayLanguage.French] = "Ouvrir le salon Discord",
+            [DisplayLanguage.Japanese] = "Discordチャンネルを開く",
         },
         [Key.GroupFinderOthersHeader] = new()
         {
@@ -1249,6 +1282,13 @@ public static class UiStrings
             [DisplayLanguage.English] = "Publish group",
             [DisplayLanguage.French] = "Publier le groupe",
             [DisplayLanguage.Japanese] = "グループを公開",
+        },
+        [Key.GroupUpdateButton] = new()
+        {
+            [DisplayLanguage.German] = "Gruppe aktualisieren",
+            [DisplayLanguage.English] = "Update group",
+            [DisplayLanguage.French] = "Mettre à jour le groupe",
+            [DisplayLanguage.Japanese] = "グループを更新",
         },
         [Key.GroupUnpublishButton] = new()
         {

@@ -92,6 +92,15 @@ public sealed class LiveSyncService : IDisposable
 
     public OwnProfileSnapshot? LastKnownOwnProfile { get; private set; }
 
+    // Kein eigener GroupPublishSnapshot-Record wie bei LastKnownOwnProfile oben - dafür gibt es
+    // (anders als bei OwnProfileSnapshot) noch keinen bestehenden "letzter bekannter Gruppenstand"-
+    // Zustand, den man erweitern könnte; zwei einzelne Felder reichen für den einen Anwendungsfall
+    // (Discord-Hinweis im Gruppen-Formular, siehe DrawGroupPublishSection). Beide werden zusammen
+    // in PublishGroupAsync gesetzt und in DeletePublishedGroupAsync wieder auf null zurückgesetzt.
+    public string? LastKnownPublishedGroupDiscordChannelUrl { get; private set; }
+
+    public string? LastKnownPublishedGroupDiscordChannelName { get; private set; }
+
     public IReadOnlyList<GroupFinderEntry> LastBrowseResults { get; private set; } = Array.Empty<GroupFinderEntry>();
 
     public IReadOnlyList<GroupFinderGroupEntry> LastGroupBrowseResults { get; private set; } = Array.Empty<GroupFinderGroupEntry>();
@@ -231,6 +240,8 @@ public sealed class LiveSyncService : IDisposable
                         AvailabilityTags = ParseAvailabilityTags(responseBody.AvailabilityTags),
                         Note = responseBody.Note ?? string.Empty,
                         WantedPlayerCount = responseBody.WantedPlayerCount ?? 0,
+                        DiscordChannelUrl = responseBody.DiscordChannelUrl,
+                        DiscordChannelName = responseBody.DiscordChannelName,
                     };
                 }
 
@@ -759,6 +770,10 @@ public sealed class LiveSyncService : IDisposable
                     this.configuration.GroupFinderGroupEditTokens[groupId] = responseBody!.EditToken!;
                 this.configuration.Save();
 
+                var groupIsListed = responseBody?.Visibility == "listed";
+                this.LastKnownPublishedGroupDiscordChannelUrl = groupIsListed ? responseBody?.DiscordChannelUrl : null;
+                this.LastKnownPublishedGroupDiscordChannelName = groupIsListed ? responseBody?.DiscordChannelName : null;
+
                 this.SetPendingResult(LiveSyncEventKind.GroupPublishSucceeded, null);
             },
             () => this.groupPublishInFlight = false,
@@ -821,6 +836,9 @@ public sealed class LiveSyncService : IDisposable
                 this.configuration.GroupFinderOwnGroupIds.Remove(tokenKey);
                 this.configuration.GroupFinderGroupEditTokens.Remove(groupId);
                 this.configuration.Save();
+
+                this.LastKnownPublishedGroupDiscordChannelUrl = null;
+                this.LastKnownPublishedGroupDiscordChannelName = null;
 
                 this.SetPendingResult(LiveSyncEventKind.GroupUnpublishSucceeded, null);
             },
@@ -940,7 +958,9 @@ public sealed class LiveSyncService : IDisposable
         string? Visibility,
         List<string>? AvailabilityTags,
         string? Note,
-        int? WantedPlayerCount);
+        int? WantedPlayerCount,
+        string? DiscordChannelUrl,
+        string? DiscordChannelName);
 
     private sealed record FetchResponseBody(string? SpellBitmaskBase64);
 
@@ -955,7 +975,11 @@ public sealed class LiveSyncService : IDisposable
         int? WantedPlayerCount,
         List<uint>? TargetSpellIds);
 
-    private sealed record PutGroupResponseBody(string? EditToken);
+    private sealed record PutGroupResponseBody(
+        string? EditToken,
+        string? Visibility,
+        string? DiscordChannelUrl,
+        string? DiscordChannelName);
 
     private sealed record BrowseResponseEntry(
         string? CharacterName,

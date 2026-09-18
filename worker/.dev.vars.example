@@ -24,3 +24,19 @@ DISCORD_WEBHOOK_NA=
 DISCORD_WEBHOOK_EU=
 DISCORD_WEBHOOK_JP=
 DISCORD_WEBHOOK_OC=
+
+# Klickbarer Discord-Link im Plugin (siehe buildDiscordChannelLink/Env.DISCORD_GUILD_ID-Doc in
+# src/index.ts) - anders als die Webhook-URLs oben KEIN Secret, in Produktion normale [vars] in
+# wrangler.toml statt "wrangler secret put". IDs per Rechtsklick auf Server/Kanal in Discord mit
+# aktiviertem Entwicklermodus ("ID kopieren") ermitteln. Fehlt DISCORD_GUILD_ID oder die Channel-ID
+# einer Region, zeigt das Plugin stattdessen die allgemeine Server-Einladung.
+DISCORD_GUILD_ID=
+DISCORD_CHANNEL_NA=
+DISCORD_CHANNEL_EU=
+DISCORD_CHANNEL_JP=
+DISCORD_CHANNEL_OC=
+# Nur für die Anzeige ("Discord: #<name>") - rein kosmetisch, siehe Env.DISCORD_CHANNEL_NAME_NA-Doc.
+DISCORD_CHANNEL_NAME_NA=
+DISCORD_CHANNEL_NAME_EU=
+DISCORD_CHANNEL_NAME_JP=
+DISCORD_CHANNEL_NAME_OC=

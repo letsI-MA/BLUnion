@@ -144,7 +144,14 @@ public sealed partial class MainWindow
         ImGui.Separator();
         DrawSectionGap();
 
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderPublishButton, this.displayLanguage)))
+        // HasEditTokenForLocalCharacter() statt LastKnownOwnProfile != null: derselbe Zustand, den
+        // auch DeleteOwnProfileAsync für "existiert bereits ein Eintrag" nutzt - ein Klick auf den
+        // Button ist dann inhaltlich ein Update (editToken vorhanden), nicht ein Neuanlegen.
+        var soloPublishLabel = this.liveSyncService.HasEditTokenForLocalCharacter()
+            ? UiStrings.Get(UiStrings.Key.GroupFinderUpdateButton, this.displayLanguage)
+            : UiStrings.Get(UiStrings.Key.GroupFinderPublishButton, this.displayLanguage);
+
+        if (ImGui.Button(soloPublishLabel))
         {
             this.liveSyncService.PushOwnProfile();
             this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupFinderPublishedMessage, this.displayLanguage));
@@ -162,7 +169,26 @@ public sealed partial class MainWindow
 
             ImGui.TextColored(SuccessMessageColor, UiStrings.Format(
                 UiStrings.Key.GroupFinderOwnVisibleConfirmation, this.displayLanguage, tagsText, noteText, wantedPlayerCountText));
+
+            if (confirmedProfile.DiscordChannelUrl is { } soloDiscordUrl)
+                this.DrawDiscordChannelHint(soloDiscordUrl, confirmedProfile.DiscordChannelName, "SoloDiscordLink");
         }
+    }
+
+    // Gemeinsam für Solo-Profil (DrawMyEntrySection) und Gruppe (DrawGroupPublishSection) - idSuffix
+    // macht den ImGui-Button in beiden Formularen eindeutig (siehe DrawSpellCheckboxFilterList-Doc
+    // für dasselbe Muster). channelName ist optional (siehe Env.DISCORD_CHANNEL_NAME_NA-Doc im
+    // Worker) - ohne ihn zeigt der Hinweis nur, DASS ein Discord-Kanal verfügbar ist, nicht welcher.
+    private void DrawDiscordChannelHint(string discordUrl, string? channelName, string idSuffix)
+    {
+        var hintText = channelName is { } name
+            ? UiStrings.Format(UiStrings.Key.GroupFinderDiscordChannelHintFormat, this.displayLanguage, name)
+            : UiStrings.Get(UiStrings.Key.GroupFinderDiscordChannelHintGeneric, this.displayLanguage);
+
+        ImGui.TextColored(SuccessMessageColor, hintText);
+        ImGui.SameLine();
+        if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.OpenDiscordChannelButton, this.displayLanguage)}##{idSuffix}"))
+            this.OpenUrlInBrowser(discordUrl);
     }
 
     private void DrawOtherPlayersSection()
@@ -378,8 +404,14 @@ public sealed partial class MainWindow
         var selectedCount = this.groupPublishSelectedMembers.Count;
         var canPublish = selectedCount is >= 1 and <= 8;
 
+        // Siehe HasEditTokenForLocalCharacter()-Doc oben in DrawMyEntrySection - dasselbe Prinzip,
+        // hier über den Gruppen-Zustand, den auch DeletePublishedGroup nutzt.
+        var groupPublishLabel = this.liveSyncService.HasPublishedGroup()
+            ? UiStrings.Get(UiStrings.Key.GroupUpdateButton, this.displayLanguage)
+            : UiStrings.Get(UiStrings.Key.GroupPublishButton, this.displayLanguage);
+
         ImGui.BeginDisabled(!canPublish);
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupPublishButton, this.displayLanguage)))
+        if (ImGui.Button(groupPublishLabel))
         {
             if (!int.TryParse(this.groupPublishWantedPlayerCountBuffer, out var wantedPlayerCount))
                 wantedPlayerCount = 0;
@@ -407,6 +439,12 @@ public sealed partial class MainWindow
             ImGui.SameLine();
             if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupUnpublishButton, this.displayLanguage)))
                 this.liveSyncService.DeletePublishedGroup();
+
+            if (this.liveSyncService.LastKnownPublishedGroupDiscordChannelUrl is { } groupDiscordUrl)
+            {
+                this.DrawDiscordChannelHint(
+                    groupDiscordUrl, this.liveSyncService.LastKnownPublishedGroupDiscordChannelName, "GroupDiscordLink");
+            }
         }
     }
 

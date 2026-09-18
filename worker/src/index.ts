@@ -41,6 +41,21 @@ export interface Env {
   DISCORD_WEBHOOK_EU?: string;
   DISCORD_WEBHOOK_JP?: string;
   DISCORD_WEBHOOK_OC?: string;
+  /** Für den klickbaren Discord-Link im Plugin (siehe buildDiscordChannelLink) - anders als die
+   * Webhook-URLs oben KEIN Secret (Guild-/Channel-IDs sind nicht geheim), daher als normale [vars]
+   * statt per "wrangler secret put" gesetzt. Fehlt Guild-ID oder die Channel-ID einer Region, fällt
+   * der Link auf die allgemeine Server-Einladung zurück statt einen Deep-Link zu bauen. */
+  DISCORD_GUILD_ID?: string;
+  DISCORD_CHANNEL_NA?: string;
+  DISCORD_CHANNEL_EU?: string;
+  DISCORD_CHANNEL_JP?: string;
+  DISCORD_CHANNEL_OC?: string;
+  /** Nur für die Anzeige im Plugin ("Discord: #<name>") - rein kosmetisch, keine Logik hängt daran
+   * (fehlt der Name, zeigt das Plugin den Hinweis ohne Kanalnamen). */
+  DISCORD_CHANNEL_NAME_NA?: string;
+  DISCORD_CHANNEL_NAME_EU?: string;
+  DISCORD_CHANNEL_NAME_JP?: string;
+  DISCORD_CHANNEL_NAME_OC?: string;
 }
 
 /** Muss mit ManualCodeSyncProvider.BitmaskBytes im Plugin übereinstimmen (16 Byte = 128 Bit). */
@@ -151,6 +166,59 @@ function getRegionWebhookUrl(env: Env, region: Region): string | undefined {
     case "JP": return env.DISCORD_WEBHOOK_JP;
     case "OC": return env.DISCORD_WEBHOOK_OC;
   }
+}
+
+function getRegionChannelId(env: Env, region: Region): string | undefined {
+  switch (region) {
+    case "NA": return env.DISCORD_CHANNEL_NA;
+    case "EU": return env.DISCORD_CHANNEL_EU;
+    case "JP": return env.DISCORD_CHANNEL_JP;
+    case "OC": return env.DISCORD_CHANNEL_OC;
+  }
+}
+
+function getRegionChannelName(env: Env, region: Region): string | undefined {
+  switch (region) {
+    case "NA": return env.DISCORD_CHANNEL_NAME_NA;
+    case "EU": return env.DISCORD_CHANNEL_NAME_EU;
+    case "JP": return env.DISCORD_CHANNEL_NAME_JP;
+    case "OC": return env.DISCORD_CHANNEL_NAME_OC;
+  }
+}
+
+/** Statischer Server-Invite als Fallback (siehe buildDiscordChannelLink) - IMMER klickbar, auch
+ * ohne jede Region-Konfiguration. */
+const DISCORD_INVITE_FALLBACK_URL = "https://discord.gg/uGW7kBG67";
+
+interface DiscordChannelLink {
+  url: string;
+  /** null, wenn für die Region kein DISCORD_CHANNEL_NAME_* gesetzt ist - rein kosmetisch, siehe
+   * Env.DISCORD_CHANNEL_NAME_*-Doc. */
+  channelName: string | null;
+}
+
+/** Klickbarer Discord-Link für eine aktuell gelistete Veröffentlichung (Profil ODER Gruppe, siehe
+ * stripForResponse/stripForGroupResponse) - Deep-Link direkt in den Region-Kanal, wenn Guild-ID UND
+ * Channel-ID dafür konfiguriert sind, sonst die allgemeine Server-Einladung. null nur, wenn gar
+ * keine Karte existieren kann (nicht "listed" oder Data Center nicht auflösbar). */
+function buildDiscordChannelLink(
+  env: Env, dataCenter: string, visibility: "listed" | "unlisted",
+): DiscordChannelLink | null {
+  if (visibility !== "listed")
+    return null;
+
+  const region = regionForDataCenter(dataCenter);
+  if (!region)
+    return null;
+
+  const channelId = getRegionChannelId(env, region);
+  const channelName = getRegionChannelName(env, region) ?? null;
+
+  const url = env.DISCORD_GUILD_ID && channelId
+    ? `https://discord.com/channels/${env.DISCORD_GUILD_ID}/${channelId}`
+    : DISCORD_INVITE_FALLBACK_URL;
+
+  return { url, channelName };
 }
 
 /** In KV gespeichertes JSON (siehe README.md). editTokenHash verlässt die Datei nie Richtung
@@ -423,7 +491,9 @@ export async function removePlayerCardIndexEntry(
 }
 
 /** Allowlist statt Blocklist - editTokenHash verlässt die Datei nie. */
-function stripForResponse(stored: StoredProfile) {
+function stripForResponse(env: Env, stored: StoredProfile) {
+  const discordChannelLink = buildDiscordChannelLink(env, stored.dataCenter, stored.visibility);
+
   return {
     characterName: stored.characterName,
     world: stored.world,
@@ -435,6 +505,8 @@ function stripForResponse(stored: StoredProfile) {
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
     targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
+    discordChannelUrl: discordChannelLink?.url ?? null,
+    discordChannelName: discordChannelLink?.channelName ?? null,
   };
 }
 
@@ -454,7 +526,9 @@ function stripForBrowseResponse(stored: StoredProfile) {
 
 /** Wie stripForResponse, für PUT/DELETE-Antworten auf /group/:groupId. GET /groups/browse baut
  * members[] stattdessen individuell in handleGroupsBrowse zusammen (mit nachgeladener Bitmaske). */
-function stripForGroupResponse(stored: StoredGroupProfile) {
+function stripForGroupResponse(env: Env, stored: StoredGroupProfile) {
+  const discordChannelLink = buildDiscordChannelLink(env, stored.dataCenter, stored.visibility);
+
   return {
     groupId: stored.groupId,
     members: stored.members,
@@ -465,6 +539,8 @@ function stripForGroupResponse(stored: StoredGroupProfile) {
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
     targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
+    discordChannelUrl: discordChannelLink?.url ?? null,
+    discordChannelName: discordChannelLink?.channelName ?? null,
   };
 }
 
@@ -606,7 +682,7 @@ async function handleGet(env: Env, world: string, characterName: string): Promis
   if (!stored)
     return errorResponse(404, "Kein Profil für diese World/diesen Charakternamen gefunden.");
 
-  return jsonResponse(stripForResponse(stored));
+  return jsonResponse(stripForResponse(env, stored));
 }
 
 async function handlePut(
@@ -688,7 +764,7 @@ async function handlePut(
   // Nach dem KV-Put, per waitUntil statt awaited: ein Discord-Ausfall darf die Response nie verzögern.
   ctx.waitUntil(syncPlayerDiscordCard(env, key, record, resolveTtlSeconds(body.ttlHours)));
 
-  const responseBody: Record<string, unknown> = stripForResponse(record);
+  const responseBody: Record<string, unknown> = stripForResponse(env, record);
   if (plaintextEditTokenForResponse)
     responseBody.editToken = plaintextEditTokenForResponse;
 
@@ -861,7 +937,7 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
 
   ctx.waitUntil(syncGroupDiscordCard(env, key, record, ttlSeconds));
 
-  const responseBody: Record<string, unknown> = stripForGroupResponse(record);
+  const responseBody: Record<string, unknown> = stripForGroupResponse(env, record);
   if (plaintextEditTokenForResponse)
     responseBody.editToken = plaintextEditTokenForResponse;
 

@@ -174,6 +174,7 @@ function fakeStoredProfile(overrides: {
   note?: string;
   availabilityTags?: string[];
   wantedPlayerCount?: number;
+  targetSpellIds?: number[];
 } = {}) {
   return {
     characterName: overrides.characterName ?? "Testchar",
@@ -185,6 +186,7 @@ function fakeStoredProfile(overrides: {
     availabilityTags: overrides.availabilityTags,
     note: overrides.note,
     wantedPlayerCount: overrides.wantedPlayerCount,
+    targetSpellIds: overrides.targetSpellIds,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -213,6 +215,17 @@ describe("buildPlayerCardEmbed", () => {
   it("omits the description entirely when note/availabilityTags/wantedPlayerCount are all unset", () => {
     const embed = buildPlayerCardEmbed(fakeStoredProfile());
     expect(embed.description).toBeUndefined();
+  });
+
+  it("shows targetSpellIds as sorted order numbers in the description, and omits the line when empty", () => {
+    const embed = buildPlayerCardEmbed(fakeStoredProfile({
+      note: "Testnotiz",
+      targetSpellIds: [KNOWN_SPELL_IDS_SAMPLE[1], KNOWN_SPELL_IDS_SAMPLE[0]],
+    }));
+    expect(embed.description).toBe("Testnotiz\n\nZiel-Spells: #25, #26");
+
+    const emptyEmbed = buildPlayerCardEmbed(fakeStoredProfile({ note: "Testnotiz" }));
+    expect(emptyEmbed.description).not.toContain("Ziel-Spells");
   });
 });
 

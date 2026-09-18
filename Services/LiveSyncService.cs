@@ -70,7 +70,6 @@ public sealed class LiveSyncService : IDisposable
     private DateTimeOffset? lastPartyPollAt;
     private List<string>? lastKnownBlueMagePartyMemberNames;
 
-    private string? pendingVisibility;
     private List<string>? pendingAvailabilityTags;
     private string? pendingNote;
     private int? pendingWantedPlayerCount;
@@ -152,7 +151,14 @@ public sealed class LiveSyncService : IDisposable
             return;
 
         this.lastPushedLearnedSpellIds = currentLearnedIds;
-        this.PushOwnProfile();
+
+        // markListed: false - dieser Push läuft automatisch im Hintergrund (Diff der gelernten
+        // Spells, siehe oben), NICHT als Reaktion auf einen Klick auf "Veröffentlichen"/
+        // "Aktualisieren" im Group-Finder-Tab. Er darf daher niemals von sich aus visibility auf
+        // "listed" setzen - sonst würde jeder gelernte Spell einen Nutzer, der nie/nicht mehr aktiv
+        // veröffentlicht hat, unbeabsichtigt (wieder) im Group Finder sichtbar machen (siehe
+        // PushOwnProfile-Doc).
+        this.PushOwnProfile(markListed: false);
     }
 
     private void TickPartyPoll()
@@ -183,16 +189,21 @@ public sealed class LiveSyncService : IDisposable
             .ToList();
     }
 
-    public void PushOwnProfile()
+    // markListed steuert AUSSCHLIESSLICH das gesendete visibility-Feld (siehe BuildPushRequestBody):
+    // true nur bei einem expliziten Klick auf "Veröffentlichen"/"Aktualisieren" im Group-Finder-Tab
+    // (siehe MainWindow.GroupFinder.cs), false beim automatischen Hintergrund-Push aus
+    // TickPushDiff (Diff der gelernten Spells) - der soll weiterhin andere Felder aktuell halten,
+    // ohne dabei versehentlich einen nie/nicht mehr veröffentlichten Eintrag sichtbar zu machen.
+    public void PushOwnProfile(bool markListed)
     {
         if (this.pushInFlight)
             return;
 
         this.pushInFlight = true;
-        _ = this.PushOwnProfileAsync();
+        _ = this.PushOwnProfileAsync(markListed);
     }
 
-    private Task PushOwnProfileAsync() =>
+    private Task PushOwnProfileAsync(bool markListed) =>
         this.RunGuardedAsync(
             async () =>
             {
@@ -211,7 +222,7 @@ public sealed class LiveSyncService : IDisposable
                 var tokenKey = BuildTokenKey(localName, localWorld);
                 this.configuration.LiveSyncEditTokens.TryGetValue(tokenKey, out var existingToken);
 
-                var requestBody = this.BuildPushRequestBody(bitmaskBase64, existingToken);
+                var requestBody = this.BuildPushRequestBody(bitmaskBase64, existingToken, markListed);
                 var url = BuildProfileUrl(localWorld, localName);
 
                 using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
@@ -255,11 +266,11 @@ public sealed class LiveSyncService : IDisposable
     // spellBitmaskBase64/editToken bewusst als Parameter statt sie selbst zu ermitteln, damit diese
     // reine Body-Bau-Logik ohne PartyService/LocalSpellUnlockService (beide nicht isoliert testbar,
     // siehe TEST_REPORT.md) testbar ist.
-    private PushRequestBody BuildPushRequestBody(string spellBitmaskBase64, string? editToken) =>
+    private PushRequestBody BuildPushRequestBody(string spellBitmaskBase64, string? editToken, bool markListed) =>
         new(
             spellBitmaskBase64,
             editToken,
-            this.pendingVisibility,
+            markListed ? "listed" : null,
             this.pendingAvailabilityTags,
             this.pendingNote,
             this.pendingWantedPlayerCount,
@@ -335,11 +346,6 @@ public sealed class LiveSyncService : IDisposable
         {
             this.fetchInFlight = false;
         }
-    }
-
-    public void SetGroupFinderVisibility(bool visible)
-    {
-        this.pendingVisibility = visible ? "listed" : "unlisted";
     }
 
     public void SetGroupFinderAvailabilityTags(IReadOnlyCollection<AvailabilityTag> tags)
@@ -638,10 +644,23 @@ public sealed class LiveSyncService : IDisposable
             return;
 
         this.deleteInFlight = true;
-        _ = this.DeleteOwnProfileAsync();
+        _ = this.DeleteOwnProfileAsync(disableLiveSync: true);
     }
 
-    private Task DeleteOwnProfileAsync() =>
+    // Wie DeleteOwnProfile, aber ohne LiveSyncEnabled abzuschalten - für den Löschen-Button im
+    // Group-Finder-Publish-Formular (DrawMyEntrySection), wo der Nutzer im Tab bleiben und nur den
+    // veröffentlichten Eintrag samt lokalem Formular zurücksetzen will, nicht Live Sync als Ganzes
+    // deaktivieren (das bleibt dem Settings-Button/DeleteOwnProfile vorbehalten).
+    public void UnpublishOwnProfile()
+    {
+        if (this.deleteInFlight)
+            return;
+
+        this.deleteInFlight = true;
+        _ = this.DeleteOwnProfileAsync(disableLiveSync: false);
+    }
+
+    private Task DeleteOwnProfileAsync(bool disableLiveSync) =>
         this.RunGuardedAsync(
             async () =>
             {
@@ -674,7 +693,26 @@ public sealed class LiveSyncService : IDisposable
 
                 this.configuration.LiveSyncEditTokens.Remove(tokenKey);
 
-                this.configuration.LiveSyncEnabled = false;
+                // DataCenter bleibt erhalten (wird von TriggerBrowse/TriggerGroupBrowse für den
+                // Browse-Sub-Tab gebraucht, siehe dortige Doc) - nur die "veröffentlicht"-Felder
+                // werden zurückgesetzt, sonst zeigt DrawMyEntrySection nach dem Löschen weiterhin
+                // den alten Sichtbarkeits-/Discord-Hinweis (VisibleInGroupFinder bliebe sonst true).
+                if (this.LastKnownOwnProfile is { } existingProfile)
+                {
+                    this.LastKnownOwnProfile = existingProfile with
+                    {
+                        VisibleInGroupFinder = false,
+                        AvailabilityTags = Array.Empty<AvailabilityTag>(),
+                        Note = string.Empty,
+                        WantedPlayerCount = 0,
+                        DiscordChannelUrl = null,
+                        DiscordChannelName = null,
+                    };
+                }
+
+                if (disableLiveSync)
+                    this.configuration.LiveSyncEnabled = false;
+
                 this.configuration.Save();
 
                 this.SetPendingResult(LiveSyncEventKind.DeleteSucceeded, null);

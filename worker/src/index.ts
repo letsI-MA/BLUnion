@@ -1143,11 +1143,15 @@ function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown
 /** Spieler-Pendant zu buildGroupCardEmbed - keine Mitgliederliste, daher description statt
  * fields[]. Grün statt Blau, damit Spieler-/Gruppen-Karten im selben Kanal unterscheidbar sind. */
 export function buildPlayerCardEmbed(stored: StoredProfile): Record<string, unknown> {
-  const lines = formatAvailabilityAndNoteLines(
+  let lines = formatAvailabilityAndNoteLines(
     stored.note ?? "",
     stored.availabilityTags ?? [],
     stored.wantedPlayerCount ?? 0,
   );
+
+  const targetSpellLabel = formatTargetSpellOrders(stored.targetSpellIds ?? []);
+  if (targetSpellLabel !== undefined)
+    lines += `${lines.length > 0 ? "\n\n" : ""}Ziel-Spells: ${targetSpellLabel}`;
 
   return {
     title: `${stored.characterName} (${stored.world}) sucht Mitspieler`,
@@ -1318,7 +1322,11 @@ function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]
 function buildPlayerEmbedField(
   player: ReturnType<typeof stripForBrowseResponse>,
 ): { name: string; value: string; inline: boolean } {
-  const lines = formatAvailabilityAndNoteLines(player.note, player.availabilityTags, player.wantedPlayerCount);
+  let lines = formatAvailabilityAndNoteLines(player.note, player.availabilityTags, player.wantedPlayerCount);
+
+  const targetSpellLabel = formatTargetSpellOrders(player.targetSpellIds);
+  if (targetSpellLabel !== undefined)
+    lines += `${lines.length > 0 ? "\n\n" : ""}Ziel-Spells: ${targetSpellLabel}`;
 
   return {
     name: `${player.characterName} (${player.world})`,

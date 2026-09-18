@@ -141,17 +141,16 @@ public class LiveSyncServiceTests
     // ----- BuildPushRequestBody (reine Body-Bau-Logik, siehe LiveSyncService.cs) -----
 
     [Fact]
-    public void BuildPushRequestBody_IncludesAllPendingGroupFinderFields()
+    public void BuildPushRequestBody_ExplicitPublish_IncludesAllPendingGroupFinderFieldsAndListedVisibility()
     {
         using var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         var service = CreateService(handler);
 
-        service.SetGroupFinderVisibility(true);
         service.SetGroupFinderAvailabilityTags([AvailabilityTag.Evening, AvailabilityTag.Weekend]);
         service.SetGroupFinderNoteAndWantedPlayerCount("Testnotiz", 4);
         service.SetGroupFinderTargetSpellIds([1u, 2u]);
 
-        var body = InvokeInstance(service, "BuildPushRequestBody", "bitmask==", "existing-token")!;
+        var body = InvokeInstance(service, "BuildPushRequestBody", "bitmask==", "existing-token", true)!;
 
         Assert.Equal("bitmask==", GetProperty<string>(body, "SpellBitmaskBase64"));
         Assert.Equal("existing-token", GetProperty<string?>(body, "EditToken"));
@@ -168,7 +167,7 @@ public class LiveSyncServiceTests
         using var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
         var service = CreateService(handler);
 
-        var body = InvokeInstance(service, "BuildPushRequestBody", "bitmask==", null)!;
+        var body = InvokeInstance(service, "BuildPushRequestBody", "bitmask==", null, false)!;
 
         Assert.Null(GetProperty<string?>(body, "EditToken"));
         Assert.Null(GetProperty<string?>(body, "Visibility"));
@@ -176,6 +175,36 @@ public class LiveSyncServiceTests
         Assert.Null(GetProperty<string?>(body, "Note"));
         Assert.Null(GetProperty<int?>(body, "WantedPlayerCount"));
         Assert.Null(GetProperty<List<uint>?>(body, "TargetSpellIds"));
+    }
+
+    [Fact]
+    public void BuildPushRequestBody_AutomaticBackgroundPush_NeverForcesListedVisibility()
+    {
+        // Regressionstest: TickPushDiff (automatischer Hintergrund-Push bei gelernten Spells, siehe
+        // LiveSyncService.cs) darf visibility NIE selbst auf "listed" setzen. markListed=false muss
+        // unabhängig vom sonstigen Pending-Zustand IMMER null bleiben, damit der Worker die
+        // bestehende Sichtbarkeit unangetastet lässt (siehe resolvePhase2Fields im Worker: fehlendes
+        // visibility-Feld -> bisheriger Wert bleibt erhalten).
+        using var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var service = CreateService(handler);
+
+        service.SetGroupFinderAvailabilityTags([AvailabilityTag.Evening]);
+        service.SetGroupFinderNoteAndWantedPlayerCount("Testnotiz", 4);
+
+        var body = InvokeInstance(service, "BuildPushRequestBody", "bitmask==", "existing-token", false)!;
+
+        Assert.Null(GetProperty<string?>(body, "Visibility"));
+    }
+
+    [Fact]
+    public void BuildPushRequestBody_ExplicitPublish_SendsListedVisibilityEvenWithoutOtherPendingFields()
+    {
+        using var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var service = CreateService(handler);
+
+        var body = InvokeInstance(service, "BuildPushRequestBody", "bitmask==", null, true)!;
+
+        Assert.Equal("listed", GetProperty<string?>(body, "Visibility"));
     }
 
     // ----- BuildPutGroupRequestBody (reine Body-Bau-Logik) -----

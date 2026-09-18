@@ -37,7 +37,6 @@ public sealed partial class MainWindow
 
         if (!this.groupFinderVisibilityInitialized && this.liveSyncService.LastKnownOwnProfile is { } ownProfile)
         {
-            this.groupFinderVisible = ownProfile.VisibleInGroupFinder;
             this.groupFinderTags = new HashSet<AvailabilityTag>(ownProfile.AvailabilityTags);
             this.groupFinderNoteBuffer = ownProfile.Note;
             this.groupFinderWantedPlayerCountBuffer = ownProfile.WantedPlayerCount.ToString();
@@ -96,9 +95,6 @@ public sealed partial class MainWindow
 
     private void DrawMyEntrySection()
     {
-        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupFinderVisibleToggle, this.displayLanguage), ref this.groupFinderVisible))
-            this.liveSyncService.SetGroupFinderVisibility(this.groupFinderVisible);
-
         foreach (var tag in Enum.GetValues<AvailabilityTag>())
         {
             var selected = this.groupFinderTags.Contains(tag);
@@ -153,8 +149,26 @@ public sealed partial class MainWindow
 
         if (ImGui.Button(soloPublishLabel))
         {
-            this.liveSyncService.PushOwnProfile();
+            this.liveSyncService.PushOwnProfile(markListed: true);
             this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupFinderPublishedMessage, this.displayLanguage));
+        }
+
+        if (this.liveSyncService.HasEditTokenForLocalCharacter())
+        {
+            ImGui.SameLine();
+            if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderUnpublishButton, this.displayLanguage)))
+            {
+                this.liveSyncService.UnpublishOwnProfile();
+
+                this.groupFinderTags.Clear();
+                this.groupFinderNoteBuffer = string.Empty;
+                this.groupFinderWantedPlayerCountBuffer = "0";
+                this.groupFinderTargetSpellIds.Clear();
+
+                this.liveSyncService.SetGroupFinderAvailabilityTags(this.groupFinderTags);
+                this.liveSyncService.SetGroupFinderNoteAndWantedPlayerCount(this.groupFinderNoteBuffer, 0);
+                this.liveSyncService.SetGroupFinderTargetSpellIds(this.groupFinderTargetSpellIds);
+            }
         }
 
         if (this.liveSyncService.LastKnownOwnProfile is { VisibleInGroupFinder: true } confirmedProfile)
@@ -365,8 +379,6 @@ public sealed partial class MainWindow
         ImGui.Separator();
         DrawSectionGap();
 
-        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupPublishVisibleToggle, this.displayLanguage), ref this.groupPublishVisible);
-
         foreach (var tag in Enum.GetValues<AvailabilityTag>())
         {
             var selected = this.groupPublishTags.Contains(tag);
@@ -428,7 +440,7 @@ public sealed partial class MainWindow
                 .ToList();
 
             this.liveSyncService.PublishGroup(
-                members, this.groupPublishVisible, this.groupPublishTags, this.groupPublishNoteBuffer, wantedPlayerCount,
+                members, true, this.groupPublishTags, this.groupPublishNoteBuffer, wantedPlayerCount,
                 this.groupPublishTargetSpellIds);
         }
 
@@ -438,7 +450,14 @@ public sealed partial class MainWindow
         {
             ImGui.SameLine();
             if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupUnpublishButton, this.displayLanguage)))
+            {
                 this.liveSyncService.DeletePublishedGroup();
+
+                this.groupPublishTags.Clear();
+                this.groupPublishNoteBuffer = string.Empty;
+                this.groupPublishWantedPlayerCountBuffer = "0";
+                this.groupPublishTargetSpellIds.Clear();
+            }
 
             if (this.liveSyncService.LastKnownPublishedGroupDiscordChannelUrl is { } groupDiscordUrl)
             {

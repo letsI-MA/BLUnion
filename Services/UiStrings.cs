@@ -109,7 +109,7 @@ public static class UiStrings
         GroupFinderGoToSettingsButton,
         GroupFinderGoToSettingsMessage,
         GroupFinderMyEntryHeader,
-        GroupFinderVisibleToggle,
+        GroupFinderUnpublishButton,
         GroupFinderOwnVisibleConfirmation,
         GroupFinderTagMorning,
         GroupFinderTagAfternoon,
@@ -140,7 +140,6 @@ public static class UiStrings
         GroupPublishSourceParty,
         GroupPublishSourceSyncList,
         GroupFinderUnknownWorldHint,
-        GroupPublishVisibleToggle,
         GroupPublishNoteLabel,
         CharCountFormat,
         GroupPublishWantedPlayerCountLabel,
@@ -998,12 +997,12 @@ public static class UiStrings
             [DisplayLanguage.French] = "Mon entrée :",
             [DisplayLanguage.Japanese] = "自分の登録内容:",
         },
-        [Key.GroupFinderVisibleToggle] = new()
+        [Key.GroupFinderUnpublishButton] = new()
         {
-            [DisplayLanguage.German] = "Im Gruppenfinder sichtbar",
-            [DisplayLanguage.English] = "Visible in group finder",
-            [DisplayLanguage.French] = "Visible dans la recherche de groupe",
-            [DisplayLanguage.Japanese] = "グループファインダーに表示する",
+            [DisplayLanguage.German] = "Eintrag wieder löschen",
+            [DisplayLanguage.English] = "Delete entry",
+            [DisplayLanguage.French] = "Supprimer l'entrée",
+            [DisplayLanguage.Japanese] = "登録を削除",
         },
         [Key.GroupFinderOwnVisibleConfirmation] = new()
         {
@@ -1216,13 +1215,6 @@ public static class UiStrings
             [DisplayLanguage.Japanese] =
                 "ワールド不明 - パーティまたはグループファインダー経由で取得したメンバーのみ" +
                 "グループに追加できます。",
-        },
-        [Key.GroupPublishVisibleToggle] = new()
-        {
-            [DisplayLanguage.German] = "Gruppe im Gruppenfinder sichtbar",
-            [DisplayLanguage.English] = "Group visible in group finder",
-            [DisplayLanguage.French] = "Groupe visible dans la recherche de groupe",
-            [DisplayLanguage.Japanese] = "グループをグループファインダーに表示する",
         },
         [Key.GroupPublishNoteLabel] = new()
         {

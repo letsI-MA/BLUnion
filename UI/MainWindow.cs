@@ -149,7 +149,6 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private GroupPublishMode groupPublishMode = GroupPublishMode.Solo;
 
-    private bool groupFinderVisible;
     private HashSet<AvailabilityTag> groupFinderTags = new();
     private string groupFinderNoteBuffer = string.Empty;
     private string groupFinderWantedPlayerCountBuffer = "0";
@@ -175,7 +174,6 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private readonly HashSet<string> groupPublishSelectedMembers = new();
 
-    private bool groupPublishVisible;
     private readonly HashSet<AvailabilityTag> groupPublishTags = new();
     private string groupPublishNoteBuffer = string.Empty;
     private string groupPublishWantedPlayerCountBuffer = "0";

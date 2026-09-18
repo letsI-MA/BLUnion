@@ -625,32 +625,52 @@ interface DiscordCardIndexEntry {
   messageId: string;
 }
 
+/** Generische Add/Remove-Logik für BEIDE Karten-Indizes ("discordcards:<region>" für Gruppen UND
+ * "playercards:<region>" für Spieler-Profile, siehe DiscordCardIndexEntry/PlayerCardIndexEntry-Doc)
+ * - vorher für jeden der beiden Index-Typen separat implementiert, obwohl sich beide nur darin
+ * unterscheiden, WELCHES Feld (bzw. welche Feldkombination) einen Eintrag identifiziert. isSameEntry
+ * kapselt genau diesen Unterschied, sodass addDiscordCardIndexEntry/addPlayerCardIndexEntry (und
+ * ihre remove-Pendants) nur noch dünne, typisierte Wrapper um addCardIndexEntry/removeCardIndexEntry
+ * sind. */
+async function addCardIndexEntry<T>(
+  env: Env, indexKey: string, isSameEntry: (entry: T) => boolean, newEntry: T,
+): Promise<void> {
+  const existing = (await env.BLUNION_PROFILES.get<T[]>(indexKey, "json")) ?? [];
+  const withoutExisting = existing.filter((entry) => !isSameEntry(entry));
+  withoutExisting.push(newEntry);
+  await env.BLUNION_PROFILES.put(indexKey, JSON.stringify(withoutExisting));
+}
+
+/** Entfernt den zu isSameEntry passenden Eintrag aus dem Index, falls vorhanden - tut bewusst
+ * NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen unnötigen Schreibzugriff
+ * auszulösen (siehe addCardIndexEntry-Doc für den gemeinsamen Hintergrund). */
+async function removeCardIndexEntry<T>(
+  env: Env, indexKey: string, isSameEntry: (entry: T) => boolean,
+): Promise<void> {
+  const existing = await env.BLUNION_PROFILES.get<T[]>(indexKey, "json");
+  if (!existing)
+    return;
+
+  const filtered = existing.filter((entry) => !isSameEntry(entry));
+  if (filtered.length === existing.length)
+    return;
+
+  await env.BLUNION_PROFILES.put(indexKey, JSON.stringify(filtered));
+}
+
 /** Trägt einen {groupId, messageId}-Eintrag in den Index der gegebenen Region ein (siehe
  * DiscordCardIndexEntry-Doc) - entfernt zuerst einen eventuell vorhandenen ALTEN Eintrag für
  * dieselbe groupId (z.B. bei einem erneuten Erstellen nach einem Regionswechsel, siehe
  * syncGroupDiscordCard), damit pro Gruppe/Region nie mehr als ein Eintrag existiert. */
 async function addDiscordCardIndexEntry(env: Env, region: Region, groupId: string, messageId: string): Promise<void> {
-  const key = discordCardsIndexKey(region);
-  const existing = (await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(key, "json")) ?? [];
-  const withoutGroup = existing.filter((entry) => entry.groupId !== groupId);
-  withoutGroup.push({ groupId, messageId });
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(withoutGroup));
+  await addCardIndexEntry<DiscordCardIndexEntry>(
+    env, discordCardsIndexKey(region), (entry) => entry.groupId === groupId, { groupId, messageId });
 }
 
-/** Entfernt den Eintrag für groupId aus dem Index der gegebenen Region, falls vorhanden - tut
- * bewusst NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen unnötigen
- * Schreibzugriff auszulösen. */
+/** Entfernt den Eintrag für groupId aus dem Index der gegebenen Region, falls vorhanden. */
 async function removeDiscordCardIndexEntry(env: Env, region: Region, groupId: string): Promise<void> {
-  const key = discordCardsIndexKey(region);
-  const existing = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(key, "json");
-  if (!existing)
-    return;
-
-  const filtered = existing.filter((entry) => entry.groupId !== groupId);
-  if (filtered.length === existing.length)
-    return;
-
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
+  await removeCardIndexEntry<DiscordCardIndexEntry>(
+    env, discordCardsIndexKey(region), (entry) => entry.groupId === groupId);
 }
 
 /** KV-Key für den "welche Spieler-Profile haben aktuell eine offene Discord-Karte in dieser
@@ -700,36 +720,25 @@ export interface PlayerCardIndexEntry {
 export async function addPlayerCardIndexEntry(
   env: Env, region: Region, world: string, characterName: string, messageId: string,
 ): Promise<void> {
-  const key = playerCardsIndexKey(region);
-  const existing = (await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json")) ?? [];
-  const withoutPlayer = existing.filter(
-    (entry) => !(entry.world === world && entry.characterName === characterName),
+  await addCardIndexEntry<PlayerCardIndexEntry>(
+    env, playerCardsIndexKey(region),
+    (entry) => entry.world === world && entry.characterName === characterName,
+    { world, characterName, messageId },
   );
-  withoutPlayer.push({ world, characterName, messageId });
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(withoutPlayer));
 }
 
 /** Entfernt den Eintrag für world+characterName aus dem Index der gegebenen Region, falls
- * vorhanden - tut bewusst NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen
- * unnötigen Schreibzugriff auszulösen (analog zu removeDiscordCardIndexEntry oben).
+ * vorhanden.
  *
  * Exportiert (siehe addPlayerCardIndexEntry-Doc) für einen direkten Unit-Test des Add/Remove-
  * Zyklus. */
 export async function removePlayerCardIndexEntry(
   env: Env, region: Region, world: string, characterName: string,
 ): Promise<void> {
-  const key = playerCardsIndexKey(region);
-  const existing = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
-  if (!existing)
-    return;
-
-  const filtered = existing.filter(
-    (entry) => !(entry.world === world && entry.characterName === characterName),
+  await removeCardIndexEntry<PlayerCardIndexEntry>(
+    env, playerCardsIndexKey(region),
+    (entry) => entry.world === world && entry.characterName === characterName,
   );
-  if (filtered.length === existing.length)
-    return;
-
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
 }
 
 /** Bewusst als eigene, kleine Funktion statt der Versuchung nachzugeben, einfach das gespeicherte
@@ -846,51 +855,51 @@ function isValidRawGroupMember(value: unknown): value is { world: string; charac
     && typeof candidate.characterName === "string" && candidate.characterName.length > 0;
 }
 
-async function handleGet(env: Env, world: string, characterName: string): Promise<Response> {
-  const stored = await env.BLUNION_PROFILES.get<StoredProfile>(kvKey(world, characterName), "json");
-
-  // Erwarteter Fall für Spieler ohne Live-Sync (siehe Aufgabenstellung) - bewusst kein Log.
-  if (!stored)
-    return errorResponse(404, "Kein Profil für diese World/diesen Charakternamen gefunden.");
-
-  return jsonResponse(stripForResponse(stored));
+/** Die fünf "Phase 2 Gruppenfinder"-Felder, die PUT /profile (handlePut) und PUT /group/:groupId
+ * (handleGroupPut) identisch behandeln - siehe StoredProfile/StoredGroupProfile-Doc. */
+interface Phase2Fields {
+  visibility: "listed" | "unlisted";
+  availabilityTags: string[];
+  note: string;
+  wantedPlayerCount: number;
+  targetSpellIds: number[];
 }
 
-async function handlePut(
-  env: Env, request: Request, world: string, characterName: string, ctx: ExecutionContext,
-): Promise<Response> {
-  const rateLimited = await enforceWriteRateLimit(env, request);
-  if (rateLimited)
-    return rateLimited;
+/** Existierender Datensatz, wie ihn resolvePhase2Fields für die "Feld fehlt im Body -> bisherigen
+ * Wert behalten"-Fälle braucht - sowohl StoredProfile als auch StoredGroupProfile erfüllen diese
+ * Form strukturell bereits (siehe deren Definitionen), eine explizite Umwandlung ist an den
+ * Aufrufstellen deshalb nicht nötig. */
+interface ExistingPhase2Fields {
+  visibility: "listed" | "unlisted";
+  availabilityTags?: string[];
+  note?: string;
+  wantedPlayerCount?: number;
+  targetSpellIds?: number[];
+}
 
-  let body: PutRequestBody;
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse(400, "Ungültiger oder fehlender JSON-Body.");
-  }
-
-  if (!isValidBitmaskBase64(body.spellBitmaskBase64)) {
-    return errorResponse(
-      400,
-      `spellBitmaskBase64 fehlt oder hat nicht die erwartete Länge (${BITMASK_BYTES} Bytes, ` +
-        "Base64 URL-safe ohne Padding).",
-    );
-  }
-
-  const dcLookup = lookupDataCenter(world);
-  if (!dcLookup)
-    return errorResponse(400, `Unbekannte World "${world}".`);
-
-  const key = kvKey(world, characterName);
-  const existing = await env.BLUNION_PROFILES.get<StoredProfile>(key, "json");
-  const now = new Date().toISOString();
-
-  // Alle vier Gruppenfinder-Felder sind im Body OPTIONAL (siehe Aufgabenstellung): fehlt ein
-  // Feld, bleibt der bisherige Wert unverändert (bei einem neuen Profil greift stattdessen der
-  // jeweilige Default) - so leert ein reiner Spell-Status-Push aus Phase 1 (der diese Felder gar
-  // nicht kennt) die Gruppenfinder-Angaben NICHT versehentlich. Nur ein tatsächlich im Body
-  // vorhandener, aber ungültiger Wert führt zu 400 - ein fehlendes Feld nie.
+/** Validiert die fünf Phase-2-Felder aus einem PUT-Body - vorher wortwörtlich dupliziert zwischen
+ * handlePut und handleGroupPut (siehe Audit-Refactoring). Gleiches Muster für alle fünf Felder:
+ * fehlt ein Feld im Body (undefined), bleibt der bisherige Wert aus `existing` erhalten (bzw. der
+ * jeweilige Default für einen neuen Datensatz) - so leert ein reiner Spell-Status-Push aus Phase 1
+ * (der diese Felder gar nicht kennt) die Gruppenfinder-Angaben NICHT versehentlich. Ist ein Feld
+ * dagegen vorhanden, aber ungültig, wird sofort mit 400 abgebrochen.
+ *
+ * Rückgabewert ist entweder die validierten Felder ODER eine fertige 400-Response - beide Aufrufer
+ * müssen im Response-Fall diese sofort durchreichen (siehe "instanceof Response"-Check an beiden
+ * Aufrufstellen). Alle fünf Fehlermeldungen sind zwischen Profil und Gruppe identisch (keine
+ * erwähnt "Profil" oder "Gruppe"), daher hier bewusst OHNE Text-Parameter - nur die außerhalb
+ * dieses Blocks liegende editToken-Prüfung hat unterschiedliche Meldungen und bleibt deshalb
+ * weiterhin in handlePut/handleGroupPut selbst. */
+function resolvePhase2Fields(
+  body: {
+    visibility?: unknown;
+    availabilityTags?: unknown;
+    note?: unknown;
+    wantedPlayerCount?: unknown;
+    targetSpellIds?: unknown;
+  },
+  existing: ExistingPhase2Fields | null,
+): Phase2Fields | Response {
   let visibility: "listed" | "unlisted";
   if (body.visibility === undefined) {
     visibility = existing?.visibility ?? "unlisted";
@@ -933,9 +942,9 @@ async function handlePut(
     );
   }
 
-  // Gleiches optional/nur-bei-Vorhandensein-validiert-Muster wie die übrigen Phase-2-Felder oben
-  // (siehe StoredProfile-Doc) - identisch zum Gruppen-Pendant in handleGroupPut, inklusive
-  // vollständiger statt gekappter Ablehnung bei ungültigen IDs.
+  // Anders als bei note wird hier NICHT gekappt/normalisiert, sondern bei ungültigen IDs komplett
+  // abgelehnt (wie bei availabilityTags): eine erfundene Spell-ID ist ein Korrektheitsproblem, kein
+  // reines Längenlimit.
   let targetSpellIds: number[];
   if (body.targetSpellIds === undefined) {
     targetSpellIds = existing?.targetSpellIds ?? [];
@@ -947,6 +956,55 @@ async function handlePut(
       `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
     );
   }
+
+  return { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds };
+}
+
+async function handleGet(env: Env, world: string, characterName: string): Promise<Response> {
+  const stored = await env.BLUNION_PROFILES.get<StoredProfile>(kvKey(world, characterName), "json");
+
+  // Erwarteter Fall für Spieler ohne Live-Sync (siehe Aufgabenstellung) - bewusst kein Log.
+  if (!stored)
+    return errorResponse(404, "Kein Profil für diese World/diesen Charakternamen gefunden.");
+
+  return jsonResponse(stripForResponse(stored));
+}
+
+async function handlePut(
+  env: Env, request: Request, world: string, characterName: string, ctx: ExecutionContext,
+): Promise<Response> {
+  const rateLimited = await enforceWriteRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
+  let body: PutRequestBody;
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse(400, "Ungültiger oder fehlender JSON-Body.");
+  }
+
+  if (!isValidBitmaskBase64(body.spellBitmaskBase64)) {
+    return errorResponse(
+      400,
+      `spellBitmaskBase64 fehlt oder hat nicht die erwartete Länge (${BITMASK_BYTES} Bytes, ` +
+        "Base64 URL-safe ohne Padding).",
+    );
+  }
+
+  const dcLookup = lookupDataCenter(world);
+  if (!dcLookup)
+    return errorResponse(400, `Unbekannte World "${world}".`);
+
+  const key = kvKey(world, characterName);
+  const existing = await env.BLUNION_PROFILES.get<StoredProfile>(key, "json");
+  const now = new Date().toISOString();
+
+  const phase2Fields = resolvePhase2Fields(body, existing);
+  if (phase2Fields instanceof Response)
+    return phase2Fields;
+
+  const { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds } = phase2Fields;
 
   let editTokenHash: string;
   let createdAt: string;
@@ -1155,64 +1213,11 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
   const existing = await env.BLUNION_PROFILES.get<StoredGroupProfile>(key, "json");
   const now = new Date().toISOString();
 
-  // Rest 1:1 wie handlePut - alle vier Gruppenfinder-Felder sind im Body optional, fehlt eines,
-  // bleibt der bisherige Wert unverändert (bzw. der jeweilige Default bei einer neuen
-  // Gruppen-Listung). Nur ein tatsächlich im Body vorhandener, aber ungültiger Wert führt zu 400.
-  let visibility: "listed" | "unlisted";
-  if (body.visibility === undefined) {
-    visibility = existing?.visibility ?? "unlisted";
-  } else if (isValidVisibility(body.visibility)) {
-    visibility = body.visibility;
-  } else {
-    return errorResponse(400, 'visibility muss "listed" oder "unlisted" sein.');
-  }
+  const phase2Fields = resolvePhase2Fields(body, existing);
+  if (phase2Fields instanceof Response)
+    return phase2Fields;
 
-  let availabilityTags: string[];
-  if (body.availabilityTags === undefined) {
-    availabilityTags = existing?.availabilityTags ?? [];
-  } else if (isValidAvailabilityTags(body.availabilityTags)) {
-    availabilityTags = body.availabilityTags;
-  } else {
-    return errorResponse(
-      400, `availabilityTags enthält ungültige Werte (erlaubt: ${ALLOWED_AVAILABILITY_TAGS.join(", ")}).`);
-  }
-
-  let note: string;
-  if (body.note === undefined) {
-    note = existing?.note ?? "";
-  } else if (typeof body.note === "string") {
-    note = body.note.slice(0, NOTE_MAX_LENGTH);
-  } else {
-    return errorResponse(400, "note muss ein String sein.");
-  }
-
-  let wantedPlayerCount: number;
-  if (body.wantedPlayerCount === undefined) {
-    wantedPlayerCount = existing?.wantedPlayerCount ?? 0;
-  } else if (isValidWantedPlayerCount(body.wantedPlayerCount)) {
-    wantedPlayerCount = body.wantedPlayerCount;
-  } else {
-    return errorResponse(
-      400,
-      `wantedPlayerCount muss eine ganze Zahl zwischen ${WANTED_PLAYER_COUNT_MIN} und ${WANTED_PLAYER_COUNT_MAX} sein.`,
-    );
-  }
-
-  // Gleiches optional/nur-bei-Vorhandensein-validiert-Muster wie die übrigen Phase-2-Felder oben
-  // (siehe StoredGroupProfile-Doc) - anders als bei note wird hier NICHT gekappt/normalisiert,
-  // sondern bei ungültigen IDs komplett abgelehnt (wie bei availabilityTags): eine erfundene
-  // Spell-ID ist ein Korrektheitsproblem, kein reines Längenlimit.
-  let targetSpellIds: number[];
-  if (body.targetSpellIds === undefined) {
-    targetSpellIds = existing?.targetSpellIds ?? [];
-  } else if (isValidTargetSpellIds(body.targetSpellIds)) {
-    targetSpellIds = body.targetSpellIds;
-  } else {
-    return errorResponse(
-      400,
-      `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
-    );
-  }
+  const { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds } = phase2Fields;
 
   let editTokenHash: string;
   let createdAt: string;
@@ -1594,35 +1599,46 @@ export function buildPlayerCardEmbed(stored: StoredProfile): Record<string, unkn
   };
 }
 
-/** Legt für eine (bereits als "listed" bestätigte) Gruppe eine NEUE Discord-Karte an - gemeinsam
- * von syncGroupDiscordCard für den "noch keine Karte"- UND den "Region gewechselt"-Fall genutzt
- * (siehe dort). Pflegt bei Erfolg zusätzlich den discordcards:<region>-Index mit (siehe
- * addDiscordCardIndexEntry/DiscordCardIndexEntry-Doc) - bei einem Fehlschlag (siehe
- * createWebhookMessage: liefert dann null) bleibt der Index unangetastet und die Gruppe hat
- * schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. */
-async function createGroupDiscordCard(
-  env: Env, region: Region, webhookUrl: string, record: StoredGroupProfile,
+/** Generische "Karte anlegen"-Logik für BEIDE Kartenarten (Gruppe/Spieler) - postet das Embed über
+ * den Webhook und pflegt bei Erfolg den (vom Aufrufer übergebenen) Index-Eintrag mit. Bei einem
+ * Fehlschlag (siehe createWebhookMessage: liefert dann null) bleibt der Index unangetastet und das
+ * Objekt hat schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. addIndexEntry kennt
+ * bereits alle nötigen Identifizierungsdaten (groupId bzw. world+characterName) aus seinem
+ * Aufrufer-Closure, siehe createGroupDiscordCard/createPlayerDiscordCard. */
+async function createDiscordCard(
+  region: Region, webhookUrl: string, embed: Record<string, unknown>, addIndexEntry: (messageId: string) => Promise<void>,
 ): Promise<DiscordCard | undefined> {
-  const messageId = await createWebhookMessage(webhookUrl, buildGroupCardEmbed(record));
+  const messageId = await createWebhookMessage(webhookUrl, embed);
   if (!messageId)
     return undefined;
 
-  await addDiscordCardIndexEntry(env, region, record.groupId, messageId);
+  await addIndexEntry(messageId);
   return { region, channelWebhookId: extractWebhookId(webhookUrl) ?? "", messageId };
 }
 
-/** Entfernt die Discord-Karte EINER Gruppe vollständig (Nachricht löschen + Index-Eintrag
- * entfernen) - gemeinsam genutzt von syncGroupDiscordCard (Gruppe wird unlisted/Region wechselt),
- * handleGroupDelete (Gruppe wird komplett gelöscht) UND cleanupOrphanedDiscordCards (Cron-Aufräumen
- * verwaister Karten nach stillem TTL-Ablauf) - alle drei Stellen sollen sich exakt gleich
- * verhalten, siehe jeweilige Aufrufstellen. Wirft nie (siehe deleteWebhookMessage/
- * removeDiscordCardIndexEntry - beide fehlerisoliert). */
-async function removeGroupDiscordCard(env: Env, groupId: string, card: DiscordCard): Promise<void> {
+/** Generisches Pendant zu createDiscordCard für das Entfernen (Nachricht löschen + Index-Eintrag
+ * entfernen) - gemeinsam genutzt von syncGroupDiscordCard/syncPlayerDiscordCard (Gruppe/Profil wird
+ * unlisted/Region wechselt), handleGroupDelete/handleDelete (komplett gelöscht) UND
+ * cleanupOrphanedDiscordCards (Cron-Aufräumen verwaister Karten nach stillem TTL-Ablauf) - alle
+ * Stellen sollen sich exakt gleich verhalten, siehe jeweilige Aufrufstellen. Wirft nie (siehe
+ * deleteWebhookMessage/removeCardIndexEntry - beide fehlerisoliert). */
+async function removeDiscordCard(env: Env, card: DiscordCard, removeIndexEntry: (region: Region) => Promise<void>): Promise<void> {
   const webhookUrl = getRegionWebhookUrl(env, card.region);
   if (webhookUrl)
     await deleteWebhookMessage(webhookUrl, card.messageId);
 
-  await removeDiscordCardIndexEntry(env, card.region, groupId);
+  await removeIndexEntry(card.region);
+}
+
+async function createGroupDiscordCard(
+  env: Env, region: Region, webhookUrl: string, record: StoredGroupProfile,
+): Promise<DiscordCard | undefined> {
+  return createDiscordCard(region, webhookUrl, buildGroupCardEmbed(record),
+    (messageId) => addDiscordCardIndexEntry(env, region, record.groupId, messageId));
+}
+
+async function removeGroupDiscordCard(env: Env, groupId: string, card: DiscordCard): Promise<void> {
+  return removeDiscordCard(env, card, (region) => removeDiscordCardIndexEntry(env, region, groupId));
 }
 
 function discordCardsEqual(a: DiscordCard | undefined, b: DiscordCard | undefined): boolean {
@@ -1634,44 +1650,87 @@ function discordCardsEqual(a: DiscordCard | undefined, b: DiscordCard | undefine
   return a.region === b.region && a.channelWebhookId === b.channelWebhookId && a.messageId === b.messageId;
 }
 
-/** Legt für ein (bereits als "listed" bestätigtes) Spieler-Profil eine NEUE Discord-Karte an -
- * Spieler-Pendant zu createGroupDiscordCard oben (siehe dortige Doc, gilt hier 1:1 analog), von
- * syncPlayerDiscordCard weiter unten für den "noch keine Karte"- UND den "Region gewechselt"-Fall
- * genutzt. Pflegt bei Erfolg zusätzlich den playercards:<region>-Index mit (siehe
- * addPlayerCardIndexEntry/PlayerCardIndexEntry-Doc) - bei einem Fehlschlag (siehe
- * createWebhookMessage: liefert dann null) bleibt der Index unangetastet und das Profil hat
- * schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. */
+/** Spieler-Pendant zu createGroupDiscordCard oben - beide sind nur noch dünne Wrapper um die
+ * generische createDiscordCard, mit dem jeweils passenden Embed-Builder und Index-Eintrag. */
 async function createPlayerDiscordCard(
   env: Env, region: Region, webhookUrl: string, stored: StoredProfile,
 ): Promise<DiscordCard | undefined> {
-  const messageId = await createWebhookMessage(webhookUrl, buildPlayerCardEmbed(stored));
-  if (!messageId)
-    return undefined;
-
-  await addPlayerCardIndexEntry(env, region, stored.world, stored.characterName, messageId);
-  return { region, channelWebhookId: extractWebhookId(webhookUrl) ?? "", messageId };
+  return createDiscordCard(region, webhookUrl, buildPlayerCardEmbed(stored),
+    (messageId) => addPlayerCardIndexEntry(env, region, stored.world, stored.characterName, messageId));
 }
 
-/** Entfernt die Discord-Karte EINES Spieler-Profils vollständig (Nachricht löschen + Index-Eintrag
- * entfernen) - Spieler-Pendant zu removeGroupDiscordCard oben (siehe dortige Doc zu den drei
- * Aufrufstellen mit identischem Verhalten - das gilt hier analog für ein einzelnes Spieler-Profil
- * statt eine Gruppe). Wirft nie (siehe deleteWebhookMessage/removePlayerCardIndexEntry - beide
- * fehlerisoliert). */
+/** Spieler-Pendant zu removeGroupDiscordCard oben - dünner Wrapper um die generische
+ * removeDiscordCard. */
 async function removePlayerDiscordCard(
   env: Env, world: string, characterName: string, card: DiscordCard,
 ): Promise<void> {
-  const webhookUrl = getRegionWebhookUrl(env, card.region);
-  if (webhookUrl)
-    await deleteWebhookMessage(webhookUrl, card.messageId);
+  return removeDiscordCard(env, card, (region) => removePlayerCardIndexEntry(env, region, world, characterName));
+}
 
-  await removePlayerCardIndexEntry(env, card.region, world, characterName);
+/** Bündelt alles, was die generische 5-Zweig-Sync-Logik (siehe syncDiscordCard) für EIN Objekt
+ * (eine Gruppe ODER ein Spieler-Profil) braucht, ohne selbst wissen zu müssen, um welche der beiden
+ * Arten es sich handelt - befüllt von syncGroupDiscordCard bzw. syncPlayerDiscordCard mit ihren
+ * jeweiligen Werten/Closures. */
+interface DiscordCardSyncTarget {
+  existingCard: DiscordCard | undefined;
+  dataCenter: string;
+  visibility: "listed" | "unlisted";
+  buildEmbed: () => Record<string, unknown>;
+  createCard: (region: Region, webhookUrl: string) => Promise<DiscordCard | undefined>;
+  removeCard: (card: DiscordCard) => Promise<void>;
+}
+
+/** Generische Kernlogik für "legt/aktualisiert/entfernt die persistente Discord-Kanal-Karte je
+ * nach visibility/Region-Wechsel" (Phase 1.5) - vorher als 1:1 identische if/else-if-Kette separat
+ * für Gruppen (syncGroupDiscordCard) UND Spieler-Profile (syncPlayerDiscordCard) implementiert.
+ * Schreibt selbst NICHTS in KV (das bleibt Sache der beiden Aufrufer, die unterschiedliche
+ * record-Typen haben, siehe StoredGroupProfile/StoredProfile) - liefert nur die neue discordCard
+ * (bzw. undefined) zurück.
+ *
+ * Die fünf Zweige (Reihenfolge original beibehalten):
+ * 1. Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen. Wichtig:
+ *    removeCard nutzt intern IMMER existingCard.region, NICHT die unten berechnete "region" - die
+ *    alte Karte hängt ja im WEBHOOK DER ALTEN Region.
+ * 2. Kein Webhook für die aktuelle Region konfiguriert (z.B. lokale Entwicklung ohne alle vier
+ *    Secrets, siehe Env-Doc, oder ein Data Center ohne Region-Zuordnung) - die Kartenfunktion ist
+ *    rein optional, also nichts tun statt zu werfen. Eine eventuell BESTEHENDE Karte bleibt dabei
+ *    unangetastet (sie wurde ja unter einem damals funktionierenden Webhook angelegt).
+ * 3. Noch keine Karte vorhanden - neu anlegen.
+ * 4. Karte vorhanden, aber Region gewechselt (Data-Center-Wechsel) - alte Karte im ALTEN Webhook
+ *    löschen (editWebhookMessage über einen ANDEREN Webhook hinweg funktioniert bei Discord nicht),
+ *    neue im NEUEN Webhook anlegen.
+ * 5. Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen. */
+async function syncDiscordCard(env: Env, target: DiscordCardSyncTarget): Promise<DiscordCard | undefined> {
+  const region = regionForDataCenter(target.dataCenter);
+  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+
+  if (target.visibility !== "listed") {
+    if (target.existingCard)
+      await target.removeCard(target.existingCard);
+
+    return undefined;
+  }
+
+  if (!region || !webhookUrl)
+    return target.existingCard;
+
+  if (!target.existingCard)
+    return target.createCard(region, webhookUrl);
+
+  if (target.existingCard.region !== region) {
+    await target.removeCard(target.existingCard);
+    return target.createCard(region, webhookUrl);
+  }
+
+  await editWebhookMessage(webhookUrl, target.existingCard.messageId, target.buildEmbed());
+  return target.existingCard; // region/channelWebhookId/messageId unverändert.
 }
 
 /** Nach einem erfolgreichen /group/:groupId-PUT (siehe handleGroupPut) im Hintergrund aufgerufen
- * (siehe dortiges ctx.waitUntil) - legt/aktualisiert/entfernt die persistente Discord-Kanal-Karte
- * für diese Gruppe (Phase 1.5, siehe Aufgabenstellung Punkt 4). Läuft KOMPLETT nach der bereits
- * abgeschickten Antwort an den Aufrufer ab; jeder Fehler bleibt innerhalb dieser Funktion (siehe
- * discordWebhook.ts-Klassendoc - keine der dort exportierten Funktionen wirft).
+ * (siehe dortiges ctx.waitUntil) - befüllt DiscordCardSyncTarget mit den Gruppen-Werten und
+ * schreibt bei tatsächlicher Änderung die neue discordCard zurück nach KV. Läuft KOMPLETT nach der
+ * bereits abgeschickten Antwort an den Aufrufer ab; jeder Fehler bleibt innerhalb dieser Funktion
+ * (siehe discordWebhook.ts-Klassendoc - keine der dort exportierten Funktionen wirft).
  *
  * `key`/`ttlSeconds` kommen 1:1 von handleGroupPut (dieselbe expirationTtl wie beim ursprünglichen
  * Put) - der abschließende KV-Put hier unten schreibt NUR ein ggf. geändertes discordCard-Feld,
@@ -1679,59 +1738,28 @@ async function removePlayerDiscordCard(
 async function syncGroupDiscordCard(
   env: Env, key: string, record: StoredGroupProfile, ttlSeconds: number,
 ): Promise<void> {
-  const existingCard = record.discordCard;
-  const region = regionForDataCenter(record.dataCenter);
-  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
-
-  let nextCard: DiscordCard | undefined;
-
-  if (record.visibility !== "listed") {
-    // Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen (siehe
-    // Aufgabenstellung Punkt 4). Wichtig: über existingCard.region gehen, NICHT über die (evtl.
-    // andere) aktuell berechnete "region" - die alte Karte hängt ja im WEBHOOK DER ALTEN Region.
-    if (existingCard)
-      await removeGroupDiscordCard(env, record.groupId, existingCard);
-
-    nextCard = undefined;
-  } else if (!region || !webhookUrl) {
-    // Kein Webhook für diese Region konfiguriert (z.B. lokale Entwicklung ohne alle vier Secrets,
-    // siehe Env-Doc, oder ein Data Center ohne Region-Zuordnung) - die Kartenfunktion ist rein
-    // optional (siehe Aufgabenstellung), also nichts tun statt zu werfen. Eine eventuell
-    // BESTEHENDE Karte bleibt dabei unangetastet (sie wurde ja unter einem damals funktionierenden
-    // Webhook angelegt) statt sie hier fälschlich als "weg" zu behandeln.
-    nextCard = existingCard;
-  } else if (!existingCard) {
-    nextCard = await createGroupDiscordCard(env, region, webhookUrl, record);
-  } else if (existingCard.region !== region) {
-    // Gruppe auf ein anderes Data Center/eine andere Region verschoben (siehe Aufgabenstellung
-    // Punkt 4) - alte Karte im ALTEN Webhook löschen (editWebhookMessage über einen ANDEREN Webhook
-    // hinweg funktioniert bei Discord nicht), neue im NEUEN Webhook anlegen.
-    await removeGroupDiscordCard(env, record.groupId, existingCard);
-    nextCard = await createGroupDiscordCard(env, region, webhookUrl, record);
-  } else {
-    // Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen.
-    await editWebhookMessage(webhookUrl, existingCard.messageId, buildGroupCardEmbed(record));
-    nextCard = existingCard; // region/channelWebhookId/messageId unverändert.
-  }
+  const nextCard = await syncDiscordCard(env, {
+    existingCard: record.discordCard,
+    dataCenter: record.dataCenter,
+    visibility: record.visibility,
+    buildEmbed: () => buildGroupCardEmbed(record),
+    createCard: (region, webhookUrl) => createGroupDiscordCard(env, region, webhookUrl, record),
+    removeCard: (card) => removeGroupDiscordCard(env, record.groupId, card),
+  });
 
   // Nur erneut in KV schreiben, wenn sich discordCard tatsächlich geändert hat - der allermeiste
   // Fall ("gleiche Region, nur Inhalt editiert" ODER "kein Webhook konfiguriert") braucht gar
   // keinen zweiten Put.
-  if (!discordCardsEqual(existingCard, nextCard)) {
+  if (!discordCardsEqual(record.discordCard, nextCard)) {
     const updated: StoredGroupProfile = { ...record, discordCard: nextCard };
     await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
   }
 }
 
-/** Spieler-Pendant zu syncGroupDiscordCard oben (siehe dortige ausführliche Doc - der Ablauf ist
- * hier 1:1 identisch, nur bezogen auf EIN einzelnes Spieler-Profil statt eine Gruppe: legt/
- * aktualisiert/entfernt die persistente Discord-Kanal-Karte je nach visibility/Region-Wechsel).
- * Wird aus handlePut per ctx.waitUntil() angestoßen (siehe dort), analog zu syncGroupDiscordCard
- * aus handleGroupPut.
- *
- * `key`/`ttlSeconds` kommen 1:1 vom aufrufenden PUT (wie bei syncGroupDiscordCard) - der
- * abschließende KV-Put hier unten schreibt NUR ein ggf. geändertes discordCard-Feld, alle anderen
- * Felder bleiben exakt `stored` wie vom aufrufenden PUT bereits gespeichert.
+/** Spieler-Pendant zu syncGroupDiscordCard oben - befüllt DiscordCardSyncTarget mit den
+ * Spieler-Werten, die eigentliche Sync-Logik (syncDiscordCard) ist für beide identisch. Wird aus
+ * handlePut per ctx.waitUntil() angestoßen (siehe dort), analog zu syncGroupDiscordCard aus
+ * handleGroupPut.
  *
  * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test des
  * Regionswechsel-Zweigs: anders als bei einer Gruppe (deren dataCenter sich über ein geändertes
@@ -1744,41 +1772,16 @@ async function syncGroupDiscordCard(
 export async function syncPlayerDiscordCard(
   env: Env, key: string, stored: StoredProfile, ttlSeconds: number,
 ): Promise<void> {
-  const existingCard = stored.discordCard;
-  const region = regionForDataCenter(stored.dataCenter);
-  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+  const nextCard = await syncDiscordCard(env, {
+    existingCard: stored.discordCard,
+    dataCenter: stored.dataCenter,
+    visibility: stored.visibility,
+    buildEmbed: () => buildPlayerCardEmbed(stored),
+    createCard: (region, webhookUrl) => createPlayerDiscordCard(env, region, webhookUrl, stored),
+    removeCard: (card) => removePlayerDiscordCard(env, stored.world, stored.characterName, card),
+  });
 
-  let nextCard: DiscordCard | undefined;
-
-  if (stored.visibility !== "listed") {
-    // Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen (siehe
-    // syncGroupDiscordCard-Doc, identisches Prinzip). Über existingCard.region gehen, NICHT über
-    // die (evtl. andere) aktuell berechnete "region" - die alte Karte hängt im WEBHOOK DER ALTEN
-    // Region.
-    if (existingCard)
-      await removePlayerDiscordCard(env, stored.world, stored.characterName, existingCard);
-
-    nextCard = undefined;
-  } else if (!region || !webhookUrl) {
-    // Kein Webhook für diese Region konfiguriert - Kartenfunktion bleibt rein optional (siehe
-    // syncGroupDiscordCard-Doc), eine eventuell BESTEHENDE Karte bleibt unangetastet.
-    nextCard = existingCard;
-  } else if (!existingCard) {
-    nextCard = await createPlayerDiscordCard(env, region, webhookUrl, stored);
-  } else if (existingCard.region !== region) {
-    // Profil auf ein anderes Data Center/eine andere Region verschoben - alte Karte im ALTEN
-    // Webhook löschen, neue im NEUEN Webhook anlegen (siehe syncGroupDiscordCard-Doc).
-    await removePlayerDiscordCard(env, stored.world, stored.characterName, existingCard);
-    nextCard = await createPlayerDiscordCard(env, region, webhookUrl, stored);
-  } else {
-    // Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen.
-    await editWebhookMessage(webhookUrl, existingCard.messageId, buildPlayerCardEmbed(stored));
-    nextCard = existingCard; // region/channelWebhookId/messageId unverändert.
-  }
-
-  // Nur erneut in KV schreiben, wenn sich discordCard tatsächlich geändert hat (siehe
-  // syncGroupDiscordCard-Doc).
-  if (!discordCardsEqual(existingCard, nextCard)) {
+  if (!discordCardsEqual(stored.discordCard, nextCard)) {
     const updated: StoredProfile = { ...stored, discordCard: nextCard };
     await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
   }

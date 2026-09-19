@@ -1,78 +1,24 @@
 /**
- * BLUnion Live-Sync Worker (Phase 1 + Phase 2 "Gruppenfinder").
+ * BLUnion Live-Sync Worker (Phase 1 + Phase 2 "Gruppenfinder"). Ersetzt den manuellen
+ * BLU:-Code-Austausch durch automatisches Veröffentlichen/Abrufen über Worker + KV. Bewusst ohne
+ * Framework/Router - dafür reicht ein einfacher switch/Regex-Abgleich.
  *
- * Ersetzt für den Alltagsfall "gemeinsam mit anderen Blue Mages in einer Party" den manuellen
- * BLU:-Code-Austausch (siehe ManualCodeSyncProvider.cs im Plugin) durch automatisches
- * Veröffentlichen/Abrufen des eigenen Spell-Status über diesen Worker + einen KV-Namespace.
+ * Endpunkte (siehe README.md):
+ *   PUT    /profile/:world/:characterName   - Profil anlegen/aktualisieren
+ *   GET    /profile/:world/:characterName   - Profil abrufen (öffentlich)
+ *   DELETE /profile/:world/:characterName   - Profil löschen (X-Edit-Token)
+ *   GET    /profiles/browse?dataCenter=<DC> - Gruppenfinder (Phase 2)
+ *   PUT    /group/:groupId                  - Gruppen-Listung anlegen/aktualisieren
+ *   DELETE /group/:groupId                  - Gruppen-Listung löschen (X-Edit-Token)
+ *   GET    /groups/browse?dataCenter=<DC>   - Gruppen-Gruppenfinder
+ *   POST   /discord/interactions            - Discord-Slash-Command "/blunion browse" (nur lesend)
  *
- * Bewusst OHNE Framework/Router-Bibliothek (siehe Aufgabenstellung "keine unnötigen
- * Abhängigkeiten") - für diese Endpunkte reicht ein einfacher switch/Regex-Abgleich völlig.
+ * Gruppenfinder ist kein separates Profil: visibility/availabilityTags/note/wantedPlayerCount/
+ * targetSpellIds erweitern dasselbe StoredProfile aus Phase 1, kein eigener "Login". Eine
+ * Gruppen-Listung referenziert ihre Mitglieder nur über world+characterName, ohne Kopie der
+ * Spell-Bitmaske (die wird bei GET /groups/browse live nachgeladen).
  *
- * Endpunkte (siehe README.md für Details/Beispiele):
- *   PUT    /profile/:world/:characterName   - eigenes Profil anlegen/aktualisieren
- *   GET    /profile/:world/:characterName   - Profil abrufen (öffentlich, kein Token nötig)
- *   DELETE /profile/:world/:characterName   - eigenes Profil löschen (X-Edit-Token-Header nötig)
- *   GET    /profiles/browse?dataCenter=<DC> - öffentlicher Gruppenfinder (Phase 2, siehe unten)
- *   PUT    /group/:groupId                  - Gruppen-Listung anlegen/aktualisieren (Phase 2)
- *   DELETE /group/:groupId                  - Gruppen-Listung löschen (X-Edit-Token-Header nötig)
- *   GET    /groups/browse?dataCenter=<DC>   - öffentlicher GRUPPEN-Gruppenfinder (Phase 2, siehe unten)
- *   POST   /discord/interactions            - Discord-Slash-Command "/blunion browse" (Phase 1,
- *                                              siehe DISCORD_INTEGRATION.md und
- *                                              handleDiscordInteractions unten) - rein lesend,
- *                                              reicht denselben Gruppen-Gruppenfinder oben nur als
- *                                              Discord-Embed formatiert durch, KEIN eigener
- *                                              Datenspeicher/keine neue KV-Struktur.
- *
- * RATE-LIMITING: die vier schreibenden Endpunkte (PUT/DELETE auf /profile und /group) sind seit
- * bestätigtem Fremd-Traffic auf dem öffentlichen, tokenlosen PUT über ein IP-basiertes
- * Rate-Limiting-Binding geschützt (siehe enforceWriteRateLimit + WRITE_RATE_LIMITER-Doc unten und
- * die Begründung in wrangler.toml). GET /profile sowie die beiden Browse-Endpunkte sind davon
- * BEWUSST ausgenommen - sie sind rein lesend/idempotent und die Browse-Endpunkte bereits über
- * withCache (siehe unten) vor wiederholter Last geschützt, ein zusätzliches Limit dort brächte
- * also kaum Zusatzschutz, aber das Risiko, legitime Nutzer beim Gruppenfinder-Auto-Polling
- * (siehe dortiger Kommentar) unnötig auszubremsen.
- *
- * KV-Key-Schema: "profile:<world>:<characterName>", beide Teile lowercased (siehe kvKey()) -
- * verhindert Duplikate durch abweichende Groß-/Kleinschreibung (das Spiel liefert Namen/Welten
- * nicht immer konsistent kapitalisiert). :world/:characterName in der URL sind
- * URI-komponenten-kodiert zu übergeben (Charakternamen können Leer-/Sonderzeichen enthalten).
- * Gruppen-Listungen liegen unter einem eigenen Key-Schema "group:<groupId>" (siehe groupKvKey()) -
- * groupId ist ein vom Client beim Erstellen generierter, zufälliger String (z.B.
- * crypto.randomUUID() im C#-Client), NICHT lowercased, weil es hier - anders als bei
- * world+characterName - keinen natürlichen Schlüssel gibt, den man auf diese Weise deduplizieren
- * müsste.
- *
- * WICHTIG (Phase 2 - Gruppenfinder ist KEIN separates Profil): visibility/availabilityTags/
- * note/wantedPlayerCount erweitern dasselbe StoredProfile, das schon Phase 1 anlegt. Es gibt
- * keinen eigenständigen "Gruppenfinder-Login" - Sichtbarkeit im Gruppenfinder setzt zwingend
- * voraus, dass für den Charakter bereits ein Live-Sync-Profil (mit editToken) existiert.
- *
- * WICHTIG (Gruppen-Listungen referenzieren bestehende Einzelprofile, statt sie zu duplizieren):
- * ein "group:"-Eintrag (siehe StoredGroupProfile) speichert je Mitglied NUR world+characterName,
- * KEINE eigene Kopie von dessen Spell-Bitmaske - die wird erst bei GET /groups/browse live aus
- * dem zugehörigen "profile:"-Eintrag jedes Mitglieds nachgeladen (siehe handleGroupsBrowse). Der
- * editToken einer Gruppen-Listung identifiziert dabei AUSSCHLIESSLICH deren Ersteller/
- * Veröffentlicher, NICHT die referenzierten Mitglieder (siehe Doc an handleGroupPut/
- * handleGroupDelete) - wer die Gruppe veröffentlicht, ist der einzige, der sie später
- * ändern/löschen kann.
- *
- * targetSpellIds (siehe StoredGroupProfile/isValidTargetSpellIds): die Spells, die die Gruppe
- * gemeinsam farmen möchte - reine IDs aus dem fest hinterlegten KNOWN_SPELL_IDS-Set (siehe
- * spellIds.ts), NICHT gegen die Mitgliederprofile abgeglichen (dieser Abgleich gegen den eigenen
- * Lernstatus passiert rein clientseitig, siehe GroupTargetSpellService im Plugin).
- *
- * Sowohl das Dalamud-Plugin ALS AUCH die Website (docs/index.html) sind Clients DIESES EINEN
- * Workers - kein zweites Backend, keine Parallelstruktur. Der optionale PUT-Body-Parameter
- * ttlHours (siehe resolveTtlSeconds) existiert eigens für die Website, die damit Profile mit
- * einer kürzeren als der Standard-Lebensdauer veröffentlichen kann.
- *
- * CACHING: GET /profiles/browse und GET /groups/browse sind jetzt für BROWSE_CACHE_TTL_SECONDS
- * serverseitig gecached (siehe withCache) - das Plugin pollt den Gruppenfinder-Tab automatisch
- * alle 15 Sekunden (siehe UI/MainWindow.cs GroupFinderAutoRefreshInterval), ohne diesen Cache
- * würde das direkt mit der Nutzerzahl skalieren (jeder offene Gruppenfinder-Tab = ein voller
- * KV-list()-Durchlauf alle 15s). PUT/DELETE bleiben UNVERÄNDERT live/ungecached - ein frisch
- * veröffentlichtes/gelöschtes Profil kann dadurch für bis zu BROWSE_CACHE_TTL_SECONDS Sekunden in
- * Browse-Ergebnissen leicht veraltet erscheinen. Bewusster Kompromiss (siehe Aufgabenstellung).
+ * Plugin UND Web-Companion (docs/index.html) sind Clients DIESES EINEN Workers.
  */
 
 import { base64UrlDecode, generateEditToken, hexToBytes, sha256Hex } from "./crypto";
@@ -83,89 +29,57 @@ import { SPELL_ORDER_BY_ID } from "./spellOrder";
 
 export interface Env {
   BLUNION_PROFILES: KVNamespace;
-  /** Natives Workers-Rate-Limiting-Binding (siehe wrangler.toml-Doc und enforceWriteRateLimit
-   * unten) - schützt AUSSCHLIESSLICH die vier schreibenden Endpunkte (PUT/DELETE auf /profile
-   * und /group), nicht die GET-/Browse-Endpunkte (siehe dortige Begründung). */
+  /** Rate-Limiting-Binding für die vier schreibenden Endpunkte (siehe enforceWriteRateLimit). */
   WRITE_RATE_LIMITER: RateLimit;
-  /** Ed25519-Public-Key der Discord-Application (Hex-kodiert, exakt wie im Discord Developer
-   * Portal unter "General Information -> Public Key" angezeigt) - einziges Geheimnis der neuen
-   * Discord-Integration (siehe verifyDiscordSignature/handleDiscordInteractions unten und
-   * DISCORD_INTEGRATION.md). In Produktion NIEMALS im Code/in wrangler.toml, sondern per
-   *   wrangler secret put DISCORD_PUBLIC_KEY
-   * gesetzt. Für lokale Entwicklung/Tests kommt der Wert stattdessen aus worker/.dev.vars (siehe
-   * dortige .dev.vars.example) - ein von "wrangler secret put" gesetzter Wert überschreibt beim
-   * Deploy einen gleichnamigen Eintrag aus wrangler.toml [vars] bzw. .dev.vars automatisch, das
-   * ist genau das von Cloudflare dafür vorgesehene Muster (Dev-Default lokal, echtes Secret in
-   * Produktion). */
+  /** Ed25519-Public-Key der Discord-App (Hex) - Secret, nie im Code (wrangler secret put
+   * DISCORD_PUBLIC_KEY, lokal via .dev.vars). */
   DISCORD_PUBLIC_KEY: string;
-  /** Vier region-spezifische Discord-Webhook-URLs (Phase 1.5 "persistente Gruppen-Karten", siehe
-   * DATA_CENTER_TO_REGION/syncGroupDiscordCard unten und DISCORD_INTEGRATION.md) - je EINE pro
-   * FFXIV-Region (NICHT pro Data Center, siehe DATA_CENTER_TO_REGION-Doc), zeigt auf einen
-   * Discord-Webhook im jeweiligen Regions-Kanal. Genau wie DISCORD_PUBLIC_KEY NIE im Code/in
-   * wrangler.toml im Klartext, sondern per
-   *   wrangler secret put DISCORD_WEBHOOK_NA   (analog für _EU/_JP/_OC)
-   * gesetzt bzw. lokal über worker/.dev.vars (siehe .dev.vars.example).
-   *
-   * Anders als DISCORD_PUBLIC_KEY bewusst OPTIONAL: die Karten-Funktion ist reine
-   * Zusatz-Funktionalität (siehe Aufgabenstellung "kein Discord-API-Fehler darf eine
-   * Gruppen-Veröffentlichung/-Änderung/-Löschung fehlschlagen lassen") - eine (noch) nicht
-   * konfigurierte Region lässt syncGroupDiscordCard für Gruppen auf dieser Region schlicht nichts
-   * tun, statt den Worker zum Absturz zu bringen oder den PUT/DELETE abzulehnen. */
+  /** Regions-Webhooks für die persistenten Discord-Gruppen-Karten (Secrets wie oben). Anders als
+   * DISCORD_PUBLIC_KEY optional: eine nicht konfigurierte Region deaktiviert nur die Kartenfunktion
+   * dort, statt den Worker abstürzen oder den PUT/DELETE fehlschlagen zu lassen. */
   DISCORD_WEBHOOK_NA?: string;
   DISCORD_WEBHOOK_EU?: string;
   DISCORD_WEBHOOK_JP?: string;
   DISCORD_WEBHOOK_OC?: string;
+  /** Für den klickbaren Discord-Link im Plugin (siehe buildDiscordChannelLink) - anders als die
+   * Webhook-URLs oben KEIN Secret (Guild-/Channel-IDs sind nicht geheim), daher als normale [vars]
+   * statt per "wrangler secret put" gesetzt. Fehlt Guild-ID oder die Channel-ID einer Region, fällt
+   * der Link auf die allgemeine Server-Einladung zurück statt einen Deep-Link zu bauen. */
+  DISCORD_GUILD_ID?: string;
+  DISCORD_CHANNEL_NA?: string;
+  DISCORD_CHANNEL_EU?: string;
+  DISCORD_CHANNEL_JP?: string;
+  DISCORD_CHANNEL_OC?: string;
+  /** Nur für die Anzeige im Plugin ("Discord: #<name>") - rein kosmetisch, keine Logik hängt daran
+   * (fehlt der Name, zeigt das Plugin den Hinweis ohne Kanalnamen). */
+  DISCORD_CHANNEL_NAME_NA?: string;
+  DISCORD_CHANNEL_NAME_EU?: string;
+  DISCORD_CHANNEL_NAME_JP?: string;
+  DISCORD_CHANNEL_NAME_OC?: string;
 }
 
-/** Feste Größe der Spell-Bitmaske - MUSS mit ManualCodeSyncProvider.BitmaskBytes im Plugin
- * übereinstimmen (16 Byte = 128 Bit, siehe dortiger Klassendoc). Anders als im "BLU:"-Sync-Code
- * enthält spellBitmaskBase64 hier NUR die Bitmaske (kein Namens-Präfixbyte) - der Charaktername
- * steht schon im URL-Pfad bzw. im gespeicherten JSON-Feld "characterName". */
+/** Muss mit ManualCodeSyncProvider.BitmaskBytes im Plugin übereinstimmen (16 Byte = 128 Bit). */
 const BITMASK_BYTES = 16;
 
-/** 90 Tage in Sekunden - kompletter Cleanup-Mechanismus für Phase 1 (siehe README.md): wird bei
- * JEDEM Put neu gesetzt (KV expirationTtl ist relativ zum Put-Zeitpunkt), aktive Profile laufen
- * dadurch nie ab, inaktive verschwinden automatisch, kein Cron-Job nötig. Default, wenn im
- * PUT-Body kein (gültiges) ttlHours mitgeschickt wird (siehe resolveTtlSeconds) - genau das
- * bisherige Phase-1/2-Verhalten für das Plugin, das dieses Feld nie mitschickt. */
+/** 90 Tage - wird bei jedem Put erneuert, aktive Profile laufen nie ab (siehe README.md). */
 const PROFILE_TTL_SECONDS = 90 * 24 * 3600;
 
-/** Optionales TTL-Override fürs PUT (siehe README.md/docs/index.html - die Website setzt hier
- * IMMER einen kürzeren Wert als die Plugin-Default-Lebensdauer, u.a. weil Testprofile/Kurzzeit-
- * Veröffentlichungen von der Web-Seite aus nicht 90 Tage lang herumliegen sollen). Bewusst
- * GECLAMPT statt mit 400 abgelehnt (siehe Aufgabenstellung: "das Feld ist eine Optimierung, kein
- * Sicherheitsfeature, muss also nicht hart validiert werden") - TTL_HOURS_MAX entspricht exakt
- * PROFILE_TTL_SECONDS (90 Tage), ein manipulierter Client kann sich über dieses Feld also KEINE
- * längere als die reguläre Lebensdauer erschleichen, nur eine kürzere anfordern. */
+/** Optionales PUT-Override (genutzt von docs/index.html) - geclampt statt mit 400 abgelehnt, da
+ * reine Optimierung ohne Sicherheitsrelevanz; TTL_HOURS_MAX = PROFILE_TTL_SECONDS, ein Client kann
+ * die reguläre Lebensdauer also nie verlängern, nur verkürzen. */
 const TTL_HOURS_MIN = 1;
-const TTL_HOURS_MAX = 2160; // 90 Tage * 24 Stunden, siehe PROFILE_TTL_SECONDS
+const TTL_HOURS_MAX = 2160; // 90 Tage * 24 Stunden
 
-/** TTL für das serverseitige Kurzzeit-Caching von GET /profiles/browse und GET /groups/browse
- * (siehe withCache) - bewusst etwas LÄNGER als das 15-Sekunden-Client-Polling-Intervall (siehe
- * UI/MainWindow.cs GroupFinderAutoRefreshInterval), damit mehrere kurz hintereinander
- * eintreffende Requests (von einem oder mehreren Nutzern) auf denselben Cache-Eintrag treffen,
- * statt jedes Mal neu über alle KV-Keys zu iterieren. */
+/** Cache-TTL für GET /profiles/browse und GET /groups/browse (siehe withCache) - etwas länger als
+ * das 15s-Client-Polling-Intervall. */
 const BROWSE_CACHE_TTL_SECONDS = 20;
 
 const PROFILE_PATH = /^\/profile\/([^/]+)\/([^/]+)\/?$/;
 const BROWSE_PATH = /^\/profiles\/browse\/?$/;
-
-/** Analog zu PROFILE_PATH/BROWSE_PATH, aber für Gruppen-Listungen (siehe Klassendoc/
- * StoredGroupProfile) - :groupId ist EIN einzelnes Pfadsegment (kein "/", anders als world+
- * characterName bei PROFILE_PATH), da es sich um einen einzelnen opaken, vom Client generierten
- * String handelt. */
 const GROUP_PATH = /^\/group\/([^/]+)\/?$/;
 const GROUPS_BROWSE_PATH = /^\/groups\/browse\/?$/;
-
-/** POST /discord/interactions - Discord-Slash-Command-Integration Phase 1 (siehe
- * DISCORD_INTEGRATION.md und handleDiscordInteractions unten). Rein lesend: reicht "/blunion
- * browse" an dieselbe handleGroupsBrowse-Kernlogik durch (siehe computeGroupsBrowse), KEIN
- * Linking/Schreiben (das ist explizit Phase 2, siehe dortige Doku). */
 const DISCORD_INTERACTIONS_PATH = /^\/discord\/interactions\/?$/;
 
-/** Ursprünglich für Phase 2 (Website/Gruppenfinder) vorbereitet, jetzt tatsächlich gebraucht
- * (siehe handleBrowse) - vom Plugin aus für die reinen /profile/-Endpunkte weiterhin nicht
- * zwingend nötig, kostet aber nichts, überall gesetzt zu sein. */
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
@@ -173,89 +87,46 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Max-Age": "86400",
 };
 
-/** Erlaubte Werte für availabilityTags (siehe handlePut/isValidAvailabilityTags) - bewusst
- * intern englisch gehalten, die Übersetzung für die UI passiert ausschließlich im Plugin über
- * UiStrings, nicht hier im Worker (siehe Aufgabenstellung). */
+/** Intern englisch, Übersetzung passiert ausschließlich im Plugin über UiStrings. */
 const ALLOWED_AVAILABILITY_TAGS = ["morning", "afternoon", "evening", "weekend", "flexible"] as const;
 
-/** Serverseitige Obergrenze für "note" (siehe handlePut) - wird bei Überschreitung gekappt,
- * nicht abgelehnt (siehe Aufgabenstellung: "serverseitig kappen/validieren, nicht nur
- * clientseitig vertrauen" - das Plugin begrenzt die ImGui-Eingabe zwar schon selbst auf 60
- * Zeichen, ein direkter/manipulierter API-Aufruf könnte das aber umgehen). */
+/** Wird bei Überschreitung gekappt statt abgelehnt - das Plugin begrenzt die Eingabe zwar schon
+ * selbst, ein direkter API-Aufruf könnte das aber umgehen. */
 const NOTE_MAX_LENGTH = 60;
 
-/** Sinnvoller Bereich für wantedPlayerCount (siehe handlePut) - 0 bedeutet "egal wie viele"
- * (siehe Aufgabenstellung), 8 ist die maximale Party-/Alliance-artige Gruppengröße, für die ein
- * Blue-Mage-Gruppenfinder überhaupt Sinn ergibt. */
+/** 0 = "egal wie viele"; 8 = maximale Party-/Alliance-Größe. */
 const WANTED_PLAYER_COUNT_MIN = 0;
 const WANTED_PLAYER_COUNT_MAX = 8;
 
-/** Größe von StoredGroupProfile.members (siehe handleGroupPut) - mindestens 1 (eine "Gruppe" aus
- * 0 Mitgliedern wäre sinnlos), höchstens 8 (dieselbe maximale Party-/Alliance-artige Gruppengröße
- * wie WANTED_PLAYER_COUNT_MAX oben). */
 const GROUP_MEMBER_COUNT_MIN = 1;
 const GROUP_MEMBER_COUNT_MAX = 8;
 
-/** Basis-URL der Web-Companion-Seite (docs/index.html, siehe README.md "browser companion" -
- * https://letsi-ma.github.io/BLUnion/) - für den Link-Button im Discord-Browse-Embed (siehe
- * buildGroupsBrowseEmbed), damit Discord-Nutzer ohne installiertes Plugin trotzdem eine Gruppe
- * ansehen können. Bewusst als eigene Konstante HIER (nicht im Env-Binding wie DISCORD_PUBLIC_KEY):
- * es ist eine öffentliche, feste GitHub-Pages-URL, kein Geheimnis, und identisch zu der bereits
- * bestehenden WORKER_BASE_URL-Konstante in docs/index.html - nur eben die URL der Website selbst,
- * nicht die des Workers/der API. */
+/** Für den Link-Button im Discord-Browse-Embed (siehe buildGroupsBrowseEmbed). */
 const COMPANION_WEBSITE_URL = "https://letsi-ma.github.io/BLUnion/";
 
-/** Von Discord vorgegebene Interaction-/Response-Typen (siehe
- * https://discord.com/developers/docs/interactions/receiving-and-responding) - hier NUR die für
- * Phase 1 tatsächlich gebrauchten Werte als benannte Konstanten hinterlegt, statt ein komplettes
- * SDK/Typpaket einzubinden (siehe Aufgabenstellung "keine unnötigen Abhängigkeiten"). */
+// Discord-Interaction-/Response-Typen, siehe deren API-Doku - nur die für Phase 1 gebrauchten Werte.
 const DISCORD_INTERACTION_TYPE_PING = 1;
 const DISCORD_INTERACTION_TYPE_APPLICATION_COMMAND = 2;
 const DISCORD_OPTION_TYPE_SUB_COMMAND = 1;
 const DISCORD_RESPONSE_TYPE_PONG = 1;
 const DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE = 4;
-/** Aktuell ungenutzt (Phase 1 antwortet ausschließlich direkt, siehe handleDiscordBrowse) - schon
- * hier benannt hinterlegt, weil eine spätere Phase (z.B. schreibende Commands mit externem
- * API-Aufruf) auf denselben Konstantennamen zurückgreifen soll, statt den magischen Wert 5 dann
- * erneut irgendwo einzuführen. */
+/** Aktuell ungenutzt, für eine spätere schreibende Discord-Command-Phase vorgehalten. */
 const DISCORD_RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 
-/** Obergrenze für StoredProfile.targetSpellIds/StoredGroupProfile.targetSpellIds (siehe
- * handlePut/handleGroupPut/isValidTargetSpellIds) - bewusst deutlich unter der Gesamtzahl
- * bekannter Spells (siehe KNOWN_SPELL_IDS, aktuell 124): eine "Ziel-Spell-Liste" für eine
- * (gemeinsame oder solo) Farm-Session soll ein konkretes, erreichbares Session-Ziel bleiben, kein
- * Abbild der kompletten Spellliste. 0 (leeres Array) ist gültig - weder ein einzelnes Profil noch
- * eine Gruppe müssen Ziel-Spells angeben. */
+/** Bewusst deutlich unter der Gesamtzahl bekannter Spells - ein konkretes Session-Ziel, kein
+ * Abbild der kompletten Spellliste. */
 const TARGET_SPELL_COUNT_MAX = 30;
 
-/** FFXIV-Region ("physische" Server-Region, NICHT das einzelne Data Center) - siehe
- * DATA_CENTER_TO_REGION-Doc direkt unten für die eigentliche Begründung, warum die Discord-Karten
- * (Phase 1.5) pro REGION statt pro Data Center gebündelt werden. */
+/** FFXIV-Region ("physische" Server-Region, NICHT das einzelne Data Center). */
 type Region = "NA" | "EU" | "JP" | "OC";
 
-/** Alle vier Regionen als Liste (statt die vier Region-Literale an mehreren Stellen erneut
- * aufzuzählen, z.B. im Cron-Cleanup unten) - Reihenfolge ist beliebig, wird nirgends als Bedeutung
- * interpretiert. */
 const ALL_REGIONS: readonly Region[] = ["NA", "EU", "JP", "OC"];
 
-/** Data-Center -> Region-Zuordnung für die persistenten Discord-Gruppen-Karten (Phase 1.5, siehe
- * DISCORD_INTEGRATION.md/syncGroupDiscordCard unten) - EINZIGE, zentrale Stelle für diese Tabelle
- * (siehe Aufgabenstellung "nicht mehrfach im Code duplizieren").
- *
- * WARUM REGION statt Data Center die Gruppierungseinheit für die Discord-Kanäle ist: innerhalb
- * einer Region kann ein Spieler jederzeit per "World Visit" zwischen den Data Centern wechseln
- * (z.B. Aether <-> Crystal), zwischen Regionen dagegen nicht. Eine auf Aether veröffentlichte
- * Blue-Mage-Gruppe ist für einen Crystal-Spieler also potenziell genauso gut erreichbar wie eine
- * auf Crystal selbst - ein separater Kanal pro Data Center würde Gruppen künstlich über mehrere
- * Kanäle verstreuen, obwohl sie faktisch für dieselbe Spielerschaft sichtbar/erreichbar sein
- * sollten. Jede einzelne Karte zeigt trotzdem weiterhin das KONKRETE Data Center an (siehe
- * buildGroupCardEmbed) - nur die Kanal-/Webhook-Wahl selbst gruppiert nach Region.
- *
- * Bewusst OHNE "Shadow" (EU): das war ein 2024 eingeführtes, noch im selben Jahr wieder
- * geschlossenes TEMPORÄRES Data Center (Überlauf-Kapazität) - lookupDataCenter()/WORLD_DATA_CENTERS
- * (siehe worlds.ts) kannten es nie und werden es nie zurückliefern, ein gespeichertes
- * stored.dataCenter === "Shadow" kann also gar nicht vorkommen. Die 11 hier hinterlegten Data
- * Center sind damit vollständig - kein Platzhalter für ein zwölftes. */
+/** Data-Center -> Region für die persistenten Discord-Gruppen-Karten - Region statt Data Center,
+ * weil Spieler per World Visit innerhalb einer Region jederzeit wechseln können, zwischen Regionen
+ * aber nicht; ein Kanal pro Data Center würde dieselbe Spielerschaft künstlich verstreuen. Bewusst
+ * ohne "Shadow" (temporäres, 2024 wieder geschlossenes Data Center, das lookupDataCenter() nie
+ * zurückliefert). */
 const DATA_CENTER_TO_REGION: Readonly<Record<string, Region>> = {
   // North America
   Aether: "NA",
@@ -277,11 +148,8 @@ const DATA_CENTER_TO_REGION: Readonly<Record<string, Region>> = {
   Materia: "OC",
 };
 
-/** Case-insensitiver Lookup analog zu lookupDataCenter() in worlds.ts (aus demselben Grund: die
- * tatsächliche Groß-/Kleinschreibung des gespeicherten dataCenter-Werts soll hier keine Rolle
- * spielen). null bei einem (noch) nicht in DATA_CENTER_TO_REGION hinterlegten Data Center - siehe
- * syncGroupDiscordCard, das diesen Fall wie "keine Region/kein Webhook konfiguriert" behandelt,
- * statt zu werfen. */
+/** Case-insensitiv wie lookupDataCenter() in worlds.ts; null bei unbekanntem Data Center statt
+ * Wurf. */
 export function regionForDataCenter(dataCenter: string): Region | null {
   const normalized = dataCenter.toLowerCase();
   for (const [dc, region] of Object.entries(DATA_CENTER_TO_REGION)) {
@@ -291,9 +159,6 @@ export function regionForDataCenter(dataCenter: string): Region | null {
   return null;
 }
 
-/** Liefert die für eine Region konfigurierte Webhook-URL (siehe Env.DISCORD_WEBHOOK_NA-Doc oben) -
- * undefined, wenn diese Region (noch) nicht konfiguriert ist; der Aufrufer (syncGroupDiscordCard)
- * behandelt das als "Kartenfunktion für diese Region aktuell nicht verfügbar", nicht als Fehler. */
 function getRegionWebhookUrl(env: Env, region: Region): string | undefined {
   switch (region) {
     case "NA": return env.DISCORD_WEBHOOK_NA;
@@ -303,16 +168,62 @@ function getRegionWebhookUrl(env: Env, region: Region): string | undefined {
   }
 }
 
-/** Das in KV gespeicherte JSON (siehe Datenmodell in README.md). editTokenHash verlässt diese
- * Datei NIE in Richtung Client (siehe stripForResponse/stripForBrowseResponse).
- *
- * availabilityTags/note/wantedPlayerCount sind Phase-2-Felder (Gruppenfinder) - bei Profilen,
- * die noch von Phase 1 stammen (vor diesem Update angelegt/zuletzt aktualisiert), fehlen sie im
- * gespeicherten JSON schlicht (KV kennt kein Schema/keine Migration). Jede Stelle, die ein
- * StoredProfile liest, behandelt sie deshalb als optional (siehe "?" hier UND die "??"-Fallbacks
- * in handlePut/stripForResponse/stripForBrowseResponse) statt sich auf ihre Anwesenheit zu
- * verlassen.
- */
+function getRegionChannelId(env: Env, region: Region): string | undefined {
+  switch (region) {
+    case "NA": return env.DISCORD_CHANNEL_NA;
+    case "EU": return env.DISCORD_CHANNEL_EU;
+    case "JP": return env.DISCORD_CHANNEL_JP;
+    case "OC": return env.DISCORD_CHANNEL_OC;
+  }
+}
+
+function getRegionChannelName(env: Env, region: Region): string | undefined {
+  switch (region) {
+    case "NA": return env.DISCORD_CHANNEL_NAME_NA;
+    case "EU": return env.DISCORD_CHANNEL_NAME_EU;
+    case "JP": return env.DISCORD_CHANNEL_NAME_JP;
+    case "OC": return env.DISCORD_CHANNEL_NAME_OC;
+  }
+}
+
+/** Statischer Server-Invite als Fallback (siehe buildDiscordChannelLink) - IMMER klickbar, auch
+ * ohne jede Region-Konfiguration. */
+const DISCORD_INVITE_FALLBACK_URL = "https://discord.gg/uGW7kBG67";
+
+interface DiscordChannelLink {
+  url: string;
+  /** null, wenn für die Region kein DISCORD_CHANNEL_NAME_* gesetzt ist - rein kosmetisch, siehe
+   * Env.DISCORD_CHANNEL_NAME_*-Doc. */
+  channelName: string | null;
+}
+
+/** Klickbarer Discord-Link für eine aktuell gelistete Veröffentlichung (Profil ODER Gruppe, siehe
+ * stripForResponse/stripForGroupResponse) - Deep-Link direkt in den Region-Kanal, wenn Guild-ID UND
+ * Channel-ID dafür konfiguriert sind, sonst die allgemeine Server-Einladung. null nur, wenn gar
+ * keine Karte existieren kann (nicht "listed" oder Data Center nicht auflösbar). */
+function buildDiscordChannelLink(
+  env: Env, dataCenter: string, visibility: "listed" | "unlisted",
+): DiscordChannelLink | null {
+  if (visibility !== "listed")
+    return null;
+
+  const region = regionForDataCenter(dataCenter);
+  if (!region)
+    return null;
+
+  const channelId = getRegionChannelId(env, region);
+  const channelName = getRegionChannelName(env, region) ?? null;
+
+  const url = env.DISCORD_GUILD_ID && channelId
+    ? `https://discord.com/channels/${env.DISCORD_GUILD_ID}/${channelId}`
+    : DISCORD_INVITE_FALLBACK_URL;
+
+  return { url, channelName };
+}
+
+/** In KV gespeichertes JSON (siehe README.md). editTokenHash verlässt die Datei nie Richtung
+ * Client. Phase-2-Felder (availabilityTags/note/wantedPlayerCount/targetSpellIds) sind optional,
+ * da ältere Einträge sie noch nicht kennen (KV hat kein Schema/keine Migration). */
 interface StoredProfile {
   characterName: string;
   world: string;
@@ -323,16 +234,10 @@ interface StoredProfile {
   availabilityTags?: string[];
   note?: string;
   wantedPlayerCount?: number;
-  /** Spieler-Pendant zu StoredGroupProfile.targetSpellIds (siehe dortige Doc, gilt hier 1:1 analog
-   * inkl. TARGET_SPELL_COUNT_MAX/isValidTargetSpellIds) - die Spells, die DIESER Solo-Spieler
-   * selbst farmen möchte, unabhängig von einer etwaigen Gruppen-Mitgliedschaft. Optional aus
-   * demselben Rückwärtskompatibilitätsgrund wie die übrigen Phase-2-Felder. */
+  /** Spieler-Pendant zu StoredGroupProfile.targetSpellIds - Spells, die dieser Solo-Spieler selbst
+   * farmen möchte. */
   targetSpellIds?: number[];
-  /** Spieler-Pendant zu StoredGroupProfile.discordCard (siehe dortige ausführliche Doc, gilt hier
-   * 1:1 analog) - rein additives, optionales Feld für eine persistente Discord-Kanal-Karte dieses
-   * EINZELNEN Spieler-Profils, siehe syncPlayerDiscordCard weiter unten. NOCH NICHT verdrahtet
-   * (kein Aufruf aus handlePut/handleDelete) - das Feld existiert bereits, damit ein späterer
-   * Schritt es einfach befüllen kann, ohne das gespeicherte JSON-Schema erneut anzufassen. */
+  /** Persistente Discord-Kanal-Karte dieses Profils (siehe syncPlayerDiscordCard). */
   discordCard?: DiscordCard;
   createdAt: string;
   updatedAt: string;
@@ -349,50 +254,17 @@ interface PutRequestBody {
   ttlHours?: unknown;
 }
 
-/** Referenz auf ein Mitglied EINER Gruppen-Listung (siehe StoredGroupProfile) - identifiziert
- * ausschließlich per world+characterName, denselben beiden Feldern, die auch den KV-Key eines
- * "profile:"-Eintrags bilden (siehe kvKey()). Enthält bewusst NICHTS aus dem Einzelprofil selbst
- * (keine Bitmaske, kein dataCenter) - das wird erst bei GET /groups/browse live nachgeladen
- * (siehe handleGroupsBrowse). world ist hier bereits die KANONISCHE Schreibweise (siehe
- * handleGroupPut/lookupDataCenter), nicht zwingend die vom Client übergebene. */
+/** Mitglied einer Gruppen-Listung - nur world+characterName, keine Kopie der Bitmaske (die wird
+ * erst bei GET /groups/browse live nachgeladen). world ist bereits die kanonische Schreibweise. */
 interface GroupMember {
   world: string;
   characterName: string;
 }
 
-/** Das in KV unter "group:<groupId>" gespeicherte JSON (siehe Klassendoc oben zum
- * Referenz-statt-Kopie-Ansatz und README.md für das vollständige Datenmodell). editTokenHash
- * verlässt diese Datei NIE in Richtung Client (siehe stripForGroupResponse), genau wie bei
- * StoredProfile.
- *
- * WICHTIG: editTokenHash identifiziert NUR den Ersteller/Veröffentlicher DIESER Gruppen-Listung -
- * NICHT die referenzierten members[]. Wer die Gruppe per PUT anlegt, ist der einzige, der sie
- * später per PUT/DELETE ändern bzw. löschen kann; die Mitglieder selbst haben darüber KEINEN
- * eigenen Zugriff (siehe Doc an handleGroupPut/handleGroupDelete). Das ist eine bewusste
- * Design-Entscheidung, kein Bug - falls das künftig geändert werden soll (z.B. soll jedes
- * Mitglied die Gruppen-Listung löschen dürfen), müsste der Token stattdessen an alle Mitglieder
- * verteilt oder durch ein anderes Berechtigungsmodell ersetzt werden.
- *
- * dataCenter wird - wie bei StoredProfile - server-seitig hergeleitet (hier vom world des ERSTEN
- * Mitglieds, siehe handleGroupPut), nicht vom Client übergeben. availabilityTags/note/
- * wantedPlayerCount sind exakt dieselben Phase-2-Felder wie bei StoredProfile, inklusive
- * derselben ALLOWED_AVAILABILITY_TAGS/NOTE_MAX_LENGTH/WANTED_PLAYER_COUNT_MIN/MAX-Regeln - daher
- * hier ebenfalls optional (siehe StoredProfile-Doc zur Rückwärtskompatibilität).
- *
- * targetSpellIds: die Spells, die die Gruppe gemeinsam farmen möchte (siehe UI/MainWindow.
- * GroupFinder.cs DrawGroupPublishSection) - anders als members[] KEINE Referenz auf andere
- * KV-Einträge, sondern reine IDs aus dem festen KNOWN_SPELL_IDS-Set (siehe spellIds.ts), gegen das
- * handleGroupPut validiert. Optional aus demselben Rückwärtskompatibilitätsgrund wie die übrigen
- * Phase-2-Felder - Gruppen-Listungen von vor diesem Feature haben es im gespeicherten JSON schlicht
- * nicht.
- *
- * discordCard (Phase 1.5, siehe DISCORD_INTEGRATION.md/syncGroupDiscordCard weiter unten): rein
- * additives, optionales Feld - hält fest, ÜBER WELCHE Discord-Nachricht (welcher Webhook/welche
- * Region, welche Message-ID) diese Gruppe aktuell eine persistente Kanal-Karte hat, damit ein
- * späteres Update dieselbe Nachricht per editWebhookMessage aktualisieren statt eine zweite,
- * doppelte anzulegen. Fehlt bei alten Gruppen-Listungen von vor diesem Feature UND bei Gruppen, für
- * deren Region (noch) kein Webhook konfiguriert ist - beides schlicht "hat aktuell keine Karte",
- * siehe syncGroupDiscordCard, KEIN Fehlerzustand. */
+/** In KV unter "group:<groupId>" gespeichert, editTokenHash verlässt die Datei nie Richtung
+ * Client. editTokenHash identifiziert NUR den Ersteller, NICHT die members[] - nur der Ersteller
+ * kann später ändern/löschen (bewusst, kein Bug). dataCenter wird vom world des ersten Mitglieds
+ * hergeleitet. Phase-2-Felder optional wie bei StoredProfile. */
 interface StoredGroupProfile {
   groupId: string;
   members: GroupMember[];
@@ -408,10 +280,8 @@ interface StoredGroupProfile {
   updatedAt: string;
 }
 
-/** Siehe StoredGroupProfile.discordCard-Doc oben. channelWebhookId identifiziert NUR, ÜBER WELCHEN
- * Webhook zuletzt gepostet wurde (siehe extractWebhookId in discordWebhook.ts) - NIE der Token
- * selbst, der bleibt ausschließlich im jeweiligen Env.DISCORD_WEBHOOK_*-Secret (siehe Env-Doc oben)
- * und landet nie in KV. */
+/** channelWebhookId identifiziert nur den zuletzt genutzten Webhook, nie den Token selbst (der
+ * bleibt im Env.DISCORD_WEBHOOK_*-Secret und landet nie in KV). */
 interface DiscordCard {
   region: Region;
   channelWebhookId: string;
@@ -429,19 +299,16 @@ interface PutGroupRequestBody {
   ttlHours?: unknown;
 }
 
-/** Minimale, nur für Phase 1 gebrauchte Typisierung der eingehenden Discord-Interaction (siehe
- * handleDiscordInteractions unten) - absichtlich kein vollständiges Interaction-Schema (Discord
- * schickt deutlich mehr Felder, u.a. guild_id/member/channel_id), da diese hier nicht ausgewertet
- * werden. Kein separates SDK/Typpaket (siehe Aufgabenstellung "keine unnötigen Abhängigkeiten"). */
+/** Minimales Interaction-Schema, nur die für Phase 1 gebrauchten Felder (Discord schickt deutlich
+ * mehr, z.B. guild_id/member/channel_id). */
 interface DiscordInteraction {
   type: number;
   data?: DiscordInteractionCommandData;
 }
 
-/** "options" ist bei einem Sub-Command-Aufruf ("/blunion browse ...") verschachtelt: das äußere
- * data.options[] enthält EIN Element vom Typ SUB_COMMAND ("browse"), dessen EIGENE options[]
- * wiederum die tatsächlichen Parameter des Sub-Commands (hier "datacenter") trägt - siehe
- * findDiscordSubcommand/findDiscordStringOption. */
+/** Ein Sub-Command-Aufruf ("/blunion browse ...") verschachtelt seine Parameter: das äußere
+ * options[] enthält EIN SUB_COMMAND-Element, dessen eigene options[] die echten Parameter trägt
+ * (siehe findDiscordSubcommand/findDiscordStringOption). */
 interface DiscordInteractionCommandData {
   name: string;
   options?: DiscordInteractionOption[];
@@ -454,9 +321,8 @@ interface DiscordInteractionOption {
   options?: DiscordInteractionOption[];
 }
 
-/** Response-Shape von handleGroupsBrowse/computeGroupsBrowse (siehe dort) - hier separat
- * typisiert, weil handleDiscordBrowse das per JSON.parse zurückerhaltene Ergebnis wieder in ein
- * Discord-Embed umbaut (siehe buildGroupsBrowseEmbed) und dafür Feldnamen/-typen braucht. */
+/** Response-Shape von computeGroupsBrowse, separat typisiert fürs Discord-Embed (siehe
+ * buildGroupsBrowseEmbed). */
 interface DiscordBrowseGroupMember {
   world: string;
   characterName: string;
@@ -471,11 +337,8 @@ interface DiscordBrowseGroup {
   targetSpellIds: number[];
 }
 
-/** Liefert die tatsächlich zu setzende expirationTtl (Sekunden) aus dem optionalen
- * ttlHours-Body-Feld (siehe TTL_HOURS_MIN/MAX-Doc) - fehlt es oder ist es kein gültiger
- * endlicher Zahlenwert, greift unverändert PROFILE_TTL_SECONDS (bisheriges Verhalten,
- * insbesondere für das Plugin, das dieses Feld nie mitschickt). Math.min/Math.max statt eines
- * if/else-Kaskaden-Clamps - bei nur zwei Grenzen knapper und genauso klar. */
+/** Fehlt ttlHours oder ist kein gültiger Zahlenwert, greift PROFILE_TTL_SECONDS; sonst geclampt
+ * auf TTL_HOURS_MIN/MAX. */
 function resolveTtlSeconds(ttlHours: unknown): number {
   if (typeof ttlHours !== "number" || !Number.isFinite(ttlHours))
     return PROFILE_TTL_SECONDS;
@@ -495,21 +358,9 @@ function errorResponse(status: number, message: string): Response {
   return jsonResponse({ error: message }, status);
 }
 
-/** Serverseitiges Kurzzeit-Caching für GET-Endpunkte über die Standard-Workers-Cache-API
- * (caches.default) - bewusst KEINE neue Abhängigkeit, keine KV-basierte Eigenimplementierung.
- * NUR für die beiden Browse-Endpunkte genutzt (siehe handleBrowse/handleGroupsBrowse), NIEMALS
- * für PUT/DELETE - Schreiboperationen dürfen nie aus dem Cache beantwortet werden.
- *
- * WICHTIG: Cloudflares Cache-API ist PER EDGE-STANDORT, kein global geteilter Cache - ein
- * Request an einen anderen PoP trifft also ggf. noch nicht denselben Cache-Eintrag. Das
- * reduziert die Last trotzdem spürbar (die meisten Requests eines Nutzers/einer Region landen
- * wiederholt am selben PoP), auch ohne perfekte globale Deduplizierung.
- *
- * response.clone() vor cache.put() ist zwingend: der Response-Body ist ein einmal lesbarer
- * Stream, cache.put() UND der an den Aufrufer zurückgegebene Response würden sich sonst denselben
- * (bereits konsumierten) Stream teilen. ctx.waitUntil() sorgt dafür, dass der Worker nicht auf das
- * Schreiben in den Cache wartet, bevor die Response an den Client geht, der Cache-Put aber trotzdem
- * zuverlässig abgeschlossen wird, bevor die Instanz ggf. beendet wird. */
+/** Cache-API (per Edge-Standort, kein globaler Cache) nur für die Browse-Endpunkte, nie für
+ * PUT/DELETE. response.clone() vor cache.put() ist zwingend - der Body ist sonst nur einmal lesbar
+ * und cache.put()/die zurückgegebene Response würden sich einen bereits konsumierten Stream teilen. */
 async function withCache(
   request: Request,
   ctx: ExecutionContext,
@@ -531,42 +382,11 @@ async function withCache(
   return response;
 }
 
-/** IP-basiertes Basis-Rate-Limiting für die vier schreibenden Endpunkte (PUT/DELETE auf /profile
- * und /group, siehe deren Aufrufstellen unten) über das native Cloudflare-Workers-Rate-Limiting-
- * Binding WRITE_RATE_LIMITER (siehe Env/wrangler.toml) - KEINE KV-Eigenimplementierung nötig
- * (siehe Aufgabenstellung "einfaches Rate-Limiting, keine unnötigen Abhängigkeiten"), das Binding
- * leistet exakt das ohne zusätzliche KV-Reads/Writes pro Request.
- *
- * Bewusst NICHT die Dashboard-"Rate Limiting Rules": die sind ein Zonen-/WAF-Feature und setzen
- * eine bei Cloudflare verwaltete, eigene Zone (Custom Domain) voraus - dieser Worker läuft aber
- * unter *.workers.dev (siehe wrangler.toml), ohne eigene Zone. Das Rate-Limiting-BINDING hängt
- * dagegen direkt am Worker selbst und funktioniert unabhängig von Zone/Custom-Domain.
- *
- * LIMIT-WAHL (siehe wrangler.toml [ratelimits.simple]): 20 Schreibzugriffe/IP alle 60 Sekunden.
- * Großzügig genug für normale Nutzung - ein Spieler pusht bei jedem gelernten Spell erneut (siehe
- * PROFILE_TTL_SECONDS-Doc oben), dazu kommen gelegentliche Gruppenfinder-Aktualisierungen/
- * -Löschungen - aber eng genug, um massenhaftes Anlegen/Löschen vieler Profile von einer
- * einzelnen IP (das eigentliche Missbrauchsszenario bei einem öffentlichen, tokenlosen
- * PUT-Endpoint) abzuwürgen. 60 statt der ebenfalls erlaubten 10 Sekunden gewählt (siehe
- * RateLimitOptions-Doc), weil ein Minutenfenster die aussagekräftigere Grenze zwischen normaler
- * Nutzung und Abuse zieht - ein Spieler, der z.B. innerhalb von 2 Sekunden nacheinander mehrere
- * Spells lernt und dabei mehrfach pusht, würde bei einem 10-Sekunden-Fenster eher versehentlich
- * anschlagen.
- *
- * KEY = CF-Connecting-IP (von Cloudflare selbst am Edge gesetzt, vom Client NICHT fälschbar)
- * statt z.B. world+characterName - begrenzt damit nicht nur Spam GEGEN ein einzelnes Profil,
- * sondern das massenhafte ANLEGEN vieler verschiedener Profile von derselben Quelle. Fehlt der
- * Header (z.B. lokal in `wrangler dev` ohne echten Cloudflare-Edge-Request davor), wird NICHT
- * limitiert statt mit 500 zu antworten - lokale Entwicklung soll dadurch nicht blockiert werden,
- * hinter dem echten Edge in Produktion ist der Header immer gesetzt.
- *
- * Laut Cloudflare-Doku ist das Binding "permissive, eventually consistent" (pro Edge-Standort
- * gezählt, kein exakter globaler Zähler) - für den hier verlangten Basisschutz gegen
- * Missbrauch/Spam völlig ausreichend, NICHT gedacht/geeignet als exaktes Abrechnungssystem.
- *
- * Gibt bei Überschreitung direkt eine fertige 429-Response zurück (Aufrufer muss dann NUR noch
- * `if (rateLimited) return rateLimited;` prüfen), bei null darf normal fortgefahren werden -
- * gleiches Frühzeitig-Rückgabe-Muster wie die bestehende Validierung in handlePut/handleGroupPut. */
+/** IP-basiertes Rate-Limiting für die schreibenden Endpunkte über das native Workers-Binding
+ * WRITE_RATE_LIMITER (siehe wrangler.toml) statt Dashboard-"Rate Limiting Rules" - die sind ein
+ * Zonen-/WAF-Feature und setzen eine eigene Zone voraus, dieser Worker läuft aber zonenlos unter
+ * *.workers.dev. Fehlt der CF-Connecting-IP-Header (z.B. lokal ohne echten Edge davor), wird NICHT
+ * limitiert statt mit 500 zu antworten. Rückgabe: fertige 429-Response oder null (weitermachen). */
 async function enforceWriteRateLimit(env: Env, request: Request): Promise<Response | null> {
   const ip = request.headers.get("CF-Connecting-IP");
   if (!ip)
@@ -583,162 +403,97 @@ function kvKey(world: string, characterName: string): string {
   return `profile:${world.toLowerCase()}:${characterName.toLowerCase()}`;
 }
 
-/** KV-Key für eine Gruppen-Listung - anders als kvKey() bewusst NICHT lowercased: groupId ist
- * ein vom Client generierter, zufälliger String (siehe StoredGroupProfile-Doc) ohne natürlichen
- * Schlüssel, den man auf diese Weise deduplizieren müsste. */
+/** Anders als kvKey() NICHT lowercased - groupId ist ein zufälliger, vom Client generierter
+ * String ohne natürlichen Schlüssel. */
 function groupKvKey(groupId: string): string {
   return `group:${groupId}`;
 }
 
-/** KV-Key für den "welche Gruppen haben aktuell eine offene Discord-Karte in dieser Region"-Index
- * (Phase 1.5, siehe DiscordCardIndexEntry-Doc/cleanupOrphanedDiscordCards weiter unten für die
- * ausführliche Begründung, WARUM dieser zusätzliche Index überhaupt nötig ist). */
 function discordCardsIndexKey(region: Region): string {
   return `discordcards:${region}`;
 }
 
-/** EIN Eintrag im "discordcards:<region>"-Index (siehe discordCardsIndexKey) - absichtlich NUR
- * groupId+messageId, keine weiteren Gruppendaten (die stehen, solange die Gruppe existiert, ohnehin
- * schon im zugehörigen "group:<groupId>"-Eintrag; siehe cleanupOrphanedDiscordCards, das genau
- * diesen Zusammenhang nutzt).
- *
- * WARUM DIESER INDEX ÜBERHAUPT NÖTIG IST (siehe Aufgabenstellung "bitte VOR der Implementierung
- * kurz dokumentieren"): Gruppen laufen nicht per explizitem Löschen ab, sondern über KVs
- * expirationTtl (siehe PROFILE_TTL_SECONDS/resolveTtlSeconds oben) - KV löst dabei KEINEN Code aus,
- * der Key verschwindet still, ohne jede Benachrichtigung (siehe Klassendoc am Dateianfang). Ein
- * KV.list({ prefix: "group:" })-Durchlauf (wie ihn z.B. computeGroupsBrowse nutzt) zeigt deshalb
- * IMMER nur noch existierende Gruppen - genau die bereits abgelaufenen Einträge, um die es beim
- * Karten-Aufräumen geht, sind darin per Definition NICHT mehr enthalten. Ohne einen SEPARATEN,
- * eigenständig gepflegten Index gäbe es also keine Möglichkeit, im Nachhinein zu erkennen "Gruppe X
- * hatte mal eine Karte, X existiert aber nicht mehr, also muss die Karte weg" - die Information
- * "X hatte mal eine Karte" wäre mit dem group:X-Eintrag selbst mitverschwunden.
- *
- * "discordcards:<region>" wird deshalb bei JEDEM Anlegen/Entfernen einer Karte separat mitgepflegt
- * (siehe addDiscordCardIndexEntry/removeDiscordCardIndexEntry) und hat bewusst KEIN expirationTtl -
- * sonst könnte der Index-Eintrag selbst VOR dem zugehörigen group:-Eintrag verschwinden, und der
- * Cron-Vergleich (siehe cleanupOrphanedDiscordCards) würde genau die Fälle verpassen, die er lösen
- * soll. Der Index bleibt dadurch zwangsläufig "eventually consistent" mit den group:-Einträgen
- * (siehe auch der bestehende Kommentar zum nativen Rate-Limiting-Binding zum selben Thema) - für
- * einen täglichen Aufräum-Cron (siehe wrangler.toml [triggers]) völlig ausreichend. */
+/** Separater Index nötig: ein abgelaufener group:-Eintrag verschwindet still per KV-TTL, ohne
+ * diesen Index bliebe eine verwaiste Karte für immer unentdeckt (siehe
+ * cleanupOrphanedDiscordCards). Bewusst ohne eigenes TTL, sonst könnte der Index-Eintrag selbst
+ * zuerst verschwinden. */
 interface DiscordCardIndexEntry {
   groupId: string;
   messageId: string;
 }
 
-/** Trägt einen {groupId, messageId}-Eintrag in den Index der gegebenen Region ein (siehe
- * DiscordCardIndexEntry-Doc) - entfernt zuerst einen eventuell vorhandenen ALTEN Eintrag für
- * dieselbe groupId (z.B. bei einem erneuten Erstellen nach einem Regionswechsel, siehe
- * syncGroupDiscordCard), damit pro Gruppe/Region nie mehr als ein Eintrag existiert. */
-async function addDiscordCardIndexEntry(env: Env, region: Region, groupId: string, messageId: string): Promise<void> {
-  const key = discordCardsIndexKey(region);
-  const existing = (await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(key, "json")) ?? [];
-  const withoutGroup = existing.filter((entry) => entry.groupId !== groupId);
-  withoutGroup.push({ groupId, messageId });
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(withoutGroup));
+/** Gemeinsame Add-Logik für beide Karten-Indizes (Gruppen/Spieler) - isSameEntry kapselt den
+ * einzigen Unterschied (welches Feld identifiziert einen Eintrag). */
+async function addCardIndexEntry<T>(
+  env: Env, indexKey: string, isSameEntry: (entry: T) => boolean, newEntry: T,
+): Promise<void> {
+  const existing = (await env.BLUNION_PROFILES.get<T[]>(indexKey, "json")) ?? [];
+  const withoutExisting = existing.filter((entry) => !isSameEntry(entry));
+  withoutExisting.push(newEntry);
+  await env.BLUNION_PROFILES.put(indexKey, JSON.stringify(withoutExisting));
 }
 
-/** Entfernt den Eintrag für groupId aus dem Index der gegebenen Region, falls vorhanden - tut
- * bewusst NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen unnötigen
- * Schreibzugriff auszulösen. */
-async function removeDiscordCardIndexEntry(env: Env, region: Region, groupId: string): Promise<void> {
-  const key = discordCardsIndexKey(region);
-  const existing = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(key, "json");
+/** Tut nichts, wenn kein passender Eintrag existiert (kein unnötiger Schreibzugriff). */
+async function removeCardIndexEntry<T>(
+  env: Env, indexKey: string, isSameEntry: (entry: T) => boolean,
+): Promise<void> {
+  const existing = await env.BLUNION_PROFILES.get<T[]>(indexKey, "json");
   if (!existing)
     return;
 
-  const filtered = existing.filter((entry) => entry.groupId !== groupId);
+  const filtered = existing.filter((entry) => !isSameEntry(entry));
   if (filtered.length === existing.length)
     return;
 
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
+  await env.BLUNION_PROFILES.put(indexKey, JSON.stringify(filtered));
 }
 
-/** KV-Key für den "welche Spieler-Profile haben aktuell eine offene Discord-Karte in dieser
- * Region"-Index - Spieler-Pendant zu discordCardsIndexKey oben (siehe dortige ausführliche
- * Begründung, WARUM ein solcher Index überhaupt nötig ist: KV-TTL-Ablauf löst still keinen Code
- * aus, siehe Klassendoc am Dateianfang).
- *
- * WARUM EIN EIGENER "playercards:<region>"-Index statt denselben "discordcards:<region>"-Index für
- * beide Karten-Arten mitzubenutzen: die beiden Eintragstypen identifizieren ihr Ursprungsobjekt
- * unterschiedlich (DiscordCardIndexEntry über groupId, PlayerCardIndexEntry unten über
- * world+characterName) und damit auch über unterschiedliche KV-Keys ("group:<groupId>" vs.
- * "profile:<world>:<characterName>", siehe groupKvKey/kvKey). Ein gemeinsamer Index müsste pro
- * Eintrag zusätzlich markieren, welcher der beiden Eintragstypen er ist, und der
- * Cron-Aufräumlauf (siehe cleanupOrphanedDiscordCards) müsste bei JEDEM Eintrag erst raten/prüfen,
- * welche Art Eintrag er vor sich hat, bevor er den passenden KV-Key nachschlagen kann. Zwei
- * getrennte, von vornherein eindeutig typisierte Indizes sind einfacher und robuster als das.
- *
- * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test des
- * Key-Formats. */
+async function addDiscordCardIndexEntry(env: Env, region: Region, groupId: string, messageId: string): Promise<void> {
+  await addCardIndexEntry<DiscordCardIndexEntry>(
+    env, discordCardsIndexKey(region), (entry) => entry.groupId === groupId, { groupId, messageId });
+}
+
+async function removeDiscordCardIndexEntry(env: Env, region: Region, groupId: string): Promise<void> {
+  await removeCardIndexEntry<DiscordCardIndexEntry>(
+    env, discordCardsIndexKey(region), (entry) => entry.groupId === groupId);
+}
+
 export function playerCardsIndexKey(region: Region): string {
   return `playercards:${region}`;
 }
 
-/** EIN Eintrag im "playercards:<region>"-Index (siehe playerCardsIndexKey-Doc oben) - Pendant zu
- * DiscordCardIndexEntry, dedupliziert aber über world+characterName statt groupId, weil ein
- * Spieler-Profil (anders als eine Gruppe) keine eigene ID hat - world+characterName sind genau die
- * beiden Felder, die auch den KV-Key eines "profile:"-Eintrags bilden (siehe kvKey()).
- *
- * Exportiert (siehe playerCardsIndexKey-Doc) für direkte Unit-Tests von add-/
- * removePlayerCardIndexEntry. */
+/** Spieler-Pendant zu DiscordCardIndexEntry - eigener Index (statt Mitbenutzung von
+ * discordcards:<region>), da ein Spieler-Profil über world+characterName statt groupId
+ * identifiziert wird. Exportiert für direkte Unit-Tests. */
 export interface PlayerCardIndexEntry {
   world: string;
   characterName: string;
   messageId: string;
 }
 
-/** Trägt einen {world, characterName, messageId}-Eintrag in den Spieler-Karten-Index der
- * gegebenen Region ein (siehe PlayerCardIndexEntry-Doc) - entfernt zuerst einen eventuell
- * vorhandenen ALTEN Eintrag für dasselbe world+characterName (analog zu addDiscordCardIndexEntry
- * oben, z.B. bei einem erneuten Erstellen nach einem Regionswechsel, siehe syncPlayerDiscordCard),
- * damit pro Spieler-Profil/Region nie mehr als ein Eintrag existiert.
- *
- * Exportiert (siehe playerCardsIndexKey-Doc) für einen direkten Unit-Test des Dedup-Verhaltens -
- * dieses Verhalten wird vom bestehenden PUT-/Sync-Testpfad NIE isoliert ausgelöst (dort geht
- * jedem erneuten Anlegen bereits ein removePlayerCardIndexEntry für denselben Eintrag voraus,
- * siehe syncPlayerDiscordCard), obwohl die Funktion selbst robust dagegen sein soll. */
 export async function addPlayerCardIndexEntry(
   env: Env, region: Region, world: string, characterName: string, messageId: string,
 ): Promise<void> {
-  const key = playerCardsIndexKey(region);
-  const existing = (await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json")) ?? [];
-  const withoutPlayer = existing.filter(
-    (entry) => !(entry.world === world && entry.characterName === characterName),
+  await addCardIndexEntry<PlayerCardIndexEntry>(
+    env, playerCardsIndexKey(region),
+    (entry) => entry.world === world && entry.characterName === characterName,
+    { world, characterName, messageId },
   );
-  withoutPlayer.push({ world, characterName, messageId });
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(withoutPlayer));
 }
 
-/** Entfernt den Eintrag für world+characterName aus dem Index der gegebenen Region, falls
- * vorhanden - tut bewusst NICHTS (kein KV-Put), wenn kein passender Eintrag existiert, um keinen
- * unnötigen Schreibzugriff auszulösen (analog zu removeDiscordCardIndexEntry oben).
- *
- * Exportiert (siehe addPlayerCardIndexEntry-Doc) für einen direkten Unit-Test des Add/Remove-
- * Zyklus. */
 export async function removePlayerCardIndexEntry(
   env: Env, region: Region, world: string, characterName: string,
 ): Promise<void> {
-  const key = playerCardsIndexKey(region);
-  const existing = await env.BLUNION_PROFILES.get<PlayerCardIndexEntry[]>(key, "json");
-  if (!existing)
-    return;
-
-  const filtered = existing.filter(
-    (entry) => !(entry.world === world && entry.characterName === characterName),
+  await removeCardIndexEntry<PlayerCardIndexEntry>(
+    env, playerCardsIndexKey(region),
+    (entry) => entry.world === world && entry.characterName === characterName,
   );
-  if (filtered.length === existing.length)
-    return;
-
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(filtered));
 }
 
-/** Bewusst als eigene, kleine Funktion statt der Versuchung nachzugeben, einfach das gespeicherte
- * Objekt "minus editTokenHash" per Destrukturierung durchzureichen - so ist beim Hinzufügen eines
- * künftigen internen Felds nicht automatisch die Gefahr da, es versehentlich mit rauszugeben,
- * weil hier explizit aufgelistet wird, was rausgeht (Allowlist statt Blocklist). Für GET/PUT auf
- * das EIGENE Profil (per world+characterName) - für den Gruppenfinder-Listing-Endpoint siehe
- * stripForBrowseResponse, die bewusst NICHT dataCenter/visibility mit ausliefert (siehe dort). */
-function stripForResponse(stored: StoredProfile) {
+/** Allowlist statt Blocklist - editTokenHash verlässt die Datei nie. */
+function stripForResponse(env: Env, stored: StoredProfile) {
+  const discordChannelLink = buildDiscordChannelLink(env, stored.dataCenter, stored.visibility);
+
   return {
     characterName: stored.characterName,
     world: stored.world,
@@ -750,15 +505,12 @@ function stripForResponse(stored: StoredProfile) {
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
     targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
+    discordChannelUrl: discordChannelLink?.url ?? null,
+    discordChannelName: discordChannelLink?.channelName ?? null,
   };
 }
 
-/** Analog zu stripForResponse, aber für GET /profiles/browse (siehe handleBrowse): dataCenter
- * ist dort redundant (der Aufrufer hat es selbst als Query-Parameter übergeben, alle Ergebnisse
- * teilen es sich) und visibility ebenso (immer "listed", sonst wäre der Eintrag gar nicht erst
- * im Ergebnis) - beide bewusst weggelassen statt sie redundant mitzuschicken (siehe
- * Aufgabenstellung: exaktes Response-Shape für den Browse-Endpoint). editTokenHash verlässt auch
- * hier NIE die Datei, siehe Allowlist-Prinzip oben. */
+/** Wie stripForResponse, aber ohne dataCenter/visibility (redundant für den Browse-Aufrufer). */
 function stripForBrowseResponse(stored: StoredProfile) {
   return {
     characterName: stored.characterName,
@@ -772,13 +524,11 @@ function stripForBrowseResponse(stored: StoredProfile) {
   };
 }
 
-/** Analog zu stripForResponse, aber für PUT/DELETE-Antworten auf /group/:groupId (siehe
- * handleGroupPut) - Allowlist-Prinzip wie oben, editTokenHash verlässt auch hier NIE die Datei.
- * Für den GET /groups/browse-Response-Shape siehe stattdessen handleGroupsBrowse direkt: der
- * baut die members[] dort individuell zusammen (inkl. nachgeladener spellBitmaskBase64 je
- * Mitglied), stripForGroupResponse liefert das rohe StoredGroupProfile.members (nur world+
- * characterName, ohne Bitmaske) - das ist für die eigene PUT-Bestätigung ausreichend. */
-function stripForGroupResponse(stored: StoredGroupProfile) {
+/** Wie stripForResponse, für PUT/DELETE-Antworten auf /group/:groupId. GET /groups/browse baut
+ * members[] stattdessen individuell in handleGroupsBrowse zusammen (mit nachgeladener Bitmaske). */
+function stripForGroupResponse(env: Env, stored: StoredGroupProfile) {
+  const discordChannelLink = buildDiscordChannelLink(env, stored.dataCenter, stored.visibility);
+
   return {
     groupId: stored.groupId,
     members: stored.members,
@@ -789,6 +539,8 @@ function stripForGroupResponse(stored: StoredGroupProfile) {
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
     targetSpellIds: stored.targetSpellIds ?? [],
     updatedAt: stored.updatedAt,
+    discordChannelUrl: discordChannelLink?.url ?? null,
+    discordChannelName: discordChannelLink?.channelName ?? null,
   };
 }
 
@@ -807,9 +559,6 @@ function isValidVisibility(value: unknown): value is "listed" | "unlisted" {
   return value === "listed" || value === "unlisted";
 }
 
-/** Einfaches Array.includes() statt einer Validierungsbibliothek (siehe Aufgabenstellung "keine
- * neuen Abhängigkeiten") - bei nur 5 erlaubten Werten völlig ausreichend. Leeres Array ist
- * gültig (Spieler hat noch keine Verfügbarkeit ausgewählt). */
 function isValidAvailabilityTags(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(
     (tag) => typeof tag === "string" && (ALLOWED_AVAILABILITY_TAGS as readonly string[]).includes(tag));
@@ -822,21 +571,15 @@ function isValidWantedPlayerCount(value: unknown): value is number {
     && value <= WANTED_PLAYER_COUNT_MAX;
 }
 
-/** Analog zu isValidAvailabilityTags, aber gegen KNOWN_SPELL_IDS statt ALLOWED_AVAILABILITY_TAGS
- * geprüft (siehe handlePut/handleGroupPut) - jede ID muss eine tatsächlich existierende Spell-ID
- * sein, dazu die Obergrenze TARGET_SPELL_COUNT_MAX. Leeres Array ist gültig (siehe dortige Doc).
- * Von Profilen UND Gruppen gemeinsam genutzt, keine gruppenspezifische Prüfung. */
+/** Von Profilen UND Gruppen gemeinsam genutzt - jede ID muss in KNOWN_SPELL_IDS existieren. */
 function isValidTargetSpellIds(value: unknown): value is number[] {
   return Array.isArray(value)
     && value.length <= TARGET_SPELL_COUNT_MAX
     && value.every((id) => typeof id === "number" && Number.isInteger(id) && KNOWN_SPELL_IDS.has(id));
 }
 
-/** Reine Form-/Typ-Prüfung für EIN members[]-Element aus dem /group/:groupId-PUT-Body (siehe
- * handleGroupPut) - prüft nur, dass world/characterName als nicht-leere Strings vorhanden sind.
- * Ob world tatsächlich über lookupDataCenter auflösbar ist, prüft bewusst NICHT diese Funktion,
- * sondern der Aufrufer direkt - der braucht dafür eine spezifischere Fehlermeldung (welche World
- * genau unbekannt ist), die ein reiner boolean-Type-Guard hier nicht liefern könnte. */
+/** Nur Form-/Typ-Prüfung; ob world über lookupDataCenter auflösbar ist, prüft der Aufrufer selbst
+ * (braucht dafür eine spezifischere Fehlermeldung). */
 function isValidRawGroupMember(value: unknown): value is { world: string; characterName: string } {
   if (typeof value !== "object" || value === null)
     return false;
@@ -846,14 +589,100 @@ function isValidRawGroupMember(value: unknown): value is { world: string; charac
     && typeof candidate.characterName === "string" && candidate.characterName.length > 0;
 }
 
+interface Phase2Fields {
+  visibility: "listed" | "unlisted";
+  availabilityTags: string[];
+  note: string;
+  wantedPlayerCount: number;
+  targetSpellIds: number[];
+}
+
+/** StoredProfile/StoredGroupProfile erfüllen diese Form bereits strukturell. */
+interface ExistingPhase2Fields {
+  visibility: "listed" | "unlisted";
+  availabilityTags?: string[];
+  note?: string;
+  wantedPlayerCount?: number;
+  targetSpellIds?: number[];
+}
+
+/** Validiert die fünf Phase-2-Felder aus einem PUT-Body (vorher dupliziert zwischen handlePut und
+ * handleGroupPut) - fehlt ein Feld, bleibt der bisherige Wert aus `existing` erhalten (bzw. der
+ * Default für einen neuen Datensatz), ein vorhandenes aber ungültiges Feld liefert sofort 400.
+ * Rückgabe ist entweder die validierten Felder oder eine fertige Response, die der Aufrufer per
+ * `instanceof Response` erkennen und durchreichen muss. */
+function resolvePhase2Fields(
+  body: {
+    visibility?: unknown;
+    availabilityTags?: unknown;
+    note?: unknown;
+    wantedPlayerCount?: unknown;
+    targetSpellIds?: unknown;
+  },
+  existing: ExistingPhase2Fields | null,
+): Phase2Fields | Response {
+  let visibility: "listed" | "unlisted";
+  if (body.visibility === undefined) {
+    visibility = existing?.visibility ?? "unlisted";
+  } else if (isValidVisibility(body.visibility)) {
+    visibility = body.visibility;
+  } else {
+    return errorResponse(400, 'visibility muss "listed" oder "unlisted" sein.');
+  }
+
+  let availabilityTags: string[];
+  if (body.availabilityTags === undefined) {
+    availabilityTags = existing?.availabilityTags ?? [];
+  } else if (isValidAvailabilityTags(body.availabilityTags)) {
+    availabilityTags = body.availabilityTags;
+  } else {
+    return errorResponse(
+      400, `availabilityTags enthält ungültige Werte (erlaubt: ${ALLOWED_AVAILABILITY_TAGS.join(", ")}).`);
+  }
+
+  let note: string;
+  if (body.note === undefined) {
+    note = existing?.note ?? "";
+  } else if (typeof body.note === "string") {
+    note = body.note.slice(0, NOTE_MAX_LENGTH); // gekappt statt abgelehnt
+  } else {
+    return errorResponse(400, "note muss ein String sein.");
+  }
+
+  let wantedPlayerCount: number;
+  if (body.wantedPlayerCount === undefined) {
+    wantedPlayerCount = existing?.wantedPlayerCount ?? 0;
+  } else if (isValidWantedPlayerCount(body.wantedPlayerCount)) {
+    wantedPlayerCount = body.wantedPlayerCount;
+  } else {
+    return errorResponse(
+      400,
+      `wantedPlayerCount muss eine ganze Zahl zwischen ${WANTED_PLAYER_COUNT_MIN} und ${WANTED_PLAYER_COUNT_MAX} sein.`,
+    );
+  }
+
+  let targetSpellIds: number[];
+  if (body.targetSpellIds === undefined) {
+    targetSpellIds = existing?.targetSpellIds ?? [];
+  } else if (isValidTargetSpellIds(body.targetSpellIds)) {
+    targetSpellIds = body.targetSpellIds;
+  } else {
+    return errorResponse(
+      400,
+      `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
+    );
+  }
+
+  return { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds };
+}
+
 async function handleGet(env: Env, world: string, characterName: string): Promise<Response> {
   const stored = await env.BLUNION_PROFILES.get<StoredProfile>(kvKey(world, characterName), "json");
 
-  // Erwarteter Fall für Spieler ohne Live-Sync (siehe Aufgabenstellung) - bewusst kein Log.
   if (!stored)
     return errorResponse(404, "Kein Profil für diese World/diesen Charakternamen gefunden.");
 
-  return jsonResponse(stripForResponse(stored));
+  return jsonResponse(stripForResponse(env, stored));
 }
 
 async function handlePut(
@@ -886,73 +715,15 @@ async function handlePut(
   const existing = await env.BLUNION_PROFILES.get<StoredProfile>(key, "json");
   const now = new Date().toISOString();
 
-  // Alle vier Gruppenfinder-Felder sind im Body OPTIONAL (siehe Aufgabenstellung): fehlt ein
-  // Feld, bleibt der bisherige Wert unverändert (bei einem neuen Profil greift stattdessen der
-  // jeweilige Default) - so leert ein reiner Spell-Status-Push aus Phase 1 (der diese Felder gar
-  // nicht kennt) die Gruppenfinder-Angaben NICHT versehentlich. Nur ein tatsächlich im Body
-  // vorhandener, aber ungültiger Wert führt zu 400 - ein fehlendes Feld nie.
-  let visibility: "listed" | "unlisted";
-  if (body.visibility === undefined) {
-    visibility = existing?.visibility ?? "unlisted";
-  } else if (isValidVisibility(body.visibility)) {
-    visibility = body.visibility;
-  } else {
-    return errorResponse(400, 'visibility muss "listed" oder "unlisted" sein.');
-  }
+  const phase2Fields = resolvePhase2Fields(body, existing);
+  if (phase2Fields instanceof Response)
+    return phase2Fields;
 
-  let availabilityTags: string[];
-  if (body.availabilityTags === undefined) {
-    availabilityTags = existing?.availabilityTags ?? [];
-  } else if (isValidAvailabilityTags(body.availabilityTags)) {
-    availabilityTags = body.availabilityTags;
-  } else {
-    return errorResponse(
-      400, `availabilityTags enthält ungültige Werte (erlaubt: ${ALLOWED_AVAILABILITY_TAGS.join(", ")}).`);
-  }
-
-  let note: string;
-  if (body.note === undefined) {
-    note = existing?.note ?? "";
-  } else if (typeof body.note === "string") {
-    // Gekappt statt abgelehnt (siehe Konstantendoc NOTE_MAX_LENGTH) - das Plugin begrenzt die
-    // Eingabe zwar schon selbst, ein direkter API-Aufruf könnte das aber umgehen.
-    note = body.note.slice(0, NOTE_MAX_LENGTH);
-  } else {
-    return errorResponse(400, "note muss ein String sein.");
-  }
-
-  let wantedPlayerCount: number;
-  if (body.wantedPlayerCount === undefined) {
-    wantedPlayerCount = existing?.wantedPlayerCount ?? 0;
-  } else if (isValidWantedPlayerCount(body.wantedPlayerCount)) {
-    wantedPlayerCount = body.wantedPlayerCount;
-  } else {
-    return errorResponse(
-      400,
-      `wantedPlayerCount muss eine ganze Zahl zwischen ${WANTED_PLAYER_COUNT_MIN} und ${WANTED_PLAYER_COUNT_MAX} sein.`,
-    );
-  }
-
-  // Gleiches optional/nur-bei-Vorhandensein-validiert-Muster wie die übrigen Phase-2-Felder oben
-  // (siehe StoredProfile-Doc) - identisch zum Gruppen-Pendant in handleGroupPut, inklusive
-  // vollständiger statt gekappter Ablehnung bei ungültigen IDs.
-  let targetSpellIds: number[];
-  if (body.targetSpellIds === undefined) {
-    targetSpellIds = existing?.targetSpellIds ?? [];
-  } else if (isValidTargetSpellIds(body.targetSpellIds)) {
-    targetSpellIds = body.targetSpellIds;
-  } else {
-    return errorResponse(
-      400,
-      `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
-    );
-  }
+  const { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds } = phase2Fields;
 
   let editTokenHash: string;
   let createdAt: string;
-  // Nur bei einem NEU angelegten Profil gesetzt - der Klartext-Token wird genau einmal
-  // zurückgegeben (siehe Aufgabenstellung), danach existiert er serverseitig nur noch als Hash.
-  let plaintextEditTokenForResponse: string | undefined;
+  let plaintextEditTokenForResponse: string | undefined; // nur beim Neuanlegen gesetzt, siehe unten
 
   if (existing) {
     const providedToken = typeof body.editToken === "string" ? body.editToken : null;
@@ -983,49 +754,27 @@ async function handlePut(
     note,
     wantedPlayerCount,
     targetSpellIds,
-    // Unverändert aus "existing" übernommen (siehe DiscordCard-Doc) - discordCard wird
-    // AUSSCHLIESSLICH von syncPlayerDiscordCard weiter unten geschrieben, NIE hier direkt gesetzt
-    // (1:1 dieselbe Begründung wie beim Gruppen-Pendant in handleGroupPut).
-    discordCard: existing?.discordCard,
+    discordCard: existing?.discordCard, // nur syncPlayerDiscordCard schreibt dieses Feld
     createdAt,
     updatedAt: now,
   };
 
-  // expirationTtl bei JEDEM Put neu gesetzt (siehe Konstantendoc oben) - das ist Absicht, kein
-  // Bug: aktive Profile (die bei jedem gelernten Spell erneut gepusht werden) sollen NIE
-  // ablaufen, nur wirklich inaktive nach der jeweils gültigen TTL (siehe resolveTtlSeconds -
-  // PROFILE_TTL_SECONDS ohne ttlHours im Body, sonst der geclampte Override).
   await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: resolveTtlSeconds(body.ttlHours) });
 
-  // Discord-Kartensynchronisierung (siehe syncPlayerDiscordCard-Doc) BEWUSST NACH dem KV-Put, über
-  // ctx.waitUntil statt awaited (identische Begründung wie in handleGroupPut): läuft komplett nach
-  // der bereits abgeschickten Antwort ab, ein Discord-Ausfall/-Timeout darf die Response an den
-  // Aufrufer NIE verzögern oder beeinflussen.
+  // Nach dem KV-Put, per waitUntil statt awaited: ein Discord-Ausfall darf die Response nie verzögern.
   ctx.waitUntil(syncPlayerDiscordCard(env, key, record, resolveTtlSeconds(body.ttlHours)));
 
-  const responseBody: Record<string, unknown> = stripForResponse(record);
+  const responseBody: Record<string, unknown> = stripForResponse(env, record);
   if (plaintextEditTokenForResponse)
     responseBody.editToken = plaintextEditTokenForResponse;
 
   return jsonResponse(responseBody, existing ? 200 : 201);
 }
 
-/** Kernlogik von GET /profiles/browse (Nachschlagen+Filtern), OHNE das HTTP-Cache-Wrapping von
- * handleBrowse (siehe withCache dort) - aus handleBrowse herausgelöst (analog zu
- * computeGroupsBrowse weiter unten), damit der neue "type:players"-Zweig von "/blunion browse"
- * (siehe handleDiscordBrowse) dieselbe Logik nutzen kann, ohne sie zu duplizieren. Verhalten 1:1
- * identisch zum vorherigen Code innerhalb des withCache-Callbacks von handleBrowse - nur
- * ausgeschnitten, nicht verändert; GET /profiles/browse selbst verhält sich dadurch unverändert.
- *
- * Liefert alle Profile mit visibility === "listed" auf dem angegebenen Data Center.
- *
- * Bewusst OHNE Sekundär-Index (z.B. "dcindex:<DC>:<key>"): iteriert stattdessen über ALLE
- * "profile:"-Keys per list() und filtert danach in-memory auf dataCenter+visibility. Für die bei
- * Phase 2 zu erwartende Nutzerzahl unkritisch - ein Index wäre hier verfrühte Optimierung (siehe
- * Aufgabenstellung). Sollte die Zahl der Profile insgesamt über ca. 1000 wachsen, lohnt sich ein
- * echter DC-Index (z.B. ein zusätzlicher KV-Key pro Data Center mit einer Liste betroffener
- * Profil-Keys, bei jedem PUT/DELETE mitgepflegt) - dann müsste hier nicht mehr jedes einzelne
- * Profil unabhängig vom Data Center gelesen werden. */
+/** Kernlogik von GET /profiles/browse, ohne das HTTP-Cache-Wrapping von handleBrowse - so kann
+ * handleDiscordBrowse dieselbe Logik nutzen. Liefert alle "listed"-Profile auf dem Data Center.
+ * Bewusst ohne Sekundär-Index: iteriert über alle "profile:"-Keys und filtert in-memory - für die
+ * erwartete Nutzerzahl unkritisch, ein Index wäre verfrühte Optimierung. */
 async function computePlayersBrowse(env: Env, dataCenter: string | null): Promise<Response> {
   if (!dataCenter)
     return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
@@ -1033,8 +782,7 @@ async function computePlayersBrowse(env: Env, dataCenter: string | null): Promis
   const normalizedDataCenter = dataCenter.toLowerCase();
   const results: ReturnType<typeof stripForBrowseResponse>[] = [];
 
-  // list() liefert maximal 1000 Keys pro Aufruf (Cloudflare-KV-Limit) - bei mehr Profilen als
-  // das über "cursor" paginiert weiterlesen, bis list_complete true ist.
+  // list() liefert max. 1000 Keys/Aufruf (KV-Limit) - per cursor weiter paginieren.
   let cursor: string | undefined;
   do {
     const listResult = await env.BLUNION_PROFILES.list({ prefix: "profile:", cursor });
@@ -1054,11 +802,6 @@ async function computePlayersBrowse(env: Env, dataCenter: string | null): Promis
   return jsonResponse(results);
 }
 
-/** GET /profiles/browse?dataCenter=<DC> - öffentlicher Gruppenfinder (Phase 2) - dünner
- * HTTP-Wrapper um computePlayersBrowse (siehe dort für die eigentliche Logik): legt NUR die
- * Berechnung selbst hinter withCache (siehe dortigen Kommentar zum selben Muster bei
- * handleGroupsBrowse) - der "dataCenter fehlt"-400-Fehler wird über response.ok in withCache
- * ohnehin nie gecached. */
 async function handleBrowse(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
   return withCache(request, ctx, () => {
     const url = new URL(request.url);
@@ -1088,30 +831,14 @@ async function handleDelete(
 
   await env.BLUNION_PROFILES.delete(key);
 
-  // Discord-Karten-Aufräumen NACH dem KV-Delete, über ctx.waitUntil statt awaited (identische
-  // Begründung wie in handleGroupDelete) - "existing" wurde bereits VOR dem Delete gelesen und
-  // trägt damit noch die zu löschende discordCard, falls vorhanden.
   if (existing.discordCard)
     ctx.waitUntil(removePlayerDiscordCard(env, world, characterName, existing.discordCard));
 
   return jsonResponse({ deleted: true });
 }
 
-/** PUT /group/:groupId - Gruppen-Listung anlegen/aktualisieren (Phase 2, siehe Klassendoc/
- * StoredGroupProfile). Ablauf 1:1 wie handlePut für Einzelprofile (Existenz-Check,
- * editToken-Erzeugung/-Vergleich über generateEditToken/sha256Hex, dieselbe 409-Antwort bei
- * fehlendem/falschem Token, dieselbe TTL-Logik über resolveTtlSeconds/PROFILE_TTL_SECONDS,
- * dieselbe visibility/availabilityTags/note/wantedPlayerCount-Validierung) - der einzige
- * inhaltliche Unterschied ist die members[]-Validierung/-Auflösung unten anstelle von
- * spellBitmaskBase64.
- *
- * WICHTIG (Edit-Token-Besitzmodell): der editToken identifiziert NUR den Ersteller/
- * Veröffentlicher DIESER Gruppen-Listung, NICHT die referenzierten Mitglieder - wer die Gruppe
- * per PUT anlegt, ist der einzige, der sie später ändern/löschen kann (kein geteilter Zugriff
- * für alle Mitglieder). Das ist eine bewusste Design-Entscheidung, kein Bug - falls das künftig
- * geändert werden soll (z.B. soll jedes Mitglied die Gruppen-Listung löschen dürfen), müsste der
- * Token stattdessen an alle Mitglieder verteilt oder durch ein anderes Berechtigungsmodell
- * (z.B. eigene Tokens pro Mitglied) ersetzt werden. */
+/** Ablauf 1:1 wie handlePut, nur mit members[]-Validierung statt spellBitmaskBase64 (siehe
+ * StoredGroupProfile-Doc zum editToken-Besitzmodell). */
 async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: ExecutionContext): Promise<Response> {
   const rateLimited = await enforceWriteRateLimit(env, request);
   if (rateLimited)
@@ -1130,10 +857,7 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
       400, `members muss ein Array mit ${GROUP_MEMBER_COUNT_MIN}-${GROUP_MEMBER_COUNT_MAX} Einträgen sein.`);
   }
 
-  // dataCenter wird - wie bei handlePut - server-seitig hergeleitet, hier vom WORLD DES ERSTEN
-  // Mitglieds (siehe Aufgabenstellung), nicht vom Client übergeben. Jedes einzelne members[].world
-  // muss unabhängig davon über lookupDataCenter auflösbar sein, sonst 400 (gleiche
-  // Fehlerbehandlung wie beim bestehenden Einzel-PUT).
+  // dataCenter wird vom world des ERSTEN Mitglieds hergeleitet, nicht vom Client übergeben.
   const members: GroupMember[] = [];
   let dataCenter: string | undefined;
 
@@ -1155,64 +879,11 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
   const existing = await env.BLUNION_PROFILES.get<StoredGroupProfile>(key, "json");
   const now = new Date().toISOString();
 
-  // Rest 1:1 wie handlePut - alle vier Gruppenfinder-Felder sind im Body optional, fehlt eines,
-  // bleibt der bisherige Wert unverändert (bzw. der jeweilige Default bei einer neuen
-  // Gruppen-Listung). Nur ein tatsächlich im Body vorhandener, aber ungültiger Wert führt zu 400.
-  let visibility: "listed" | "unlisted";
-  if (body.visibility === undefined) {
-    visibility = existing?.visibility ?? "unlisted";
-  } else if (isValidVisibility(body.visibility)) {
-    visibility = body.visibility;
-  } else {
-    return errorResponse(400, 'visibility muss "listed" oder "unlisted" sein.');
-  }
+  const phase2Fields = resolvePhase2Fields(body, existing);
+  if (phase2Fields instanceof Response)
+    return phase2Fields;
 
-  let availabilityTags: string[];
-  if (body.availabilityTags === undefined) {
-    availabilityTags = existing?.availabilityTags ?? [];
-  } else if (isValidAvailabilityTags(body.availabilityTags)) {
-    availabilityTags = body.availabilityTags;
-  } else {
-    return errorResponse(
-      400, `availabilityTags enthält ungültige Werte (erlaubt: ${ALLOWED_AVAILABILITY_TAGS.join(", ")}).`);
-  }
-
-  let note: string;
-  if (body.note === undefined) {
-    note = existing?.note ?? "";
-  } else if (typeof body.note === "string") {
-    note = body.note.slice(0, NOTE_MAX_LENGTH);
-  } else {
-    return errorResponse(400, "note muss ein String sein.");
-  }
-
-  let wantedPlayerCount: number;
-  if (body.wantedPlayerCount === undefined) {
-    wantedPlayerCount = existing?.wantedPlayerCount ?? 0;
-  } else if (isValidWantedPlayerCount(body.wantedPlayerCount)) {
-    wantedPlayerCount = body.wantedPlayerCount;
-  } else {
-    return errorResponse(
-      400,
-      `wantedPlayerCount muss eine ganze Zahl zwischen ${WANTED_PLAYER_COUNT_MIN} und ${WANTED_PLAYER_COUNT_MAX} sein.`,
-    );
-  }
-
-  // Gleiches optional/nur-bei-Vorhandensein-validiert-Muster wie die übrigen Phase-2-Felder oben
-  // (siehe StoredGroupProfile-Doc) - anders als bei note wird hier NICHT gekappt/normalisiert,
-  // sondern bei ungültigen IDs komplett abgelehnt (wie bei availabilityTags): eine erfundene
-  // Spell-ID ist ein Korrektheitsproblem, kein reines Längenlimit.
-  let targetSpellIds: number[];
-  if (body.targetSpellIds === undefined) {
-    targetSpellIds = existing?.targetSpellIds ?? [];
-  } else if (isValidTargetSpellIds(body.targetSpellIds)) {
-    targetSpellIds = body.targetSpellIds;
-  } else {
-    return errorResponse(
-      400,
-      `targetSpellIds muss ein Array aus höchstens ${TARGET_SPELL_COUNT_MAX} gültigen, bekannten Spell-IDs sein.`,
-    );
-  }
+  const { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds } = phase2Fields;
 
   let editTokenHash: string;
   let createdAt: string;
@@ -1258,37 +929,23 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
     updatedAt: now,
   };
 
-  // expirationTtl bei JEDEM Put neu gesetzt, exakt wie bei handlePut (siehe dortigen Kommentar) -
-  // ABER: anders als bei Einzelprofilen (die bei jedem gelernten Spell automatisch erneut
-  // gepusht werden) gibt es für die Gruppen-Listung selbst KEINEN automatischen Refresh-Trigger
-  // (siehe README.md) - eine einmal veröffentlichte Gruppe verschwindet also nach der TTL
-  // automatisch, wenn niemand erneut PUT aufruft. In einer eigenen Variable (statt wie bisher
-  // inline berechnet), weil syncGroupDiscordCard weiter unten dieselbe TTL für ihren eigenen,
-  // NACHGELAGERTEN Put braucht (siehe dortiger Kommentar) - nicht zweimal aus body.ttlHours neu
-  // ableiten, sondern exakt denselben Wert wiederverwenden.
+  // Anders als Profile (die bei jedem gelernten Spell erneut gepusht werden) hat eine Gruppe
+  // keinen automatischen Refresh - sie läuft nach der TTL ab, wenn niemand erneut PUT aufruft.
+  // In einer Variable, weil syncGroupDiscordCard denselben Wert für ihren eigenen Put braucht.
   const ttlSeconds = resolveTtlSeconds(body.ttlHours);
   await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: ttlSeconds });
 
-  // Discord-Kartensynchronisierung (Phase 1.5, siehe syncGroupDiscordCard-Doc) BEWUSST NACH dem
-  // eigentlichen KV-Put UND über ctx.waitUntil statt awaited im Request-Pfad selbst (siehe
-  // Aufgabenstellung: "Fehler dürfen die Response an den ursprünglichen Caller NICHT
-  // beeinflussen") - das Plugin/die Website bekommt seine Antwort dadurch weder verzögert noch
-  // riskiert es, dass ein Discord-Ausfall den PUT scheitern lässt.
   ctx.waitUntil(syncGroupDiscordCard(env, key, record, ttlSeconds));
 
-  const responseBody: Record<string, unknown> = stripForGroupResponse(record);
+  const responseBody: Record<string, unknown> = stripForGroupResponse(env, record);
   if (plaintextEditTokenForResponse)
     responseBody.editToken = plaintextEditTokenForResponse;
 
   return jsonResponse(responseBody, existing ? 200 : 201);
 }
 
-/** Kernlogik von GET /groups/browse (Nachschlagen+Filtern+members-Anreicherung), OHNE das
- * HTTP-Cache-Wrapping von handleGroupsBrowse (siehe withCache dort) - aus handleGroupsBrowse
- * herausgelöst (siehe Klassendoc "minimal refaktorieren"), damit der neue Discord-Slash-Command
- * "/blunion browse" (siehe handleDiscordBrowse unten) exakt dieselbe Logik nutzen kann, ohne sie
- * zu duplizieren. Verhalten 1:1 identisch zum vorherigen Code innerhalb des withCache-Callbacks -
- * nur ausgeschnitten, nicht verändert; GET /groups/browse selbst verhält sich dadurch unverändert. */
+/** Kernlogik von GET /groups/browse, ohne das HTTP-Cache-Wrapping von handleGroupsBrowse - so kann
+ * handleDiscordBrowse dieselbe Logik nutzen. */
 async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise<Response> {
   if (!dataCenter)
     return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
@@ -1308,11 +965,7 @@ async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise
       if (stored.visibility !== "listed" || stored.dataCenter.toLowerCase() !== normalizedDataCenter)
         continue;
 
-      // Pro Mitglied das zugehörige Einzelprofil nachladen (siehe Funktionsdoc oben). Fehlt es
-      // (gelöscht/abgelaufen/nie gepusht), wird das Mitglied TROTZDEM aufgelistet, nur mit
-      // spellBitmaskBase64: null - NICHT der ganze Gruppen-Treffer verworfen (analog zum
-      // bestehenden "Zwischen list() und get() gelöscht"-Muster oben, hier auf Mitglieder- statt
-      // Eintrags-Ebene angewendet).
+      // Fehlt das Profil eines Mitglieds, wird es trotzdem gelistet, nur mit spellBitmaskBase64: null.
       const members = await Promise.all(stored.members.map(async (member) => {
         const memberProfile = await env.BLUNION_PROFILES.get<StoredProfile>(
           kvKey(member.world, member.characterName), "json");
@@ -1340,11 +993,6 @@ async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise
   return jsonResponse(results);
 }
 
-/** GET /groups/browse?dataCenter=<DC> - öffentlicher Gruppen-Gruppenfinder (Phase 2) - dünner
- * HTTP-Wrapper um computeGroupsBrowse (siehe dort für die eigentliche Logik): liest "dataCenter"
- * aus der Query und legt NUR die Berechnung selbst hinter withCache (siehe dortigen Kommentar zum
- * selben Muster bei handleBrowse) - der "dataCenter fehlt"-400-Fehler wird über response.ok in
- * withCache ohnehin nie gecached. */
 async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
   return withCache(request, ctx, () => {
     const url = new URL(request.url);
@@ -1352,12 +1000,8 @@ async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionCont
   });
 }
 
-/** DELETE /group/:groupId - X-Edit-Token-Header, exakt wie handleDelete für Einzelprofile.
- *
- * WICHTIG: löscht AUSSCHLIESSLICH den "group:"-Eintrag (Mitgliederliste/Tags/Notiz) - rührt NIE
- * an den referenzierten "profile:"-Einträgen der Mitglieder, die bleiben unabhängig davon
- * bestehen (das ist der ganze Punkt des Referenz-statt-Kopie-Ansatzes, siehe Klassendoc/
- * StoredGroupProfile). */
+/** Löscht NUR den "group:"-Eintrag - die referenzierten "profile:"-Einträge der Mitglieder bleiben
+ * unangetastet bestehen (Referenz-statt-Kopie-Prinzip). */
 async function handleGroupDelete(
   env: Env, request: Request, groupId: string, ctx: ExecutionContext,
 ): Promise<Response> {
@@ -1380,35 +1024,16 @@ async function handleGroupDelete(
 
   await env.BLUNION_PROFILES.delete(key);
 
-  // Discord-Karten-Aufräumen (Phase 1.5, siehe Aufgabenstellung Punkt 5) NACH dem KV-Delete, über
-  // ctx.waitUntil statt awaited (siehe identische Begründung in handleGroupPut) - "existing" wurde
-  // bereits VOR dem Delete gelesen und trägt damit noch die zu löschende discordCard, falls
-  // vorhanden.
   if (existing.discordCard)
     ctx.waitUntil(removeGroupDiscordCard(env, groupId, existing.discordCard));
 
   return jsonResponse({ deleted: true });
 }
 
-/** Verifiziert die Ed25519-Signatur eines eingehenden Discord-Interaction-Requests (siehe
- * https://discord.com/developers/docs/interactions/overview#setting-up-an-endpoint) - MUSS als
- * ALLERERSTER Schritt in handleDiscordInteractions passieren, VOR jeder weiteren Verarbeitung des
- * Bodys (siehe Aufgabenstellung), sonst könnte ein Angreifer beliebige, nicht von Discord
- * stammende "Interactions" einschleusen.
- *
- * Bewusst über die Web Crypto API (SubtleCrypto) statt Node-"crypto": Node-"crypto" ist in der
- * Workers-Runtime nicht verfügbar (siehe Aufgabenstellung), SubtleCrypto dagegen schon immer.
- * signature/publicKey kommen als Hex-Strings (siehe Discord-Doku bzw. hier env.DISCORD_PUBLIC_KEY,
- * siehe Env-Doc oben) - importKey erwartet dafür rohe Bytes, siehe hexToBytes (crypto.ts). Die zu
- * verifizierende Nachricht ist laut Discord-Doku exakt "timestamp + rawBody" (String-Konkatenation,
- * dann UTF-8-kodiert), NICHT nur der Body allein - deshalb braucht diese Funktion den rohen,
- * NOCH NICHT geparsten Body als eigenes Argument (siehe Aufrufstelle: request.text() statt
- * request.json(), damit exakt dieselben Bytes signiert/verifiziert werden, die Discord gesendet
- * hat, unabhängig von JSON.stringify-Rundungsfehlern beim Re-Serialisieren).
- *
- * Gibt bei JEDEM Problem (fehlender Header, kein DISCORD_PUBLIC_KEY konfiguriert, ungültiges Hex,
- * falsche Signatur) einheitlich false zurück statt zu werfen - der Aufrufer muss dadurch nur EINEN
- * Fall behandeln ("ungültig -> 401"), egal aus welchem Grund die Verifikation fehlschlug. */
+/** Muss vor jeder weiteren Verarbeitung in handleDiscordInteractions laufen, sonst könnte ein
+ * Angreifer beliebige Interactions einschleusen. Braucht den ROHEN, noch nicht geparsten Body -
+ * die signierte Nachricht ist exakt "timestamp + rawBody", ein re-serialisierter JSON-Body würde
+ * die Signatur nicht mehr treffen. Gibt bei jedem Fehler einheitlich false zurück (nie Wurf). */
 async function verifyDiscordSignature(env: Env, request: Request, rawBody: string): Promise<boolean> {
   const signatureHeader = request.headers.get("X-Signature-Ed25519");
   const timestampHeader = request.headers.get("X-Signature-Timestamp");
@@ -1427,25 +1052,13 @@ async function verifyDiscordSignature(env: Env, request: Request, rawBody: strin
     const message = new TextEncoder().encode(timestampHeader + rawBody);
     return await crypto.subtle.verify({ name: "Ed25519" }, publicKey, hexToBytes(signatureHeader), message);
   } catch {
-    // Ungültiges Hex (falsche Länge/Zeichen) in Header ODER Secret landet hier (siehe
-    // hexToBytes-Doc) - wie jeder andere Verifikationsfehlschlag als "ungültige Signatur"
-    // behandelt, nicht als Serverfehler (kein 500).
-    return false;
+    return false; // ungültiges Hex zählt als ungültige Signatur, nicht als 500
   }
 }
 
-/** Formatiert group.targetSpellIds für das Discord-Embed als aufsteigend sortierte, sprach-
- * unabhängige order-Nummern (z.B. "#1, #3, #7") - siehe SPELL_ORDER_BY_ID-Doc für die Begründung,
- * warum hier bewusst KEIN lokalisierter Spell-Name steht. Eine ID, die SPELL_ORDER_BY_ID nicht
- * kennt (z.B. weil die Tabelle mal nicht aktuell gehalten wurde), wird stillschweigend
- * übersprungen statt das ganze Embed scheitern zu lassen. Gibt undefined zurück, wenn danach
- * nichts übrig bleibt (leere/undefined targetSpellIds ODER ausschließlich unbekannte IDs) - der
- * Aufrufer lässt die Zeile dann komplett weg, siehe buildGroupEmbedField.
- *
- * Exportiert (wie regionForDataCenter) für einen direkten Unit-Test des "unbekannte ID"-Falls:
- * SPELL_ORDER_BY_ID deckt aktuell exakt dieselben IDs wie KNOWN_SPELL_IDS ab, ein Gruppen-PUT mit
- * einer dort unbekannten ID kommt also durch isValidTargetSpellIds nie durch den öffentlichen
- * Endpunkt hindurch (siehe handleGroupPut). */
+/** Formatiert targetSpellIds als sprachunabhängige order-Nummern (z.B. "#1, #3, #7"). Unbekannte
+ * IDs werden übersprungen statt das Embed scheitern zu lassen; undefined, wenn nichts übrig bleibt
+ * (Aufrufer lässt die Zeile dann weg). */
 export function formatTargetSpellOrders(targetSpellIds: number[]): string | undefined {
   const orders = targetSpellIds
     .map((spellId) => SPELL_ORDER_BY_ID.get(spellId))
@@ -1455,33 +1068,22 @@ export function formatTargetSpellOrders(targetSpellIds: number[]): string | unde
   return orders.length > 0 ? orders.map((order) => `#${order}`).join(", ") : undefined;
 }
 
-/** Baut EIN "field" für das Discord-Browse-Embed aus einer Gruppe (siehe buildGroupsBrowseEmbed) -
- * Gruppenname existiert nicht als eigenes Feld (siehe StoredGroupProfile), "note" übernimmt diese
- * Rolle im UI. Mitgliederliste als "World CharacterName" pro Zeile (siehe Aufgabenstellung) -
- * bewusst OHNE spellBitmaskBase64 (für Menschen im Discord-Embed nicht lesbar/nützlich, anders als
- * fürs Plugin) und OHNE editToken/sonstige interne Felder (die stehen ohnehin nicht im Ergebnis
- * von computeGroupsBrowse, siehe dort).
- *
- * "Verfügbarkeit"/"Ziel-Spells" sind beides optionale Zeilen: leer -> ganz weggelassen statt mit
- * einem Platzhalter wie "-" angezeigt (weniger Rauschen für die meisten Gruppen, die z.B. keine
- * targetSpellIds gesetzt haben). */
+/** Baut EIN "field" für das Discord-Browse-Embed aus einer Gruppe - "note" übernimmt die Rolle des
+ * (nicht existierenden) Gruppennamens als Feldtitel. */
 function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value: string; inline: boolean } {
   const memberList = group.members
     .map((member) => `${member.world} ${member.characterName}`)
     .join("\n");
 
-  // wantedPlayerCount === 0 bedeutet "egal wie viele" (siehe WANTED_PLAYER_COUNT_MIN-Doc oben) -
-  // dafür nur die aktuelle Mitgliederzahl zeigen statt eines verwirrenden "3/0".
+  // 0 bedeutet "egal wie viele" - dann nur die Mitgliederzahl zeigen statt eines "3/0".
   const memberCountLabel = group.wantedPlayerCount > 0
     ? `${group.members.length}/${group.wantedPlayerCount}`
     : `${group.members.length}`;
 
   let value = `Mitglieder (${memberCountLabel}):\n${memberList}`;
 
-  // note UND wantedPlayerCount stecken hier oben bereits jeweils woanders (Feld-"name" unten bzw.
-  // memberCountLabel) - deshalb "" und 0 an formatAvailabilityAndNoteLines übergeben, um sie nicht
-  // ein zweites Mal anzuzeigen; siehe dortige Doc, WARUM die Funktion trotzdem beide Parameter hat
-  // (buildPlayerCardEmbed hat keine der beiden Stellen und übergibt die echten Werte).
+  // note/wantedPlayerCount stecken hier schon anderswo (Feldname bzw. memberCountLabel), daher
+  // "" und 0 statt der echten Werte.
   const extraLines = formatAvailabilityAndNoteLines("", group.availabilityTags, 0);
   if (extraLines.length > 0)
     value += `\n\n${extraLines}`;
@@ -1497,26 +1099,10 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
   };
 }
 
-/** Formatiert die optionalen Notiz-/Verfügbarkeits-/wantedPlayerCount-bezogenen Zusatzzeilen für
- * ein Discord-Embed - gemeinsam genutzt von buildGroupEmbedField (Gruppen-Feld in "/blunion
- * browse" bzw. einer Gruppen-Kanal-Karte) UND buildPlayerCardEmbed (Spieler-Kanal-Karte) weiter
- * unten, damit sich das Format zwischen beiden nicht auseinanderentwickelt (siehe buildGroupCard
- * Embed-Doc für dasselbe Prinzip bei Gruppen-Kanal-Karte vs. -Browse-Feld). Bewusst OHNE
- * Mitgliederliste - die gibt es nur bei Gruppen (StoredGroupProfile.members), nicht bei einzelnen
- * Spieler-Profilen (StoredProfile), und bleibt deshalb Sache des jeweiligen Aufrufers.
- *
- * Jede der drei Zeilen ist einzeln optional (leerer note-String/leere availabilityTags/
- * wantedPlayerCount <= 0 lassen die jeweilige Zeile schlicht weg, siehe ursprüngliche
- * Verfügbarkeits-Zeile in buildGroupEmbedField zur Begründung "weniger Rauschen") - das Ergebnis
- * kann also auch ein leerer String sein, wenn keine der drei zutrifft.
- *
- * buildGroupEmbedField zeigt note bereits als eigenes Embed-Feld-"name" und wantedPlayerCount
- * bereits in der Mitglieder-Kopfzeile (z.B. "3/5") - ruft diese Funktion deshalb mit note="" und
- * wantedPlayerCount=0 auf, um nichts doppelt anzuzeigen, und nutzt effektiv nur die
- * Verfügbarkeits-Zeile. buildPlayerCardEmbed hat kein Äquivalent zu diesen beiden Stellen und
- * übergibt deshalb die echten Werte durch.
- *
- * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test. */
+/** Gemeinsam genutzt von buildGroupEmbedField und buildPlayerCardEmbed, damit sich das Format
+ * nicht auseinanderentwickelt. Jede der drei Zeilen ist einzeln optional (leer/0 lässt sie weg);
+ * buildGroupEmbedField übergibt note="" und wantedPlayerCount=0, da beide dort schon anderswo im
+ * Embed stehen. */
 export function formatAvailabilityAndNoteLines(
   note: string, availabilityTags: string[], wantedPlayerCount: number,
 ): string {
@@ -1528,26 +1114,15 @@ export function formatAvailabilityAndNoteLines(
   if (availabilityTags.length > 0)
     lines.push(`Verfügbarkeit: ${availabilityTags.join(", ")}`);
 
-  // wantedPlayerCount === 0 bedeutet "egal wie viele" (siehe WANTED_PLAYER_COUNT_MIN-Doc oben) -
-  // dafür keine Zeile zeigen statt eines verwirrenden "Gesucht: 0 Mitspieler".
-  if (wantedPlayerCount > 0)
+  if (wantedPlayerCount > 0) // 0 = "egal wie viele", dann keine Zeile
     lines.push(`Gesucht: ${wantedPlayerCount} Mitspieler`);
 
   return lines.join("\n\n");
 }
 
-/** Baut das Embed für EINE persistente Gruppen-Karte in einem Regions-Kanal (Phase 1.5, siehe
- * syncGroupDiscordCard unten) - WIEDERVERWENDET bewusst buildGroupEmbedField (siehe
- * Aufgabenstellung Punkt 3 "Kartenformat soll sich zwischen /blunion browse und den persistenten
- * Kanal-Karten nicht auseinanderentwickeln") statt eine zweite, eigene Notiz/Mitglieder/
- * Verfügbarkeits-Formatierung zu pflegen. StoredGroupProfile.members ist strukturell bereits
- * exakt DiscordBrowseGroupMember (world+characterName, siehe dortige Interfaces) - keine
- * Umwandlung nötig.
- *
- * Anders als buildGroupsBrowseEmbed (das MEHRERE Gruppen eines Data Centers in einem Embed
- * auflistet) zeigt eine Kanal-Karte GENAU EINE Gruppe - das konkrete Data Center (wichtig: der
- * Kanal selbst ist ja nach REGION, nicht DC gruppiert, siehe DATA_CENTER_TO_REGION-Doc) steht
- * deshalb hier im Embed-Titel statt wie beim Browse-Embed einmal außen für alle Treffer gemeinsam. */
+/** Wiederverwendet buildGroupEmbedField statt einer zweiten Notiz-/Mitglieder-/Verfügbarkeits-
+ * Formatierung. Zeigt (anders als buildGroupsBrowseEmbed) genau eine Gruppe, daher das konkrete
+ * Data Center im Titel statt außerhalb für alle Treffer gemeinsam. */
 function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown> {
   const field = buildGroupEmbedField({
     groupId: record.groupId,
@@ -1565,27 +1140,18 @@ function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown
   };
 }
 
-/** Baut das Embed für EINE persistente Spieler-Karte in einem Regions-Kanal - Spieler-Pendant zu
- * buildGroupCardEmbed oben (siehe dortige Doc zum "eine Karte pro Kanal-Nachricht"-Prinzip).
- * Anders als eine Gruppe hat ein einzelnes Spieler-Profil (StoredProfile) keine Mitgliederliste,
- * deshalb hier nur Titel + formatAvailabilityAndNoteLines (Notiz/Verfügbarkeit/wantedPlayerCount,
- * siehe dortige Doc) statt eines "fields"-Arrays wie bei der Gruppen-Karte.
- *
- * color ist ABSICHTLICH ANDERS als buildGroupCardEmbed (0x2b6cb0, Blau) - Grün (0x2f9e44), damit
- * Spieler- und Gruppen-Karten im selben Kanal auf den ersten Blick unterscheidbar sind. Das ist
- * fürs Erste rein FUNKTIONAL gedacht (unterschiedliche Farbe genügt als Unterscheidung); ein
- * eigener, ausführlicherer visueller Stil für Spielerkarten (z.B. andere Feldstruktur/Icon) steht
- * noch aus und ist bewusst NICHT Teil dieses Schritts.
- *
- * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test von
- * Titel/Farbe/"keine Mitgliederliste", ohne den kompletten PUT-/Webhook-Weg durchlaufen zu
- * müssen. */
+/** Spieler-Pendant zu buildGroupCardEmbed - keine Mitgliederliste, daher description statt
+ * fields[]. Grün statt Blau, damit Spieler-/Gruppen-Karten im selben Kanal unterscheidbar sind. */
 export function buildPlayerCardEmbed(stored: StoredProfile): Record<string, unknown> {
-  const lines = formatAvailabilityAndNoteLines(
+  let lines = formatAvailabilityAndNoteLines(
     stored.note ?? "",
     stored.availabilityTags ?? [],
     stored.wantedPlayerCount ?? 0,
   );
+
+  const targetSpellLabel = formatTargetSpellOrders(stored.targetSpellIds ?? []);
+  if (targetSpellLabel !== undefined)
+    lines += `${lines.length > 0 ? "\n\n" : ""}Ziel-Spells: ${targetSpellLabel}`;
 
   return {
     title: `${stored.characterName} (${stored.world}) sucht Mitspieler`,
@@ -1594,35 +1160,38 @@ export function buildPlayerCardEmbed(stored: StoredProfile): Record<string, unkn
   };
 }
 
-/** Legt für eine (bereits als "listed" bestätigte) Gruppe eine NEUE Discord-Karte an - gemeinsam
- * von syncGroupDiscordCard für den "noch keine Karte"- UND den "Region gewechselt"-Fall genutzt
- * (siehe dort). Pflegt bei Erfolg zusätzlich den discordcards:<region>-Index mit (siehe
- * addDiscordCardIndexEntry/DiscordCardIndexEntry-Doc) - bei einem Fehlschlag (siehe
- * createWebhookMessage: liefert dann null) bleibt der Index unangetastet und die Gruppe hat
- * schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. */
-async function createGroupDiscordCard(
-  env: Env, region: Region, webhookUrl: string, record: StoredGroupProfile,
+/** Postet das Embed über den Webhook und pflegt bei Erfolg den Index-Eintrag mit; scheitert
+ * createWebhookMessage (liefert null), bleibt der Index unangetastet und es gibt weiterhin keine
+ * Karte. */
+async function createDiscordCard(
+  region: Region, webhookUrl: string, embed: Record<string, unknown>, addIndexEntry: (messageId: string) => Promise<void>,
 ): Promise<DiscordCard | undefined> {
-  const messageId = await createWebhookMessage(webhookUrl, buildGroupCardEmbed(record));
+  const messageId = await createWebhookMessage(webhookUrl, embed);
   if (!messageId)
     return undefined;
 
-  await addDiscordCardIndexEntry(env, region, record.groupId, messageId);
+  await addIndexEntry(messageId);
   return { region, channelWebhookId: extractWebhookId(webhookUrl) ?? "", messageId };
 }
 
-/** Entfernt die Discord-Karte EINER Gruppe vollständig (Nachricht löschen + Index-Eintrag
- * entfernen) - gemeinsam genutzt von syncGroupDiscordCard (Gruppe wird unlisted/Region wechselt),
- * handleGroupDelete (Gruppe wird komplett gelöscht) UND cleanupOrphanedDiscordCards (Cron-Aufräumen
- * verwaister Karten nach stillem TTL-Ablauf) - alle drei Stellen sollen sich exakt gleich
- * verhalten, siehe jeweilige Aufrufstellen. Wirft nie (siehe deleteWebhookMessage/
- * removeDiscordCardIndexEntry - beide fehlerisoliert). */
-async function removeGroupDiscordCard(env: Env, groupId: string, card: DiscordCard): Promise<void> {
+/** Löscht die Nachricht + Index-Eintrag; wirft nie (siehe deleteWebhookMessage/removeCardIndexEntry). */
+async function removeDiscordCard(env: Env, card: DiscordCard, removeIndexEntry: (region: Region) => Promise<void>): Promise<void> {
   const webhookUrl = getRegionWebhookUrl(env, card.region);
   if (webhookUrl)
     await deleteWebhookMessage(webhookUrl, card.messageId);
 
-  await removeDiscordCardIndexEntry(env, card.region, groupId);
+  await removeIndexEntry(card.region);
+}
+
+async function createGroupDiscordCard(
+  env: Env, region: Region, webhookUrl: string, record: StoredGroupProfile,
+): Promise<DiscordCard | undefined> {
+  return createDiscordCard(region, webhookUrl, buildGroupCardEmbed(record),
+    (messageId) => addDiscordCardIndexEntry(env, region, record.groupId, messageId));
+}
+
+async function removeGroupDiscordCard(env: Env, groupId: string, card: DiscordCard): Promise<void> {
+  return removeDiscordCard(env, card, (region) => removeDiscordCardIndexEntry(env, region, groupId));
 }
 
 function discordCardsEqual(a: DiscordCard | undefined, b: DiscordCard | undefined): boolean {
@@ -1634,170 +1203,106 @@ function discordCardsEqual(a: DiscordCard | undefined, b: DiscordCard | undefine
   return a.region === b.region && a.channelWebhookId === b.channelWebhookId && a.messageId === b.messageId;
 }
 
-/** Legt für ein (bereits als "listed" bestätigtes) Spieler-Profil eine NEUE Discord-Karte an -
- * Spieler-Pendant zu createGroupDiscordCard oben (siehe dortige Doc, gilt hier 1:1 analog), von
- * syncPlayerDiscordCard weiter unten für den "noch keine Karte"- UND den "Region gewechselt"-Fall
- * genutzt. Pflegt bei Erfolg zusätzlich den playercards:<region>-Index mit (siehe
- * addPlayerCardIndexEntry/PlayerCardIndexEntry-Doc) - bei einem Fehlschlag (siehe
- * createWebhookMessage: liefert dann null) bleibt der Index unangetastet und das Profil hat
- * schlicht (weiterhin) keine Karte, siehe Rückgabewert undefined. */
 async function createPlayerDiscordCard(
   env: Env, region: Region, webhookUrl: string, stored: StoredProfile,
 ): Promise<DiscordCard | undefined> {
-  const messageId = await createWebhookMessage(webhookUrl, buildPlayerCardEmbed(stored));
-  if (!messageId)
-    return undefined;
-
-  await addPlayerCardIndexEntry(env, region, stored.world, stored.characterName, messageId);
-  return { region, channelWebhookId: extractWebhookId(webhookUrl) ?? "", messageId };
+  return createDiscordCard(region, webhookUrl, buildPlayerCardEmbed(stored),
+    (messageId) => addPlayerCardIndexEntry(env, region, stored.world, stored.characterName, messageId));
 }
 
-/** Entfernt die Discord-Karte EINES Spieler-Profils vollständig (Nachricht löschen + Index-Eintrag
- * entfernen) - Spieler-Pendant zu removeGroupDiscordCard oben (siehe dortige Doc zu den drei
- * Aufrufstellen mit identischem Verhalten - das gilt hier analog für ein einzelnes Spieler-Profil
- * statt eine Gruppe). Wirft nie (siehe deleteWebhookMessage/removePlayerCardIndexEntry - beide
- * fehlerisoliert). */
 async function removePlayerDiscordCard(
   env: Env, world: string, characterName: string, card: DiscordCard,
 ): Promise<void> {
-  const webhookUrl = getRegionWebhookUrl(env, card.region);
-  if (webhookUrl)
-    await deleteWebhookMessage(webhookUrl, card.messageId);
-
-  await removePlayerCardIndexEntry(env, card.region, world, characterName);
+  return removeDiscordCard(env, card, (region) => removePlayerCardIndexEntry(env, region, world, characterName));
 }
 
-/** Nach einem erfolgreichen /group/:groupId-PUT (siehe handleGroupPut) im Hintergrund aufgerufen
- * (siehe dortiges ctx.waitUntil) - legt/aktualisiert/entfernt die persistente Discord-Kanal-Karte
- * für diese Gruppe (Phase 1.5, siehe Aufgabenstellung Punkt 4). Läuft KOMPLETT nach der bereits
- * abgeschickten Antwort an den Aufrufer ab; jeder Fehler bleibt innerhalb dieser Funktion (siehe
- * discordWebhook.ts-Klassendoc - keine der dort exportierten Funktionen wirft).
- *
- * `key`/`ttlSeconds` kommen 1:1 von handleGroupPut (dieselbe expirationTtl wie beim ursprünglichen
- * Put) - der abschließende KV-Put hier unten schreibt NUR ein ggf. geändertes discordCard-Feld,
- * alle anderen Felder bleiben exakt `record` wie vom aufrufenden PUT bereits gespeichert. */
+/** Befüllt von syncGroupDiscordCard/syncPlayerDiscordCard mit ihren jeweiligen Werten/Closures,
+ * damit syncDiscordCard nicht wissen muss, ob es um eine Gruppe oder ein Spieler-Profil geht. */
+interface DiscordCardSyncTarget {
+  existingCard: DiscordCard | undefined;
+  dataCenter: string;
+  visibility: "listed" | "unlisted";
+  buildEmbed: () => Record<string, unknown>;
+  createCard: (region: Region, webhookUrl: string) => Promise<DiscordCard | undefined>;
+  removeCard: (card: DiscordCard) => Promise<void>;
+}
+
+/** Legt/aktualisiert/entfernt die persistente Discord-Kanal-Karte je nach visibility/Region -
+ * schreibt selbst nichts in KV, liefert nur die neue discordCard zurück. removeCard/createCard
+ * nutzen jeweils die Region der ALTEN Karte zum Löschen, da eine Nachricht nur über ihren eigenen
+ * Webhook editierbar/löschbar ist (daher bei Regionswechsel löschen+neu anlegen statt editieren). */
+async function syncDiscordCard(env: Env, target: DiscordCardSyncTarget): Promise<DiscordCard | undefined> {
+  const region = regionForDataCenter(target.dataCenter);
+  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+
+  if (target.visibility !== "listed") {
+    if (target.existingCard)
+      await target.removeCard(target.existingCard);
+
+    return undefined;
+  }
+
+  if (!region || !webhookUrl)
+    return target.existingCard;
+
+  if (!target.existingCard)
+    return target.createCard(region, webhookUrl);
+
+  if (target.existingCard.region !== region) {
+    await target.removeCard(target.existingCard);
+    return target.createCard(region, webhookUrl);
+  }
+
+  await editWebhookMessage(webhookUrl, target.existingCard.messageId, target.buildEmbed());
+  return target.existingCard; // region/channelWebhookId/messageId unverändert.
+}
+
+/** Aus handleGroupPut per ctx.waitUntil angestoßen, läuft komplett nach der bereits abgeschickten
+ * Antwort - ein Discord-Fehler darf den PUT nie beeinflussen. Schreibt nur bei tatsächlicher
+ * Änderung erneut nach KV. */
 async function syncGroupDiscordCard(
   env: Env, key: string, record: StoredGroupProfile, ttlSeconds: number,
 ): Promise<void> {
-  const existingCard = record.discordCard;
-  const region = regionForDataCenter(record.dataCenter);
-  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+  const nextCard = await syncDiscordCard(env, {
+    existingCard: record.discordCard,
+    dataCenter: record.dataCenter,
+    visibility: record.visibility,
+    buildEmbed: () => buildGroupCardEmbed(record),
+    createCard: (region, webhookUrl) => createGroupDiscordCard(env, region, webhookUrl, record),
+    removeCard: (card) => removeGroupDiscordCard(env, record.groupId, card),
+  });
 
-  let nextCard: DiscordCard | undefined;
-
-  if (record.visibility !== "listed") {
-    // Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen (siehe
-    // Aufgabenstellung Punkt 4). Wichtig: über existingCard.region gehen, NICHT über die (evtl.
-    // andere) aktuell berechnete "region" - die alte Karte hängt ja im WEBHOOK DER ALTEN Region.
-    if (existingCard)
-      await removeGroupDiscordCard(env, record.groupId, existingCard);
-
-    nextCard = undefined;
-  } else if (!region || !webhookUrl) {
-    // Kein Webhook für diese Region konfiguriert (z.B. lokale Entwicklung ohne alle vier Secrets,
-    // siehe Env-Doc, oder ein Data Center ohne Region-Zuordnung) - die Kartenfunktion ist rein
-    // optional (siehe Aufgabenstellung), also nichts tun statt zu werfen. Eine eventuell
-    // BESTEHENDE Karte bleibt dabei unangetastet (sie wurde ja unter einem damals funktionierenden
-    // Webhook angelegt) statt sie hier fälschlich als "weg" zu behandeln.
-    nextCard = existingCard;
-  } else if (!existingCard) {
-    nextCard = await createGroupDiscordCard(env, region, webhookUrl, record);
-  } else if (existingCard.region !== region) {
-    // Gruppe auf ein anderes Data Center/eine andere Region verschoben (siehe Aufgabenstellung
-    // Punkt 4) - alte Karte im ALTEN Webhook löschen (editWebhookMessage über einen ANDEREN Webhook
-    // hinweg funktioniert bei Discord nicht), neue im NEUEN Webhook anlegen.
-    await removeGroupDiscordCard(env, record.groupId, existingCard);
-    nextCard = await createGroupDiscordCard(env, region, webhookUrl, record);
-  } else {
-    // Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen.
-    await editWebhookMessage(webhookUrl, existingCard.messageId, buildGroupCardEmbed(record));
-    nextCard = existingCard; // region/channelWebhookId/messageId unverändert.
-  }
-
-  // Nur erneut in KV schreiben, wenn sich discordCard tatsächlich geändert hat - der allermeiste
-  // Fall ("gleiche Region, nur Inhalt editiert" ODER "kein Webhook konfiguriert") braucht gar
-  // keinen zweiten Put.
-  if (!discordCardsEqual(existingCard, nextCard)) {
+  if (!discordCardsEqual(record.discordCard, nextCard)) {
     const updated: StoredGroupProfile = { ...record, discordCard: nextCard };
     await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
   }
 }
 
-/** Spieler-Pendant zu syncGroupDiscordCard oben (siehe dortige ausführliche Doc - der Ablauf ist
- * hier 1:1 identisch, nur bezogen auf EIN einzelnes Spieler-Profil statt eine Gruppe: legt/
- * aktualisiert/entfernt die persistente Discord-Kanal-Karte je nach visibility/Region-Wechsel).
- * Wird aus handlePut per ctx.waitUntil() angestoßen (siehe dort), analog zu syncGroupDiscordCard
- * aus handleGroupPut.
- *
- * `key`/`ttlSeconds` kommen 1:1 vom aufrufenden PUT (wie bei syncGroupDiscordCard) - der
- * abschließende KV-Put hier unten schreibt NUR ein ggf. geändertes discordCard-Feld, alle anderen
- * Felder bleiben exakt `stored` wie vom aufrufenden PUT bereits gespeichert.
- *
- * Exportiert (wie regionForDataCenter/formatTargetSpellOrders) für einen direkten Unit-Test des
- * Regionswechsel-Zweigs: anders als bei einer Gruppe (deren dataCenter sich über ein geändertes
- * members[].world sehr wohl per PUT ändern lässt) ist world+characterName hier zugleich der
- * KV-Key (siehe kvKey()) - ein "derselbe Spieler, jetzt auf einem anderen Data Center"-PUT gegen
- * denselben Key ist über die öffentliche Route praktisch nicht herstellbar (dataCenter wird aus
- * world hergeleitet, ein anderes world wäre ein ANDERER KV-Key). Der Zweig bleibt trotzdem
- * notwendig (ein reales DC-Reassignment in worlds.ts würde ihn auslösen) und wird deshalb hier
- * direkt getestet, statt zu versuchen, ihn künstlich über zwei PUTs zu erzwingen. */
+/** Spieler-Pendant zu syncGroupDiscordCard, aus handlePut angestoßen. Exportiert für einen
+ * direkten Unit-Test des Regionswechsel-Zweigs, der über die öffentliche Route praktisch nicht
+ * herstellbar ist (dataCenter hängt hier am world, das zugleich der KV-Key ist). */
 export async function syncPlayerDiscordCard(
   env: Env, key: string, stored: StoredProfile, ttlSeconds: number,
 ): Promise<void> {
-  const existingCard = stored.discordCard;
-  const region = regionForDataCenter(stored.dataCenter);
-  const webhookUrl = region ? getRegionWebhookUrl(env, region) : undefined;
+  const nextCard = await syncDiscordCard(env, {
+    existingCard: stored.discordCard,
+    dataCenter: stored.dataCenter,
+    visibility: stored.visibility,
+    buildEmbed: () => buildPlayerCardEmbed(stored),
+    createCard: (region, webhookUrl) => createPlayerDiscordCard(env, region, webhookUrl, stored),
+    removeCard: (card) => removePlayerDiscordCard(env, stored.world, stored.characterName, card),
+  });
 
-  let nextCard: DiscordCard | undefined;
-
-  if (stored.visibility !== "listed") {
-    // Nicht (mehr) gelistet - eine ggf. vorhandene Karte entfernen, keine neue anlegen (siehe
-    // syncGroupDiscordCard-Doc, identisches Prinzip). Über existingCard.region gehen, NICHT über
-    // die (evtl. andere) aktuell berechnete "region" - die alte Karte hängt im WEBHOOK DER ALTEN
-    // Region.
-    if (existingCard)
-      await removePlayerDiscordCard(env, stored.world, stored.characterName, existingCard);
-
-    nextCard = undefined;
-  } else if (!region || !webhookUrl) {
-    // Kein Webhook für diese Region konfiguriert - Kartenfunktion bleibt rein optional (siehe
-    // syncGroupDiscordCard-Doc), eine eventuell BESTEHENDE Karte bleibt unangetastet.
-    nextCard = existingCard;
-  } else if (!existingCard) {
-    nextCard = await createPlayerDiscordCard(env, region, webhookUrl, stored);
-  } else if (existingCard.region !== region) {
-    // Profil auf ein anderes Data Center/eine andere Region verschoben - alte Karte im ALTEN
-    // Webhook löschen, neue im NEUEN Webhook anlegen (siehe syncGroupDiscordCard-Doc).
-    await removePlayerDiscordCard(env, stored.world, stored.characterName, existingCard);
-    nextCard = await createPlayerDiscordCard(env, region, webhookUrl, stored);
-  } else {
-    // Gleiche Region - bestehende Nachricht aktualisieren statt eine zweite anzulegen.
-    await editWebhookMessage(webhookUrl, existingCard.messageId, buildPlayerCardEmbed(stored));
-    nextCard = existingCard; // region/channelWebhookId/messageId unverändert.
-  }
-
-  // Nur erneut in KV schreiben, wenn sich discordCard tatsächlich geändert hat (siehe
-  // syncGroupDiscordCard-Doc).
-  if (!discordCardsEqual(existingCard, nextCard)) {
+  if (!discordCardsEqual(stored.discordCard, nextCard)) {
     const updated: StoredProfile = { ...stored, discordCard: nextCard };
     await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
   }
 }
 
-/** Discord-Embeds erlauben höchstens 25 "fields" (harte API-Grenze) - mehr Treffer würden von
- * Discord komplett abgelehnt statt nur gekappt. Phase 1 kappt deshalb selbst und weist im
- * description-Feld auf die Kappung hin, statt sich auf Discord zu verlassen. Ursprünglich
- * "..._GROUP_FIELDS" genannt, jetzt umbenannt: buildPlayersBrowseEmbed weiter unten braucht
- * dieselbe Grenze für Spieler-Felder, die 25 ist eine reine Discord-API-Konstante, keine
- * gruppenspezifische. */
+/** Discord-Embeds erlauben höchstens 25 "fields" (harte API-Grenze, sonst wird das ganze Embed
+ * abgelehnt) - mehr Treffer werden selbst gekappt statt sich darauf zu verlassen. */
 const DISCORD_EMBED_MAX_FIELDS = 25;
 
-/** Baut das komplette Discord-Embed für "/blunion browse type:groups" aus dem (bereits
- * gefilterten) Ergebnis von computeGroupsBrowse (siehe handleDiscordBrowse) - siehe
- * buildGroupEmbedField für ein einzelnes Gruppen-Feld. dataCenter kommt hier NUR für die
- * Titelzeile zum Einsatz (das Ergebnis selbst enthält kein dataCenter-Feld je Gruppe, siehe
- * DiscordBrowseGroup/computeGroupsBrowse - alle Treffer teilen ohnehin dasselbe, vom Aufrufer
- * angegebene Data Center). */
 function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]): Record<string, unknown> {
   const shownGroups = groups.slice(0, DISCORD_EMBED_MAX_FIELDS);
 
@@ -1811,24 +1316,17 @@ function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]
   };
 }
 
-/** Baut EIN "field" für das Spieler-Browse-Embed (siehe buildPlayersBrowseEmbed) aus einem
- * einzelnen Spieler-Profil - Pendant zu buildGroupEmbedField, aber ohne Mitgliederliste (ein
- * einzelnes Spieler-Gesuch hat keine). Feldname "<CharacterName> (<World>)" statt wie bei
- * buildGroupEmbedField über note - ein Spieler-Gesuch braucht den Feldnamen nicht für etwas
- * anderes (dort steht note ja gerade WEIL es keine bessere Kennung für eine Gruppe ohne eigenen
- * Namen gibt, siehe dortige Doc), ein einzelnes Profil hat mit World+Charakternamen dagegen schon
- * eine natürliche Kennung.
- *
- * value nutzt formatAvailabilityAndNoteLines (siehe dort) mit den ECHTEN note/availabilityTags/
- * wantedPlayerCount-Werten - anders als buildGroupEmbedField (das note/wantedPlayerCount bereits
- * über Feldname bzw. Mitglieder-Kopfzeile zeigt und deshalb "" bzw. 0 übergibt) gibt es hier keine
- * solche andere Stelle. Discord-Embed-Felder dürfen laut API keinen leeren "value" haben, daher
- * der Platzhalter, falls ein Profil weder Notiz noch Verfügbarkeit noch wantedPlayerCount gesetzt
- * hat. */
+/** Pendant zu buildGroupEmbedField, aber ohne Mitgliederliste - Feldname ist World+Charaktername
+ * (statt note, das braucht ein Profil nicht als Ersatz-Kennung). Discord erlaubt keinen leeren
+ * "value", daher der Platzhalter. */
 function buildPlayerEmbedField(
   player: ReturnType<typeof stripForBrowseResponse>,
 ): { name: string; value: string; inline: boolean } {
-  const lines = formatAvailabilityAndNoteLines(player.note, player.availabilityTags, player.wantedPlayerCount);
+  let lines = formatAvailabilityAndNoteLines(player.note, player.availabilityTags, player.wantedPlayerCount);
+
+  const targetSpellLabel = formatTargetSpellOrders(player.targetSpellIds);
+  if (targetSpellLabel !== undefined)
+    lines += `${lines.length > 0 ? "\n\n" : ""}Ziel-Spells: ${targetSpellLabel}`;
 
   return {
     name: `${player.characterName} (${player.world})`,
@@ -1837,9 +1335,7 @@ function buildPlayerEmbedField(
   };
 }
 
-/** Baut das komplette Discord-Embed für "/blunion browse type:players" aus dem (bereits
- * gefilterten) Ergebnis von computePlayersBrowse (siehe handleDiscordBrowse) - Pendant zu
- * buildGroupsBrowseEmbed, siehe dort für die (identische) Kappungs-/Titelzeilen-Logik. */
+/** Pendant zu buildGroupsBrowseEmbed für "/blunion browse type:players". */
 function buildPlayersBrowseEmbed(
   dataCenter: string, players: ReturnType<typeof stripForBrowseResponse>[],
 ): Record<string, unknown> {
@@ -1855,10 +1351,7 @@ function buildPlayersBrowseEmbed(
   };
 }
 
-/** Action-Row mit einem Link-Button zur bestehenden Web-Companion-Seite (siehe
- * COMPANION_WEBSITE_URL-Doc oben) - style 5 ("Link") braucht laut Discord-API KEINE custom_id
- * (anders als z.B. ein Button, der eine eigene Interaction auslösen würde) und öffnet die URL
- * direkt im Browser. Als Konstante statt bei jedem Aufruf neu gebaut, da sie sich nie ändert. */
+/** Link-Button zur Web-Companion-Seite - style 5 ("Link") braucht keine custom_id. */
 const DISCORD_WEBSITE_LINK_COMPONENTS = [
   {
     type: 1, // Action Row
@@ -1873,10 +1366,7 @@ const DISCORD_WEBSITE_LINK_COMPONENTS = [
   },
 ];
 
-/** Baut eine direkte Discord-Interaction-Response (type 4, siehe DISCORD_RESPONSE_TYPE_
- * CHANNEL_MESSAGE_WITH_SOURCE-Doc oben) mit reinem Text-Inhalt - für Fehlermeldungen/leere
- * Ergebnisse (siehe handleDiscordBrowse), wo ein leeres Embed keinen Mehrwert hätte (siehe
- * Aufgabenstellung "klare, freundliche Meldung statt leerem Embed"). */
+/** Reine Text-Antwort für Fehlermeldungen/leere Ergebnisse, wo ein leeres Embed nichts bringt. */
 function discordMessageResponse(content: string): Response {
   return jsonResponse({
     type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
@@ -1884,23 +1374,10 @@ function discordMessageResponse(content: string): Response {
   });
 }
 
-/** "/blunion browse [datacenter] [type]" - reicht dieselbe Kernlogik wie GET /groups/browse bzw.
- * GET /profiles/browse durch (siehe computeGroupsBrowse/computePlayersBrowse, je nach `type`) und
- * formatiert das Ergebnis als Discord-Embed (siehe buildGroupsBrowseEmbed/buildPlayersBrowseEmbed).
- * Nur visibility==="listed"-Einträge sind überhaupt im jeweiligen Ergebnis enthalten (siehe dort) -
- * hier also nichts zusätzlich zu tun, um das sicherzustellen (siehe Aufgabenstellung Punkt 4).
- *
- * dataCenter/type sind die vom Discord-Nutzer als Sub-Command-Optionen übergebenen "datacenter"-/
- * "type"-Werte (siehe handleDiscordApplicationCommand, dort auch der Default "groups" für
- * type) - anders als bei den HTTP-Endpoints hier absichtlich KEIN hartes 400, sondern eine normale
- * Chat-Antwort bei fehlendem dataCenter (siehe Aufgabenstellung Punkt 4 "Fehlermeldung analog zum
- * bestehenden Verhalten von GET /groups/browse"): eine rohe HTTP-4xx-Response würde Discord nur
- * als "App hat nicht geantwortet" anzeigen, keine lesbare Fehlermeldung im Kanal.
- *
- * Die beiden Zweige (groups/players) bleiben bewusst als zwei separate, leicht redundante Blöcke
- * statt generisch über computeXBrowse/buildXBrowseEmbed zusammengefasst - genau wie die übrigen
- * Gruppen-/Spieler-Pendants in dieser Datei (z.B. createGroupDiscordCard/createPlayerDiscordCard),
- * jeder Zweig bleibt dadurch für sich lesbar, ohne generische Umwege über Funktionsparameter. */
+/** "/blunion browse [datacenter] [type]" - reicht computeGroupsBrowse/computePlayersBrowse durch
+ * und formatiert das Ergebnis als Discord-Embed. Fehlendes dataCenter gibt bewusst eine normale
+ * Chat-Antwort statt HTTP 400 - eine rohe 4xx-Response zeigt Discord nur als "App hat nicht
+ * geantwortet" an. */
 async function handleDiscordBrowse(
   env: Env, dataCenter: string | undefined, type: "groups" | "players",
 ): Promise<Response> {
@@ -1949,9 +1426,6 @@ async function handleDiscordBrowse(
   });
 }
 
-/** Sucht in den options[] einer Command-Interaction den Sub-Command mit dem gegebenen Namen (siehe
- * DiscordInteractionCommandData-Doc oben zur Verschachtelung) - DISCORD_OPTION_TYPE_SUB_COMMAND
- * (1) grenzt das gegen andere, potenzielle Top-Level-Optionen ab. */
 function findDiscordSubcommand(
   data: DiscordInteractionCommandData | undefined,
   name: string,
@@ -1959,22 +1433,14 @@ function findDiscordSubcommand(
   return data?.options?.find((option) => option.type === DISCORD_OPTION_TYPE_SUB_COMMAND && option.name === name);
 }
 
-/** Liest den String-Wert EINER benannten Option aus den options[] eines Sub-Commands (siehe
- * findDiscordSubcommand) - z.B. "datacenter" aus "/blunion browse datacenter:Aether". undefined,
- * wenn die Option fehlt oder (sollte nie passieren, Discord validiert den Typ serverseitig gegen
- * die registrierte Command-Definition) keinen String-Wert trägt. */
 function findDiscordStringOption(options: DiscordInteractionOption[] | undefined, name: string): string | undefined {
   const option = options?.find((candidate) => candidate.name === name);
   return typeof option?.value === "string" ? option.value : undefined;
 }
 
-/** Dispatcht eine APPLICATION_COMMAND-Interaction (siehe handleDiscordInteractions) - Phase 1
- * kennt ausschließlich "/blunion browse" (siehe Aufgabenstellung: "noch KEIN Linking, KEIN
- * /blunion link, KEINE Schreiboperationen"). Unbekannte Commands/Sub-Commands enden in einer
- * normalen Chat-Antwort statt eines Fehlerstatus (siehe handleDiscordBrowse-Doc zum selben Grund):
- * kann bei einer künftig geänderten Command-Registrierung auftreten (z.B. ein Sub-Command wird
- * umbenannt, aber der alte Command bleibt in einem Server noch gecached), soll dann aber nicht wie
- * ein Serverfehler wirken. */
+/** Phase 1 kennt nur "/blunion browse" - unbekannte Commands enden in einer Chat-Antwort statt
+ * einem Fehlerstatus (kann bei geänderter Command-Registrierung mit noch gecachtem alten Command
+ * auftreten). */
 async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInteraction): Promise<Response> {
   if (interaction.data?.name !== "blunion")
     return discordMessageResponse(`Unbekannter Command "${interaction.data?.name ?? "?"}".`);
@@ -1998,17 +1464,8 @@ async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInt
   return handleDiscordBrowse(env, dataCenter, type);
 }
 
-/** POST /discord/interactions - Einstiegspunkt der neuen, rein lesenden Discord-Integration Phase
- * 1 (siehe DISCORD_INTERACTIONS_PATH/DISCORD_INTEGRATION.md). Reihenfolge ist bewusst so und NICHT
- * vertauschbar (siehe Aufgabenstellung "Signaturverifikation als ERSTER Schritt"):
- *   1. rawBody per request.text() lesen (EINMAL, siehe verifyDiscordSignature-Doc zum
- *      Body-ist-ein-einmal-lesbarer-Stream-Problem - JSON.parse danach arbeitet auf demselben
- *      bereits gelesenen String, kein zweiter request.json()-Aufruf nötig/möglich).
- *   2. Signatur verifizieren - JEDER Fehlschlag (inkl. fehlender Header) führt SOFORT zu 401, OHNE
- *      den Body weiter zu verarbeiten (kein JSON.parse, kein Dispatch).
- *   3. ERST DANACH den (jetzt vertrauenswürdigen) Body als JSON parsen und nach Interaction-Typ
- *      dispatchen (PING -> PONG, APPLICATION_COMMAND -> handleDiscordApplicationCommand, alles
- *      andere -> Fehlerantwort ohne Crash). */
+/** Reihenfolge nicht vertauschbar: erst rawBody lesen (einmal, per request.text()), dann Signatur
+ * verifizieren (jeder Fehlschlag -> sofort 401), ERST DANACH als JSON parsen/dispatchen. */
 async function handleDiscordInteractions(env: Env, request: Request): Promise<Response> {
   const rawBody = await request.text();
 
@@ -2025,10 +1482,7 @@ async function handleDiscordInteractions(env: Env, request: Request): Promise<Re
 
   switch (interaction.type) {
     case DISCORD_INTERACTION_TYPE_PING:
-      // Von Discord beim Einrichten der Interactions Endpoint URL im Developer Portal gefordert
-      // (siehe DISCORD_INTEGRATION.md) - OHNE eine korrekte PONG-Antwort verweigert Discord das
-      // Speichern der Endpoint-URL.
-      return jsonResponse({ type: DISCORD_RESPONSE_TYPE_PONG });
+      return jsonResponse({ type: DISCORD_RESPONSE_TYPE_PONG }); // von Discord beim Setup gefordert
 
     case DISCORD_INTERACTION_TYPE_APPLICATION_COMMAND:
       return handleDiscordApplicationCommand(env, interaction);
@@ -2038,26 +1492,10 @@ async function handleDiscordInteractions(env: Env, request: Request): Promise<Re
   }
 }
 
-/** Cron-Cleanup verwaister Discord-Karten (Phase 1.5, siehe scheduled-Handler unten und die
- * ausführliche "warum ein separater Index nötig ist"-Begründung an DiscordCardIndexEntry oben) -
- * pro Region den discordcards:<region>-Index durchgehen und für jeden {groupId, messageId}-Eintrag
- * per get() prüfen, ob "group:<groupId>" noch existiert. Existiert die Gruppe noch, ist ihre Karte
- * ohnehin bereits über syncGroupDiscordCard aktuell gehalten - hier nichts zu tun. Existiert sie
- * NICHT mehr (stiller TTL-Ablauf ohne vorheriges DELETE), wird die Karte über dieselbe
- * removeGroupDiscordCard-Funktion entfernt, die auch der explizite DELETE-Pfad nutzt (siehe
- * handleGroupDelete) - identisches Verhalten aus einer einzigen Stelle.
- *
- * "channelWebhookId" im übergebenen DiscordCard-Objekt ist hier bewusst ein Platzhalter (""): der
- * Index (siehe DiscordCardIndexEntry) speichert ihn gar nicht erst mit, weil removeGroupDiscordCard
- * ihn ohnehin nicht braucht (nur region+messageId fließen in deleteWebhookMessage/
- * getRegionWebhookUrl ein) - eine vierte, hier nutzlose Kopie des Werts zu pflegen wäre unnötig.
- *
- * Räumt PRO REGION zusätzlich denselben Fall für einzelne Spieler-Profile auf - zweite, eigene
- * Schleife über playerCardsIndexKey(region)/PlayerCardIndexEntry (siehe dortige Doc, WARUM das ein
- * eigener Index statt Wiederverwendung von discordcards:<region> ist) statt die Einträge in
- * dieselbe Schleife zu mischen, weil die beiden Eintragstypen unterschiedlich identifiziert (
- * groupId vs. world+characterName) und unterschiedlich aufgelöst/entfernt werden (groupKvKey/
- * removeGroupDiscordCard vs. kvKey/removePlayerDiscordCard) - ansonsten 1:1 dasselbe Prinzip. */
+/** Cron-Cleanup: prüft pro Region+Index-Eintrag, ob der zugehörige group:/profile:-Eintrag noch
+ * existiert (siehe DiscordCardIndexEntry-Doc) - falls nicht (stiller TTL-Ablauf ohne DELETE), wird
+ * die Karte über dieselbe remove*DiscordCard-Funktion entfernt wie beim expliziten DELETE-Pfad.
+ * channelWebhookId ist hier "" (der Index speichert ihn nicht, wird beim Löschen nicht gebraucht). */
 async function cleanupOrphanedDiscordCards(env: Env): Promise<void> {
   for (const region of ALL_REGIONS) {
     const groupEntries = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(discordCardsIndexKey(region), "json");
@@ -2091,11 +1529,6 @@ export default {
 
     const url = new URL(request.url);
 
-    // Vor dem PROFILE_PATH-Abgleich geprüft, obwohl "/profiles/browse" ohnehin nie auf
-    // PROFILE_PATH matchen würde (dessen erstes Segment ist literal "profile", nicht
-    // "profiles") - explizit hier oben als eigener Zweig, damit der Gruppenfinder-Endpoint im
-    // Code genauso sichtbar/prominent ist wie die drei /profile/-Endpunkte, nicht als
-    // Nebenbemerkung im 404-Fallback versteckt.
     if (BROWSE_PATH.test(url.pathname)) {
       if (request.method !== "GET")
         return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
@@ -2103,10 +1536,6 @@ export default {
       return handleBrowse(env, request, ctx);
     }
 
-    // Analog zu BROWSE_PATH oben, nur für den Gruppen-Gruppenfinder (siehe handleGroupsBrowse) -
-    // ebenfalls VOR dem GROUP_PATH-Abgleich geprüft (aus demselben Grund: "/groups/browse" würde
-    // wegen des zusätzlichen "s" ohnehin nie auf GROUP_PATH matchen, aber explizit oben bleibt
-    // der Endpoint im Code genauso sichtbar wie /group/:groupId).
     if (GROUPS_BROWSE_PATH.test(url.pathname)) {
       if (request.method !== "GET")
         return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
@@ -2114,10 +1543,6 @@ export default {
       return handleGroupsBrowse(env, request, ctx);
     }
 
-    // Neue, rein lesende Discord-Slash-Command-Integration Phase 1 (siehe
-    // DISCORD_INTEGRATION.md/handleDiscordInteractions) - ebenfalls als eigener, sichtbarer Zweig
-    // VOR den PROFILE_PATH/GROUP_PATH-Regex-Abgleichen (die für "/discord/interactions" ohnehin
-    // nie matchen würden, siehe Begründung bei BROWSE_PATH/GROUPS_BROWSE_PATH oben).
     if (DISCORD_INTERACTIONS_PATH.test(url.pathname)) {
       if (request.method !== "POST")
         return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
@@ -2128,10 +1553,7 @@ export default {
     const profileMatch = url.pathname.match(PROFILE_PATH);
 
     if (profileMatch) {
-      // decodeURIComponent statt der rohen Pfadsegmente: Charakternamen enthalten oft
-      // Leerzeichen ("Y'shtola Rhul") und ggf. Apostrophe/Unicode - das Plugin MUSS beim Aufbau
-      // der URL encodeURIComponent verwenden (siehe LiveSyncService.cs), hier entsprechend
-      // wieder dekodiert.
+      // Charakternamen können Leer-/Sonderzeichen enthalten, siehe encodeURIComponent im Client.
       const world = decodeURIComponent(profileMatch[1]!);
       const characterName = decodeURIComponent(profileMatch[2]!);
 
@@ -2175,14 +1597,7 @@ export default {
     );
   },
 
-  /** Cloudflare Cron Trigger (siehe wrangler.toml [triggers], Phase 1.5) - räumt Discord-Karten von
-   * Gruppen auf, deren KV-Eintrag still per expirationTtl abgelaufen ist, OHNE dass vorher DELETE
-   * /group/:groupId aufgerufen wurde (siehe Klassendoc am Dateianfang "KV löst dabei KEINEN Code
-   * aus" und die ausführliche Begründung an DiscordCardIndexEntry oben, WARUM das ohne den
-   * discordcards:<region>-Index gar nicht erkennbar wäre). Über ctx.waitUntil, damit der
-   * Cron-Aufruf selbst nicht auf die komplette Bereinigung warten muss, um als "erfolgreich
-   * angenommen" zu gelten - Fehler einzelner Lösch-Calls sind ohnehin bereits in
-   * removeGroupDiscordCard/discordWebhook.ts abgefangen. */
+  /** Cron Trigger (siehe wrangler.toml) - räumt Karten von still per TTL abgelaufenen Einträgen auf. */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(cleanupOrphanedDiscordCards(env));
   },

@@ -5,7 +5,7 @@ using BLUnion.Models;
 
 namespace BLUnion.Services;
 
-public sealed class ManualCodeSyncProvider : ISyncProvider
+public sealed class ManualCodeSyncProvider
 {
     public const string CurrentPrefix = "BLU:";
 

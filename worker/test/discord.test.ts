@@ -412,6 +412,50 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
     expect(JSON.stringify(json.data.components)).toContain("letsi-ma.github.io");
   });
 
+  it("shows targetSpellIds as sorted, language-independent order numbers (e.g. '#25, #26')", async () => {
+    const characterName = uniqueName("DiscordSpellSpieler");
+    await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+      note: "Ziel-Spell-Testspieler",
+      // absichtlich absteigend übergeben - das Embed muss trotzdem aufsteigend zeigen.
+      targetSpellIds: [KNOWN_SPELL_IDS_SAMPLE[1], KNOWN_SPELL_IDS_SAMPLE[0]],
+    });
+
+    const request = await signedDiscordRequest(
+      JSON.stringify(browseCommandInteraction(KNOWN_WORLD_DATA_CENTER, "players")));
+    const response = await callWorker(request);
+    const json = await response.json<{
+      data: { embeds: { fields: { name: string; value: string }[] }[] };
+    }>();
+
+    const field = json.data.embeds[0]!.fields.find((f) => f.name === `${characterName} (${KNOWN_WORLD})`);
+    expect(field).toBeDefined();
+    // KNOWN_SPELL_IDS_SAMPLE = [11383, 11384], deren order-Werte sind 25 und 26 (siehe
+    // src/spellOrder.ts) - aufsteigend sortiert also #25 vor #26.
+    expect(field!.value).toContain("Ziel-Spells: #25, #26");
+  });
+
+  it("omits the 'Ziel-Spells' line entirely when the profile has no targetSpellIds", async () => {
+    const characterName = uniqueName("DiscordNoSpellSpieler");
+    await putProfile(KNOWN_WORLD, characterName, {
+      spellBitmaskBase64: validBitmaskBase64(),
+      visibility: "listed",
+      note: "Testnotiz ohne Auswahl",
+    });
+
+    const request = await signedDiscordRequest(
+      JSON.stringify(browseCommandInteraction(KNOWN_WORLD_DATA_CENTER, "players")));
+    const response = await callWorker(request);
+    const json = await response.json<{
+      data: { embeds: { fields: { name: string; value: string }[] }[] };
+    }>();
+
+    const field = json.data.embeds[0]!.fields.find((f) => f.name === `${characterName} (${KNOWN_WORLD})`);
+    expect(field).toBeDefined();
+    expect(field!.value).not.toContain("Ziel-Spells");
+  });
+
   it("does not surface unlisted profiles", async () => {
     const characterName = uniqueName("discord-unlisted-spieler-");
     await putProfile(KNOWN_WORLD, characterName, {

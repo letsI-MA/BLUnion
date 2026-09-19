@@ -21,7 +21,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
     private readonly ComparisonService comparisonService;
-    private readonly GroupTargetSpellService groupTargetSpellService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
     private readonly Configuration configuration;
@@ -49,7 +48,6 @@ public sealed class Plugin : IDalamudPlugin
         this.partyService = new PartyService(partyList, objectTable);
         this.spellDataService = new SpellDataService(log);
         this.comparisonService = new ComparisonService();
-        this.groupTargetSpellService = new GroupTargetSpellService();
         this.localSpellUnlockService = new LocalSpellUnlockService(log, dataManager, unlockState, objectTable);
         this.syncProvider = new ManualCodeSyncProvider(this.spellDataService);
 
@@ -72,7 +70,6 @@ public sealed class Plugin : IDalamudPlugin
             this.partyService,
             this.spellDataService,
             this.comparisonService,
-            this.groupTargetSpellService,
             this.localSpellUnlockService,
             this.syncProvider,
             this.configuration,
@@ -90,6 +87,7 @@ public sealed class Plugin : IDalamudPlugin
         });
 
         this.pluginInterface.UiBuilder.Draw += this.windowSystem.Draw;
+        this.pluginInterface.UiBuilder.Draw += this.mainWindow.TryAutoPublishOwnStatus;
         this.pluginInterface.UiBuilder.OpenMainUi += () => this.mainWindow.IsOpen = true;
     }
 
@@ -98,6 +96,7 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         this.pluginInterface.UiBuilder.Draw -= this.windowSystem.Draw;
+        this.pluginInterface.UiBuilder.Draw -= this.mainWindow.TryAutoPublishOwnStatus;
         this.mainWindow.Dispose();
         this.windowSystem.RemoveAllWindows();
         this.commandManager.RemoveHandler(CommandName);

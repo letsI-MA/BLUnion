@@ -31,7 +31,6 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
     private readonly ComparisonService comparisonService;
-    private readonly GroupTargetSpellService groupTargetSpellService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
     private readonly Configuration configuration;
@@ -85,6 +84,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private static readonly TimeSpan AutoShareCooldown = TimeSpan.FromSeconds(10);
 
+    // Wartezeit nach dem ersten Frame mit Charakter, bevor TryAutoPublishOwnStatus den eigenen
+    // Status erzeugt - damit IUnlockState gefüllt ist (siehe MainWindow.Sync.cs).
+    private static readonly TimeSpan AutoPublishOwnStatusDelay = TimeSpan.FromSeconds(5);
+
     private const string WebCompanionUrl = "https://letsi-ma.github.io/BLUnion/";
 
     private string importCodeBuffer = string.Empty;
@@ -105,6 +108,12 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool autoShareToPartyChat = true;
 
     private DateTimeOffset? lastAutoShareAt;
+
+    // Einmal-Latch für TryAutoPublishOwnStatus (nur Speicher, nicht persistiert) - unabhängig von
+    // autoShareToPartyChat/lastAutoShareAt oben, die nur das Teilen per Button betreffen.
+    private bool ownStatusAutoPublishDone;
+
+    private DateTimeOffset? localPlayerFirstSeenAt;
 
     private bool excludeTotems;
 
@@ -150,7 +159,6 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private GroupPublishMode groupPublishMode = GroupPublishMode.Solo;
 
-    private bool groupFinderVisible;
     private HashSet<AvailabilityTag> groupFinderTags = new();
     private string groupFinderNoteBuffer = string.Empty;
     private string groupFinderWantedPlayerCountBuffer = "0";
@@ -176,7 +184,6 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private readonly HashSet<string> groupPublishSelectedMembers = new();
 
-    private bool groupPublishVisible;
     private readonly HashSet<AvailabilityTag> groupPublishTags = new();
     private string groupPublishNoteBuffer = string.Empty;
     private string groupPublishWantedPlayerCountBuffer = "0";
@@ -235,7 +242,6 @@ public sealed partial class MainWindow : Window, IDisposable
         PartyService partyService,
         SpellDataService spellDataService,
         ComparisonService comparisonService,
-        GroupTargetSpellService groupTargetSpellService,
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
         Configuration configuration,
@@ -249,7 +255,6 @@ public sealed partial class MainWindow : Window, IDisposable
         this.partyService = partyService;
         this.spellDataService = spellDataService;
         this.comparisonService = comparisonService;
-        this.groupTargetSpellService = groupTargetSpellService;
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;
         this.configuration = configuration;
@@ -567,6 +572,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncFetchFailed, this.displayLanguage, detail ?? "?"));
                 break;
             case LiveSyncEventKind.DeleteSucceeded:
+                this.ResetGroupFinderFormBuffers();
                 this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LiveSyncDeleteSucceeded, this.displayLanguage));
                 break;
             case LiveSyncEventKind.DeleteFailed:

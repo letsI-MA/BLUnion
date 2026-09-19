@@ -20,12 +20,6 @@ public sealed class Spell
 
     public string? Description { get; init; }
 
-    public string GetName(DisplayLanguage language) => language switch
-    {
-        DisplayLanguage.German => this.NameDe,
-        DisplayLanguage.English => this.NameEn,
-        DisplayLanguage.French => this.NameFr,
-        DisplayLanguage.Japanese => this.NameJa,
-        _ => this.NameEn,
-    };
+    public string GetName(DisplayLanguage language) =>
+        DisplayLanguageText.Select(language, this.NameDe, this.NameEn, this.NameFr, this.NameJa);
 }

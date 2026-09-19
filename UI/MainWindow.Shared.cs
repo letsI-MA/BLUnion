@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
@@ -215,6 +216,23 @@ public sealed partial class MainWindow
     }
 
     private void ClearMessage() => this.lastError = null;
+
+    // Für die Discord-Kanal-Links bei aktiven Solo-/Gruppen-Veröffentlichungen (siehe
+    // DrawMyEntrySection/DrawGroupPublishSection in MainWindow.GroupFinder.cs) - beide sonst
+    // identische try/catch-Process.Start-Blöcke. Der bestehende Web-Companion-Link-Button
+    // (DrawSyncSection in MainWindow.Sync.cs) nutzt das bewusst NICHT: der setzt bei Erfolg
+    // zusätzlich eine eigene Erfolgsmeldung, die dieser Helfer nicht kennt.
+    private void OpenUrlInBrowser(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
+        }
+    }
 
     // Gemeinsamer Sprungpunkt "zu diesem Spell im Spellbook" von Party Overview/Comparison/
     // Learning Plan aus (siehe Aufgabenstellung) - setzt Auswahl + Filter zurück, damit der Spell im

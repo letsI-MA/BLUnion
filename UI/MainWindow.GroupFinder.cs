@@ -37,7 +37,6 @@ public sealed partial class MainWindow
 
         if (!this.groupFinderVisibilityInitialized && this.liveSyncService.LastKnownOwnProfile is { } ownProfile)
         {
-            this.groupFinderVisible = ownProfile.VisibleInGroupFinder;
             this.groupFinderTags = new HashSet<AvailabilityTag>(ownProfile.AvailabilityTags);
             this.groupFinderNoteBuffer = ownProfile.Note;
             this.groupFinderWantedPlayerCountBuffer = ownProfile.WantedPlayerCount.ToString();
@@ -96,9 +95,6 @@ public sealed partial class MainWindow
 
     private void DrawMyEntrySection()
     {
-        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupFinderVisibleToggle, this.displayLanguage), ref this.groupFinderVisible))
-            this.liveSyncService.SetGroupFinderVisibility(this.groupFinderVisible);
-
         foreach (var tag in Enum.GetValues<AvailabilityTag>())
         {
             var selected = this.groupFinderTags.Contains(tag);
@@ -144,10 +140,27 @@ public sealed partial class MainWindow
         ImGui.Separator();
         DrawSectionGap();
 
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderPublishButton, this.displayLanguage)))
+        // HasEditTokenForLocalCharacter() statt LastKnownOwnProfile != null: derselbe Zustand, den
+        // auch DeleteOwnProfileAsync für "existiert bereits ein Eintrag" nutzt - ein Klick auf den
+        // Button ist dann inhaltlich ein Update (editToken vorhanden), nicht ein Neuanlegen.
+        var soloPublishLabel = this.liveSyncService.HasEditTokenForLocalCharacter()
+            ? UiStrings.Get(UiStrings.Key.GroupFinderUpdateButton, this.displayLanguage)
+            : UiStrings.Get(UiStrings.Key.GroupFinderPublishButton, this.displayLanguage);
+
+        if (ImGui.Button(soloPublishLabel))
         {
-            this.liveSyncService.PushOwnProfile();
+            this.liveSyncService.PushOwnProfile(markListed: true);
             this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupFinderPublishedMessage, this.displayLanguage));
+        }
+
+        if (this.liveSyncService.HasEditTokenForLocalCharacter())
+        {
+            ImGui.SameLine();
+            // Die UI-Puffer werden NICHT hier geleert, sondern erst bei DeleteSucceeded (siehe
+            // ResetGroupFinderFormBuffers) - bei einem fehlgeschlagenen Löschen behalten so
+            // Formular und Service-Felder ihre Werte.
+            if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderUnpublishButton, this.displayLanguage)))
+                this.liveSyncService.UnpublishOwnProfile();
         }
 
         if (this.liveSyncService.LastKnownOwnProfile is { VisibleInGroupFinder: true } confirmedProfile)
@@ -162,7 +175,39 @@ public sealed partial class MainWindow
 
             ImGui.TextColored(SuccessMessageColor, UiStrings.Format(
                 UiStrings.Key.GroupFinderOwnVisibleConfirmation, this.displayLanguage, tagsText, noteText, wantedPlayerCountText));
+
+            if (confirmedProfile.DiscordChannelUrl is { } soloDiscordUrl)
+                this.DrawDiscordChannelHint(soloDiscordUrl, confirmedProfile.DiscordChannelName, "SoloDiscordLink");
         }
+    }
+
+    // Setzt die Solo-Formularpuffer zurück - aufgerufen aus ApplyLiveSyncResult bei DeleteSucceeded
+    // (beide Lösch-Pfade: Solo-Button und Settings-Delete). Läuft im Draw-Thread (siehe Draw() in
+    // MainWindow.cs: TryTakePendingResult -> ApplyLiveSyncResult), daher direktes Schreiben der
+    // ImGui-Puffer ohne zusätzliches Flag. Das Gegenstück im Service (pending*-Felder) leert
+    // DeleteOwnProfileAsync selbst.
+    private void ResetGroupFinderFormBuffers()
+    {
+        this.groupFinderTags.Clear();
+        this.groupFinderNoteBuffer = string.Empty;
+        this.groupFinderWantedPlayerCountBuffer = "0";
+        this.groupFinderTargetSpellIds.Clear();
+    }
+
+    // Gemeinsam für Solo-Profil (DrawMyEntrySection) und Gruppe (DrawGroupPublishSection) - idSuffix
+    // macht den ImGui-Button in beiden Formularen eindeutig (siehe DrawSpellCheckboxFilterList-Doc
+    // für dasselbe Muster). channelName ist optional (siehe Env.DISCORD_CHANNEL_NAME_NA-Doc im
+    // Worker) - ohne ihn zeigt der Hinweis nur, DASS ein Discord-Kanal verfügbar ist, nicht welcher.
+    private void DrawDiscordChannelHint(string discordUrl, string? channelName, string idSuffix)
+    {
+        var hintText = channelName is { } name
+            ? UiStrings.Format(UiStrings.Key.GroupFinderDiscordChannelHintFormat, this.displayLanguage, name)
+            : UiStrings.Get(UiStrings.Key.GroupFinderDiscordChannelHintGeneric, this.displayLanguage);
+
+        ImGui.TextColored(SuccessMessageColor, hintText);
+        ImGui.SameLine();
+        if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.OpenDiscordChannelButton, this.displayLanguage)}##{idSuffix}"))
+            this.OpenUrlInBrowser(discordUrl);
     }
 
     private void DrawOtherPlayersSection()
@@ -339,8 +384,6 @@ public sealed partial class MainWindow
         ImGui.Separator();
         DrawSectionGap();
 
-        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.GroupPublishVisibleToggle, this.displayLanguage), ref this.groupPublishVisible);
-
         foreach (var tag in Enum.GetValues<AvailabilityTag>())
         {
             var selected = this.groupPublishTags.Contains(tag);
@@ -378,8 +421,14 @@ public sealed partial class MainWindow
         var selectedCount = this.groupPublishSelectedMembers.Count;
         var canPublish = selectedCount is >= 1 and <= 8;
 
+        // Siehe HasEditTokenForLocalCharacter()-Doc oben in DrawMyEntrySection - dasselbe Prinzip,
+        // hier über den Gruppen-Zustand, den auch DeletePublishedGroup nutzt.
+        var groupPublishLabel = this.liveSyncService.HasPublishedGroup()
+            ? UiStrings.Get(UiStrings.Key.GroupUpdateButton, this.displayLanguage)
+            : UiStrings.Get(UiStrings.Key.GroupPublishButton, this.displayLanguage);
+
         ImGui.BeginDisabled(!canPublish);
-        if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupPublishButton, this.displayLanguage)))
+        if (ImGui.Button(groupPublishLabel))
         {
             if (!int.TryParse(this.groupPublishWantedPlayerCountBuffer, out var wantedPlayerCount))
                 wantedPlayerCount = 0;
@@ -396,7 +445,7 @@ public sealed partial class MainWindow
                 .ToList();
 
             this.liveSyncService.PublishGroup(
-                members, this.groupPublishVisible, this.groupPublishTags, this.groupPublishNoteBuffer, wantedPlayerCount,
+                members, true, this.groupPublishTags, this.groupPublishNoteBuffer, wantedPlayerCount,
                 this.groupPublishTargetSpellIds);
         }
 
@@ -406,7 +455,20 @@ public sealed partial class MainWindow
         {
             ImGui.SameLine();
             if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupUnpublishButton, this.displayLanguage)))
+            {
                 this.liveSyncService.DeletePublishedGroup();
+
+                this.groupPublishTags.Clear();
+                this.groupPublishNoteBuffer = string.Empty;
+                this.groupPublishWantedPlayerCountBuffer = "0";
+                this.groupPublishTargetSpellIds.Clear();
+            }
+
+            if (this.liveSyncService.LastKnownPublishedGroupDiscordChannelUrl is { } groupDiscordUrl)
+            {
+                this.DrawDiscordChannelHint(
+                    groupDiscordUrl, this.liveSyncService.LastKnownPublishedGroupDiscordChannelName, "GroupDiscordLink");
+            }
         }
     }
 
@@ -857,10 +919,11 @@ public sealed partial class MainWindow
 
     // Zeigt targetSpellIds der zuletzt per "Ziel-Spells anzeigen"-Button ausgewählten Gruppe
     // (siehe groupTargetSpellDetailPopupEntry-Doc in MainWindow.cs) markiert danach, ob der lokale
-    // Spieler den jeweiligen Spell schon gelernt hat - Abgleich läuft über GroupTargetSpellService
-    // statt die Logik hier zu duplizieren (siehe Aufgabenstellung). ImGui.BeginPopup() MUSS JEDEN
-    // Frame aufgerufen werden (liefert nur dann true, wenn zuvor ImGui.OpenPopup() mit derselben
-    // ID aufgerufen wurde), nicht nur wenn ein Klick stattfand - Standard-ImGui-Popup-Muster.
+    // Spieler den jeweiligen Spell schon gelernt hat (reiner Abgleich gegen die eigene Lernliste,
+    // daher direkt inline statt über einen eigenen Service - siehe Audit-Refactoring). ImGui.
+    // BeginPopup() MUSS JEDEN Frame aufgerufen werden (liefert nur dann true, wenn zuvor
+    // ImGui.OpenPopup() mit derselben ID aufgerufen wurde), nicht nur wenn ein Klick stattfand -
+    // Standard-ImGui-Popup-Muster.
     private void DrawGroupTargetSpellDetailPopup()
     {
         if (!ImGui.BeginPopup(GroupTargetSpellDetailPopupId))
@@ -873,7 +936,9 @@ public sealed partial class MainWindow
             ImGui.Separator();
 
             var learnedSpellIds = this.localSpellUnlockService.GetLearnedSpellIds();
-            var statuses = this.groupTargetSpellService.GetTargetSpellStatus(group.TargetSpellIds, learnedSpellIds);
+            var statuses = group.TargetSpellIds
+                .Select(spellId => (SpellId: spellId, IsLearned: learnedSpellIds.Contains(spellId)))
+                .ToList();
 
             var rows = statuses
                 .Select(status =>

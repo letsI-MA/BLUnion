@@ -14,8 +14,9 @@ public sealed record GroupFinderEntry
 
     public required int WantedPlayerCount { get; init; }
 
-    // Spells, die dieser Solo-Spieler farmen möchte (siehe GroupTargetSpellService für den
-    // Abgleich gegen den eigenen Lernstatus) - Pendant zu GroupFinderGroupEntry.TargetSpellIds,
-    // hier vom einzelnen Spieler selbst ausgewählt statt vom Gruppen-Ersteller.
+    // Spells, die dieser Solo-Spieler farmen möchte (siehe DrawGroupTargetSpellDetailPopup in
+    // UI/MainWindow.GroupFinder.cs für den Abgleich gegen den eigenen Lernstatus) - Pendant zu
+    // GroupFinderGroupEntry.TargetSpellIds, hier vom einzelnen Spieler selbst ausgewählt statt vom
+    // Gruppen-Ersteller.
     public required IReadOnlyList<uint> TargetSpellIds { get; init; }
 }

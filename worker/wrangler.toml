@@ -54,6 +54,23 @@ period = 60
 # OPTIONAL - eine (noch) nicht konfigurierte Region lässt die Kartenfunktion für diese Region
 # einfach nichts tun, siehe Env.DISCORD_WEBHOOK_NA-Doc in src/index.ts.
 
+# Klickbarer Discord-Link im Plugin (siehe buildDiscordChannelLink/Env.DISCORD_GUILD_ID-Doc in
+# src/index.ts) - anders als die Webhook-URLs oben KEIN Secret (Guild-/Channel-IDs sind nicht
+# geheim), daher normale [vars] statt "wrangler secret put". IDs per Rechtsklick auf Server/Kanal
+# in Discord mit aktiviertem Entwicklermodus ("ID kopieren") ermitteln. Fehlt DISCORD_GUILD_ID oder
+# die Channel-ID einer Region, zeigt das Plugin stattdessen die allgemeine Server-Einladung.
+[vars]
+DISCORD_GUILD_ID = "1538922018332737617"
+DISCORD_CHANNEL_NA = "1547920320810455100"
+DISCORD_CHANNEL_EU = "1547920234487484437"
+DISCORD_CHANNEL_JP = "1547920365118947368"
+DISCORD_CHANNEL_OC = "1547920419271745618"
+# Nur für die Anzeige ("Discord: #<name>") - rein kosmetisch, siehe Env.DISCORD_CHANNEL_NAME_NA-Doc.
+DISCORD_CHANNEL_NAME_NA = "north-america"
+DISCORD_CHANNEL_NAME_EU = "europe"
+DISCORD_CHANNEL_NAME_JP = "japan"
+DISCORD_CHANNEL_NAME_OC = "oceania"
+
 # Täglicher Cron Trigger (Phase 1.5, siehe cleanupOrphanedDiscordCards/scheduled-Handler in
 # src/index.ts) - räumt Discord-Karten von Gruppen auf, deren KV-Eintrag still per expirationTtl
 # abgelaufen ist (siehe PROFILE_TTL_SECONDS-Doc dort), ohne dass vorher DELETE /group/:groupId

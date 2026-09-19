@@ -710,6 +710,14 @@ public sealed class LiveSyncService : IDisposable
                     };
                 }
 
+                // Auch die noch nicht gesendeten Formularwerte zurücksetzen (beide Pfade) - sonst
+                // würde ein späterer Push (z.B. TickPushDiff nach erneutem Aktivieren von Live Sync)
+                // die alten Werte des gelöschten Eintrags wieder mitsenden. Werte identisch zu dem,
+                // was der Solo-Löschen-Button bisher selbst gesetzt hat.
+                this.SetGroupFinderAvailabilityTags(Array.Empty<AvailabilityTag>());
+                this.SetGroupFinderNoteAndWantedPlayerCount(string.Empty, 0);
+                this.SetGroupFinderTargetSpellIds(Array.Empty<uint>());
+
                 if (disableLiveSync)
                     this.configuration.LiveSyncEnabled = false;
 

@@ -156,19 +156,11 @@ public sealed partial class MainWindow
         if (this.liveSyncService.HasEditTokenForLocalCharacter())
         {
             ImGui.SameLine();
+            // Die UI-Puffer werden NICHT hier geleert, sondern erst bei DeleteSucceeded (siehe
+            // ResetGroupFinderFormBuffers) - bei einem fehlgeschlagenen Löschen behalten so
+            // Formular und Service-Felder ihre Werte.
             if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderUnpublishButton, this.displayLanguage)))
-            {
                 this.liveSyncService.UnpublishOwnProfile();
-
-                this.groupFinderTags.Clear();
-                this.groupFinderNoteBuffer = string.Empty;
-                this.groupFinderWantedPlayerCountBuffer = "0";
-                this.groupFinderTargetSpellIds.Clear();
-
-                this.liveSyncService.SetGroupFinderAvailabilityTags(this.groupFinderTags);
-                this.liveSyncService.SetGroupFinderNoteAndWantedPlayerCount(this.groupFinderNoteBuffer, 0);
-                this.liveSyncService.SetGroupFinderTargetSpellIds(this.groupFinderTargetSpellIds);
-            }
         }
 
         if (this.liveSyncService.LastKnownOwnProfile is { VisibleInGroupFinder: true } confirmedProfile)
@@ -187,6 +179,19 @@ public sealed partial class MainWindow
             if (confirmedProfile.DiscordChannelUrl is { } soloDiscordUrl)
                 this.DrawDiscordChannelHint(soloDiscordUrl, confirmedProfile.DiscordChannelName, "SoloDiscordLink");
         }
+    }
+
+    // Setzt die Solo-Formularpuffer zurück - aufgerufen aus ApplyLiveSyncResult bei DeleteSucceeded
+    // (beide Lösch-Pfade: Solo-Button und Settings-Delete). Läuft im Draw-Thread (siehe Draw() in
+    // MainWindow.cs: TryTakePendingResult -> ApplyLiveSyncResult), daher direktes Schreiben der
+    // ImGui-Puffer ohne zusätzliches Flag. Das Gegenstück im Service (pending*-Felder) leert
+    // DeleteOwnProfileAsync selbst.
+    private void ResetGroupFinderFormBuffers()
+    {
+        this.groupFinderTags.Clear();
+        this.groupFinderNoteBuffer = string.Empty;
+        this.groupFinderWantedPlayerCountBuffer = "0";
+        this.groupFinderTargetSpellIds.Clear();
     }
 
     // Gemeinsam für Solo-Profil (DrawMyEntrySection) und Gruppe (DrawGroupPublishSection) - idSuffix

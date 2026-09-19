@@ -562,6 +562,7 @@ public sealed partial class MainWindow : Window, IDisposable
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncFetchFailed, this.displayLanguage, detail ?? "?"));
                 break;
             case LiveSyncEventKind.DeleteSucceeded:
+                this.ResetGroupFinderFormBuffers();
                 this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.LiveSyncDeleteSucceeded, this.displayLanguage));
                 break;
             case LiveSyncEventKind.DeleteFailed:

@@ -87,6 +87,7 @@ public sealed class Plugin : IDalamudPlugin
         });
 
         this.pluginInterface.UiBuilder.Draw += this.windowSystem.Draw;
+        this.pluginInterface.UiBuilder.Draw += this.mainWindow.TryAutoPublishOwnStatus;
         this.pluginInterface.UiBuilder.OpenMainUi += () => this.mainWindow.IsOpen = true;
     }
 
@@ -95,6 +96,7 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         this.pluginInterface.UiBuilder.Draw -= this.windowSystem.Draw;
+        this.pluginInterface.UiBuilder.Draw -= this.mainWindow.TryAutoPublishOwnStatus;
         this.mainWindow.Dispose();
         this.windowSystem.RemoveAllWindows();
         this.commandManager.RemoveHandler(CommandName);

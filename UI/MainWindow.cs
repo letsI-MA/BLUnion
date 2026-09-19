@@ -84,6 +84,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private static readonly TimeSpan AutoShareCooldown = TimeSpan.FromSeconds(10);
 
+    // Wartezeit nach dem ersten Frame mit Charakter, bevor TryAutoPublishOwnStatus den eigenen
+    // Status erzeugt - damit IUnlockState gefüllt ist (siehe MainWindow.Sync.cs).
+    private static readonly TimeSpan AutoPublishOwnStatusDelay = TimeSpan.FromSeconds(5);
+
     private const string WebCompanionUrl = "https://letsi-ma.github.io/BLUnion/";
 
     private string importCodeBuffer = string.Empty;
@@ -104,6 +108,12 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool autoShareToPartyChat = true;
 
     private DateTimeOffset? lastAutoShareAt;
+
+    // Einmal-Latch für TryAutoPublishOwnStatus (nur Speicher, nicht persistiert) - unabhängig von
+    // autoShareToPartyChat/lastAutoShareAt oben, die nur das Teilen per Button betreffen.
+    private bool ownStatusAutoPublishDone;
+
+    private DateTimeOffset? localPlayerFirstSeenAt;
 
     private bool excludeTotems;
 

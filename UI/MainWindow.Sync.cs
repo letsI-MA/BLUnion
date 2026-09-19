@@ -175,12 +175,7 @@ public sealed partial class MainWindow
     {
         try
         {
-            var localPlayerName = this.partyService.GetLocalPlayerName()
-                ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
-
-            var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
-            this.syncProvider.PublishLocalStatus(status);
-            var code = this.syncProvider.ExportToCode(status);
+            var code = this.GenerateOwnStatusCode();
 
             ImGui.SetClipboardText(code);
 
@@ -192,6 +187,59 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GenericError, this.displayLanguage, ex.Message));
+        }
+    }
+
+    // Reine Erzeugung ohne Clipboard/Chat-Versand (siehe ExportAndShareOwnStatus für Button-Pfad,
+    // TryAutoPublishOwnStatus für den Auto-Lauf): veröffentlicht den eigenen Status in
+    // syncProvider.known und liefert den BLU:-Code. Wirft bei Fehlern (z.B. Name > 255 UTF-8-Bytes,
+    // mehr als 128 Spells) statt null zu liefern - der Button-Pfad zeigt die Meldung über sein
+    // try/catch, der Auto-Lauf loggt sie.
+    private string GenerateOwnStatusCode()
+    {
+        var localPlayerName = this.partyService.GetLocalPlayerName()
+            ?? UiStrings.Get(UiStrings.Key.LocalPlayerFallbackName, this.displayLanguage);
+
+        var status = this.localSpellUnlockService.GetLocalPlayerStatus(localPlayerName);
+        this.syncProvider.PublishLocalStatus(status);
+        return this.syncProvider.ExportToCode(status);
+    }
+
+    // Wird jeden Frame aus UiBuilder.Draw aufgerufen (siehe Plugin.cs) - NICHT aus MainWindow.Draw,
+    // das nur bei geöffnetem Fenster läuft. Veröffentlicht den eigenen Status einmal pro Plugin-Start
+    // in syncProvider.known, damit der eigene Charakter ohne Button-Klick dort steht. Bewusst NUR die
+    // Erzeugung: kein Clipboard, kein TryAutoShareToPartyChat (autoShareToPartyChat/lastAutoShareAt
+    // bleiben unberührt) - das WANN des Teilens gehört ausschließlich dem Button-Pfad.
+    // Wartet AutoPublishOwnStatusDelay nach dem ersten Frame mit Charakter, damit IUnlockState
+    // gefüllt ist; der Code-String wird verworfen (er ist deterministisch und nicht gespeichert).
+    public void TryAutoPublishOwnStatus()
+    {
+        if (this.ownStatusAutoPublishDone)
+            return;
+
+        try
+        {
+            // GetLocalPlayerName() ist genau dann null, wenn objectTable.LocalPlayer null ist.
+            if (string.IsNullOrEmpty(this.partyService.GetLocalPlayerName()))
+            {
+                this.localPlayerFirstSeenAt = null;
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            this.localPlayerFirstSeenAt ??= now;
+            if (now - this.localPlayerFirstSeenAt.Value < AutoPublishOwnStatusDelay)
+                return;
+
+            // Latch VOR der Erzeugung: bei einem Fehler soll nicht jeden Frame neu versucht/geloggt werden.
+            this.ownStatusAutoPublishDone = true;
+            _ = this.GenerateOwnStatusCode();
+            this.log.Debug("Eigener Status wurde beim Plugin-Start automatisch veröffentlicht.");
+        }
+        catch (Exception ex)
+        {
+            this.ownStatusAutoPublishDone = true;
+            this.log.Warning(ex, "Automatisches Veröffentlichen des eigenen Status beim Plugin-Start fehlgeschlagen.");
         }
     }
 

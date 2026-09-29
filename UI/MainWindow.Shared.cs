@@ -244,7 +244,10 @@ public sealed partial class MainWindow
     private void JumpToSpellInSpellbook(uint spellId)
     {
         if (this.spellDataService.Spells.TryGetValue(spellId, out var spell))
+        {
             this.selectedSpellbookSpell = spell;
+            this.scrollSpellbookToSelected = true;
+        }
 
         this.spellbookFilterMode = SpellbookFilterMode.All;
         this.spellbookFilterText = string.Empty;

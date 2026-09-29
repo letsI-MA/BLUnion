@@ -182,7 +182,10 @@ public static class UiStrings
 
         TabLoadouts,
         LoadoutContentTypeMaskedCarnivale,
-        LoadoutContentTypeFates,
+        LoadoutContentTypeTank,
+        LoadoutContentTypeHealer,
+        LoadoutContentTypeOffHealer,
+        LoadoutContentTypeDamageDealer,
         LoadoutsNoneForType,
         LoadoutSourceLabel,
         LoadoutProgressFormat,
@@ -1495,12 +1498,33 @@ public static class UiStrings
             [DisplayLanguage.French] = "Carnaval masqué",
             [DisplayLanguage.Japanese] = "仮面舞踏会",
         },
-        [Key.LoadoutContentTypeFates] = new()
+        [Key.LoadoutContentTypeTank] = new()
         {
-            [DisplayLanguage.German] = "FATEs",
-            [DisplayLanguage.English] = "FATEs",
-            [DisplayLanguage.French] = "ALÉAS",
-            [DisplayLanguage.Japanese] = "FATE",
+            [DisplayLanguage.German] = "Verteidiger",
+            [DisplayLanguage.English] = "Tank",
+            [DisplayLanguage.French] = "Tank",
+            [DisplayLanguage.Japanese] = "タンク",
+        },
+        [Key.LoadoutContentTypeHealer] = new()
+        {
+            [DisplayLanguage.German] = "Heiler",
+            [DisplayLanguage.English] = "Healer",
+            [DisplayLanguage.French] = "Soigneur",
+            [DisplayLanguage.Japanese] = "ヒーラー",
+        },
+        [Key.LoadoutContentTypeOffHealer] = new()
+        {
+            [DisplayLanguage.German] = "Off-Heiler",
+            [DisplayLanguage.English] = "Off-Healer",
+            [DisplayLanguage.French] = "Soigneur d'appoint",
+            [DisplayLanguage.Japanese] = "サブヒーラー",
+        },
+        [Key.LoadoutContentTypeDamageDealer] = new()
+        {
+            [DisplayLanguage.German] = "Angreifer",
+            [DisplayLanguage.English] = "Damage Dealer",
+            [DisplayLanguage.French] = "DPS",
+            [DisplayLanguage.Japanese] = "DPS",
         },
         [Key.LoadoutsNoneForType] = new()
         {

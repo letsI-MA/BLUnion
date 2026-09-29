@@ -382,5 +382,41 @@
     "Description": "Finale Stage, zwei Akte gegen Goldor. Akt 1: Interrupt-Cast mit Fliegende Sardine, danach eine bewegungsintensive Feuersequenz (nah dranbleiben und mit Goblin-Faustschlag durchgaengig Schaden machen). Ein hochlebiger Schleim-Add laesst sich per Vibe Check (Stimme des Widders + Ultravibration) sofort erledigen. Feuerbaelle am Arenarand sind windschwach (z.B. Sonic Boom hilft), nach deren Zerstoerung dient die Stelle als Rueckstoss-Sicherheitszone. Eine starke Bewegungs-Debuff-Phase mit zwei Linien-AOEs laesst sich am saubersten per Sprung hinter den Gegner umgehen; ein DOT-Effekt wird mit Ausschaelung entfernt. Akt 2 kombiniert schrittweise mehrere 'Tutorial'-Mechaniken (Golem-Kreuzangriffe, Puppen-Kegel-AOEs mit Muschelpanzer ueberlebbar, ein Zyklop mit Einzug-Mechanik) zu immer komplexeren Kombinationen. Goldor tethert sich zeitweise an einen Kristall (Magieimmunitaet - daher physische Spells wichtig; der Kristall laesst sich zerstoeren, um das zu umgehen, kostet aber ein Achievement). Der schwierigste Teil ist eine chaotische Kombo-Phase gegen Ende, am sichersten mit Mighty Guard plus Muschelpanzer direkt am Gegner durchgestanden. Fuer das 'Glitterier Than Goldor'-Achievement: alle Elemente nutzen, nicht sprinten, Kristall in Akt 2 NICHT zerstoeren - keine Zeit- oder Schadenfreiheit-Anforderung, dadurch vergleichsweise entspannt trotz insgesamt anspruchsvollem Kampf.",
     "SourceNote": "Blue Academy (mage.blue)",
     "SourceUrl": "https://mage.blue/masked-carnivale/stages/32/"
+  },
+  {
+    "Id": "role-damage-dealer",
+    "ContentType": "DamageDealer",
+    "NameDe": "Angreifer",
+    "NameEn": "Damage Dealer",
+    "NameFr": "DPS",
+    "NameJa": "DPS",
+    "SpellIds": [11386, 11393, 11415, 11426, 11429, 18308, 18317, 18322, 18323, 18325, 23264, 23265, 23267, 23275, 23285, 23288, 23290, 34567, 34576, 34580, 34582]
+  },
+  {
+    "Id": "role-healer",
+    "ContentType": "Healer",
+    "NameDe": "Heiler",
+    "NameEn": "Healer",
+    "NameFr": "Soigneur",
+    "NameJa": "ヒーラー",
+    "SpellIds": [11386, 11406, 11411, 11415, 11426, 11429, 18303, 18304, 18305, 18308, 18317, 18322, 18323, 18325, 23269, 23272, 23275, 23288, 23290, 34580, 34582]
+  },
+  {
+    "Id": "role-off-healer",
+    "ContentType": "OffHealer",
+    "NameDe": "Off-Heiler",
+    "NameEn": "Off-Healer",
+    "NameFr": "Soigneur d'appoint",
+    "NameJa": "サブヒーラー",
+    "SpellIds": [11386, 11406, 11411, 11415, 11426, 11429, 18303, 18305, 18308, 18309, 18317, 18322, 18323, 18325, 23264, 23265, 23267, 23272, 23275, 23288, 23290, 34580, 34582]
+  },
+  {
+    "Id": "role-tank",
+    "ContentType": "Tank",
+    "NameDe": "Verteidiger",
+    "NameEn": "Tank",
+    "NameFr": "Tank",
+    "NameJa": "タンク",
+    "SpellIds": [11386, 11406, 11395, 11388, 11424, 11417, 11421, 11426, 11429, 18305, 18308, 18317, 18320, 18322, 18323, 18325, 23273, 23280, 23288, 23290, 34563, 34580, 34582]
   }
 ]

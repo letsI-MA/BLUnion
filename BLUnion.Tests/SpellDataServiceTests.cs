@@ -203,4 +203,21 @@ public class SpellDataServiceTests
         Assert.NotEmpty(service.Sources);
         Assert.Equal(service.Spells.Count, service.OrderedSpellIds.Count);
     }
+
+    [Fact]
+    public void Load_RealShippedLoadouts_ReferenceOnlyExistingSpells()
+    {
+        // Jede SpellId in Data/loadouts.json muss in Data/spells.json existieren - sonst zeigt der
+        // Loadouts-Tab nur den "Spell #{id}"-Fallback statt Name und Icon.
+        var service = new SpellDataService(new TestPluginLog());
+        var realDataDir = Path.Combine(AppContext.BaseDirectory, "TestData");
+
+        service.Load(realDataDir);
+
+        Assert.NotEmpty(service.Loadouts);
+        var unknown = service.Loadouts
+            .SelectMany(l => l.SpellIds.Where(id => !service.Spells.ContainsKey(id)).Select(id => $"{l.Id}: {id}"))
+            .ToList();
+        Assert.Empty(unknown);
+    }
 }

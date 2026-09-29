@@ -11,17 +11,7 @@ public sealed partial class MainWindow
     {
         this.DrawLastMessage();
 
-        if (ImGui.RadioButton(
-                UiStrings.Get(UiStrings.Key.LoadoutContentTypeMaskedCarnivale, this.displayLanguage),
-                this.loadoutContentTypeFilter == LoadoutContentType.MaskedCarnivale))
-            this.loadoutContentTypeFilter = LoadoutContentType.MaskedCarnivale;
-
-        ImGui.SameLine();
-
-        if (ImGui.RadioButton(
-                UiStrings.Get(UiStrings.Key.LoadoutContentTypeFates, this.displayLanguage),
-                this.loadoutContentTypeFilter == LoadoutContentType.Fates))
-            this.loadoutContentTypeFilter = LoadoutContentType.Fates;
+        this.DrawLoadoutContentTypeSelector();
 
         ImGui.Separator();
 
@@ -69,6 +59,42 @@ public sealed partial class MainWindow
         ImGui.EndChild();
     }
 
+    // Ein RadioButton pro Enum-Wert (Reihenfolge = Enum-Reihenfolge); bricht in die nächste Zeile um,
+    // sobald der nächste Button nicht mehr in die verfügbare Breite passt.
+    private void DrawLoadoutContentTypeSelector()
+    {
+        var style = ImGui.GetStyle();
+        var rightEdge = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
+        var first = true;
+
+        foreach (var contentType in Enum.GetValues<LoadoutContentType>())
+        {
+            var label = UiStrings.Get(GetLoadoutContentTypeKey(contentType), this.displayLanguage);
+
+            if (!first)
+            {
+                var buttonWidth = ImGui.GetFrameHeight() + style.ItemInnerSpacing.X + ImGui.CalcTextSize(label).X;
+                if (ImGui.GetItemRectMax().X + style.ItemSpacing.X + buttonWidth <= rightEdge)
+                    ImGui.SameLine();
+            }
+
+            if (ImGui.RadioButton(label, this.loadoutContentTypeFilter == contentType))
+                this.loadoutContentTypeFilter = contentType;
+
+            first = false;
+        }
+    }
+
+    private static UiStrings.Key GetLoadoutContentTypeKey(LoadoutContentType contentType) => contentType switch
+    {
+        LoadoutContentType.MaskedCarnivale => UiStrings.Key.LoadoutContentTypeMaskedCarnivale,
+        LoadoutContentType.Tank => UiStrings.Key.LoadoutContentTypeTank,
+        LoadoutContentType.Healer => UiStrings.Key.LoadoutContentTypeHealer,
+        LoadoutContentType.OffHealer => UiStrings.Key.LoadoutContentTypeOffHealer,
+        LoadoutContentType.DamageDealer => UiStrings.Key.LoadoutContentTypeDamageDealer,
+        _ => throw new ArgumentOutOfRangeException(nameof(contentType), contentType, null),
+    };
+
     private void DrawLoadoutDetailContent(Loadout loadout, IReadOnlySet<uint> learnedSpellIds)
     {
         ImGui.TextUnformatted(this.GetLoadoutName(loadout));
@@ -109,10 +135,17 @@ public sealed partial class MainWindow
             this.DrawSpellIcon(hasSpell ? spell!.IconId : 0u);
             ImGui.SameLine();
 
-            if (learnedSpellIds.Contains(spellId))
-                ImGui.TextColored(SuccessMessageColor, name);
-            else
-                ImGui.TextUnformatted(name);
+            var learned = learnedSpellIds.Contains(spellId);
+            if (learned)
+                ImGui.PushStyleColor(ImGuiCol.Text, SuccessMessageColor);
+
+            var clicked = ImGui.Selectable($"{name}##LoadoutSpell{loadout.Id}_{spellId}");
+
+            if (learned)
+                ImGui.PopStyleColor();
+
+            if (clicked)
+                this.JumpToSpellInSpellbook(spellId);
         }
     }
 

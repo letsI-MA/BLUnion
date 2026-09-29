@@ -163,8 +163,15 @@ public sealed partial class MainWindow
             this.DrawSpellIcon(spell.IconId);
             ImGui.SameLine();
 
-            if (ImGui.Selectable(this.GetSpellName(spell) + "##SpellbookListItem" + spell.Id, ReferenceEquals(spell, this.selectedSpellbookSpell)))
+            var isSelected = ReferenceEquals(spell, this.selectedSpellbookSpell);
+            if (ImGui.Selectable(this.GetSpellName(spell) + "##SpellbookListItem" + spell.Id, isSelected))
                 this.selectedSpellbookSpell = spell;
+
+            if (isSelected && this.scrollSpellbookToSelected)
+            {
+                ImGui.SetScrollHereY(0.5f);
+                this.scrollSpellbookToSelected = false;
+            }
         }
 
         ImGui.EndChild();

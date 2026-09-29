@@ -131,9 +131,18 @@ public sealed partial class MainWindow : Window, IDisposable
 
     // Analog zu pendingActiveCategoryTabId, aber für einen Sub-Tab INNERHALB des per
     // pendingActiveCategoryTabId angesprungenen Top-Level-Tabs (siehe z.B. DrawHomeTab: "Track"-
-    // Button springt zu Party -> Learning Plan in einem Klick) - gleiches Reset-Verhalten (auf null
-    // nach jedem Frame, siehe Ende von Draw()).
+    // Button springt zu Party -> Learning Plan in einem Klick).
+    //
+    // Beide Felder bleiben gesetzt, bis der Ziel-Tab tatsächlich sichtbar ist (siehe
+    // ClearPendingTabIfReached) - ein Reset nach jedem Frame verliert Sprünge aus Tabs, die im
+    // selben Frame NACH dem Ziel-Tab gezeichnet werden (z.B. Loadouts -> Spellbook: der Sub-Tab
+    // "Spellbook" ist bereits gezeichnet, wenn im Loadouts-Tab geklickt wird). Als Sicherung gegen
+    // ein nie erreichtes Ziel werden sie nach PendingTabNavigationMaxFrames verworfen.
     private string? pendingActiveSubTabId;
+
+    private const int PendingTabNavigationMaxFrames = 10;
+
+    private int pendingTabNavigationFrames;
 
     private enum DashboardCategory
     {
@@ -233,6 +242,9 @@ public sealed partial class MainWindow : Window, IDisposable
     private SpellbookFilterMode spellbookFilterMode = SpellbookFilterMode.All;
 
     private Spell? selectedSpellbookSpell;
+
+    // Einmaliges Scrollen der Spellbook-Liste zum ausgewählten Spell nach JumpToSpellInSpellbook.
+    private bool scrollSpellbookToSelected;
 
     private Loadout? selectedLoadout;
 
@@ -340,6 +352,7 @@ public sealed partial class MainWindow : Window, IDisposable
             var partyCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategoryParty, this.displayLanguage) + "###TabCategoryParty", partyCategoryFlags);
             if (partyCategoryActiveThisFrame)
             {
+                this.ClearPendingTabIfReached("TabCategoryParty");
                 this.DrawStatusBar();
 
                 if (ImGui.BeginTabBar("PartySubTabs"))
@@ -355,6 +368,7 @@ public sealed partial class MainWindow : Window, IDisposable
                         : ImGuiTabItemFlags.None;
                     if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellComparison, this.displayLanguage) + "###TabSpellComparison", comparisonSubTabFlags))
                     {
+                        this.ClearPendingTabIfReached("TabSpellComparison");
                         this.DrawComparisonTab();
                         ImGui.EndTabItem();
                     }
@@ -364,6 +378,7 @@ public sealed partial class MainWindow : Window, IDisposable
                         : ImGuiTabItemFlags.None;
                     if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabLearningPlan, this.displayLanguage) + "###TabLearningPlan", learningPlanSubTabFlags))
                     {
+                        this.ClearPendingTabIfReached("TabLearningPlan");
                         this.DrawLearningPlanTab();
                         ImGui.EndTabItem();
                     }
@@ -380,6 +395,7 @@ public sealed partial class MainWindow : Window, IDisposable
             var spellbookCategoryActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabCategorySpellbook, this.displayLanguage) + "###TabCategorySpellbook", spellbookCategoryFlags);
             if (spellbookCategoryActiveThisFrame)
             {
+                this.ClearPendingTabIfReached("TabCategorySpellbook");
                 this.DrawStatusBar();
 
                 if (ImGui.BeginTabBar("SpellbookSubTabs"))
@@ -389,6 +405,7 @@ public sealed partial class MainWindow : Window, IDisposable
                         : ImGuiTabItemFlags.None;
                     if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSpellbook, this.displayLanguage) + "###TabSpellbook", spellbookSubTabFlags))
                     {
+                        this.ClearPendingTabIfReached("TabSpellbook");
                         this.DrawSpellbookTab();
                         ImGui.EndTabItem();
                     }
@@ -411,6 +428,7 @@ public sealed partial class MainWindow : Window, IDisposable
             var groupsTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabGroupFinder, this.displayLanguage) + "###TabGroupFinder", groupsTabFlags);
             if (groupsTabActiveThisFrame)
             {
+                this.ClearPendingTabIfReached("TabGroupFinder");
                 this.DrawStatusBar();
 
                 var now = DateTimeOffset.UtcNow;
@@ -436,6 +454,7 @@ public sealed partial class MainWindow : Window, IDisposable
             var settingsTabActiveThisFrame = ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.TabSettings, this.displayLanguage) + "###TabSettings", settingsTabFlags);
             if (settingsTabActiveThisFrame)
             {
+                this.ClearPendingTabIfReached("TabSettings");
                 this.DrawStatusBar();
                 this.DrawSettingsTab();
                 ImGui.EndTabItem();
@@ -455,8 +474,25 @@ public sealed partial class MainWindow : Window, IDisposable
                 this.currentActiveCategory = DashboardCategory.Settings;
         }
 
-        this.pendingActiveCategoryTabId = null;
-        this.pendingActiveSubTabId = null;
+        if (this.pendingActiveCategoryTabId is null && this.pendingActiveSubTabId is null)
+        {
+            this.pendingTabNavigationFrames = 0;
+        }
+        else if (++this.pendingTabNavigationFrames > PendingTabNavigationMaxFrames)
+        {
+            this.pendingActiveCategoryTabId = null;
+            this.pendingActiveSubTabId = null;
+            this.pendingTabNavigationFrames = 0;
+        }
+    }
+
+    private void ClearPendingTabIfReached(string tabId)
+    {
+        if (this.pendingActiveCategoryTabId == tabId)
+            this.pendingActiveCategoryTabId = null;
+
+        if (this.pendingActiveSubTabId == tabId)
+            this.pendingActiveSubTabId = null;
     }
 
     private void DrawCategoryAccentStripe()

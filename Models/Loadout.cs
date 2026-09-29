@@ -3,7 +3,10 @@ namespace BLUnion.Models;
 public enum LoadoutContentType
 {
     MaskedCarnivale,
-    Fates,
+    Tank,
+    Healer,
+    OffHealer,
+    DamageDealer,
 }
 
 public sealed class Loadout

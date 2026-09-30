@@ -101,7 +101,7 @@ public sealed partial class MainWindow
                     foreach (var (monster, location, method) in sources)
                     {
                         ImGui.TextUnformatted(UiStrings.Format(
-                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
+                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
                     }
 
                     ImGui.EndTooltip();

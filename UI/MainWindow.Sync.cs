@@ -3,6 +3,7 @@ using BLUnion.Models;
 using BLUnion.Services;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Chat;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using EcChat = ECommons.Automation.Chat;
 
 namespace BLUnion.UI;
@@ -208,7 +209,7 @@ public sealed partial class MainWindow
     // Wird jeden Frame aus UiBuilder.Draw aufgerufen (siehe Plugin.cs) - NICHT aus MainWindow.Draw,
     // das nur bei geöffnetem Fenster läuft. Veröffentlicht den eigenen Status einmal pro Plugin-Start
     // in syncProvider.known, damit der eigene Charakter ohne Button-Klick dort steht. Bewusst NUR die
-    // Erzeugung: kein Clipboard, kein TryAutoShareToPartyChat (autoShareToPartyChat/lastAutoShareAt
+    // Erzeugung: kein Clipboard, kein TryAutoShareToPartyChat (configuration.AutoShareToPartyChat/lastAutoShareAt
     // bleiben unberührt) - das WANN des Teilens gehört ausschließlich dem Button-Pfad.
     // Wartet AutoPublishOwnStatusDelay nach dem ersten Frame mit Charakter, damit IUnlockState
     // gefüllt ist; der Code-String wird verworfen (er ist deterministisch und nicht gespeichert).
@@ -282,7 +283,7 @@ public sealed partial class MainWindow
 
     private bool TryAutoShareToPartyChat(string code)
     {
-        if (!this.autoShareToPartyChat || !this.partyService.IsInParty)
+        if (!this.configuration.AutoShareToPartyChat || !this.partyService.IsInParty)
             return false;
 
         var now = DateTimeOffset.UtcNow;
@@ -294,18 +295,33 @@ public sealed partial class MainWindow
         return true;
     }
 
+    // Nur Party/Cross-World-Party, nur von aktuellen Party-Mitgliedern, und der Code muss den Namen
+    // des Absenders tragen - Details siehe ChatAutoImportFilter.
     private void OnChatMessage(IHandleableChatMessage message)
     {
-        var senderName = message.Sender.TextValue;
-
-        var localPlayerName = this.partyService.GetLocalPlayerName();
-        if (localPlayerName is not null && string.Equals(senderName, localPlayerName, StringComparison.Ordinal))
+        if (!ChatAutoImportFilter.IsPartyChannel(message.LogKind))
             return;
 
         var text = message.Message.TextValue;
         var codeStart = text.IndexOf(ManualCodeSyncProvider.CurrentPrefix, StringComparison.Ordinal);
         if (codeStart < 0)
             return;
+
+        // PlayerPayload statt Sender.TextValue - der Anzeigetext kann Welt-Icons/Party-Nummern enthalten.
+        var senderPayload = message.Sender.Payloads.OfType<PlayerPayload>().FirstOrDefault();
+        var senderName = senderPayload?.PlayerName;
+        var senderWorld = senderPayload?.World.ValueNullable?.Name.ToString();
+
+        var localPlayerName = this.partyService.GetLocalPlayerName();
+        var decision = ChatAutoImportFilter.EvaluateMessage(
+            message.LogKind, senderName, senderWorld, localPlayerName, this.partyService.GetPartyMembers());
+        // senderName-Prüfung nur für die Null-Analyse - EvaluateMessage liefert Accept nie ohne Namen.
+        if (decision != ChatAutoImportDecision.Accept || senderName is null)
+        {
+            if (decision != ChatAutoImportDecision.SenderIsLocalPlayer)
+                this.log.Debug($"Sync-Code im Party-Chat ignoriert ({decision}, Absender \"{senderName}\").");
+            return;
+        }
 
         var codeEnd = codeStart;
         while (codeEnd < text.Length && !char.IsWhiteSpace(text[codeEnd]))
@@ -315,7 +331,19 @@ public sealed partial class MainWindow
 
         try
         {
-            this.syncProvider.ImportCode(code);
+            var codeDecision = ChatAutoImportDecision.Accept;
+            var imported = this.syncProvider.TryImportCode(
+                code,
+                codeName => (codeDecision = ChatAutoImportFilter.EvaluateCodeName(codeName, senderName, localPlayerName))
+                    == ChatAutoImportDecision.Accept,
+                out var codeCharacterName);
+
+            if (!imported)
+            {
+                this.log.Debug(
+                    $"Sync-Code im Party-Chat ignoriert ({codeDecision}, Absender \"{senderName}\", Name im Code \"{codeCharacterName}\").");
+                return;
+            }
 
             this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.AutoImportedMessage, this.displayLanguage, senderName));
         }

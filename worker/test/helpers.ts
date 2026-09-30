@@ -68,23 +68,19 @@ export async function deleteProfile(
   return callWorker(new Request(profileUrl(world, characterName), { method: "DELETE", headers }));
 }
 
-/** "_cacheBust" ist ein für den Handler bedeutungsloser Zusatzparameter (siehe handleBrowse/
- * handleGroupsBrowse - nur "dataCenter" wird ausgelesen), aber Teil der Request-URL und damit Teil
- * des withCache-Cache-Keys (siehe src/index.ts, caches.default ist PER URL, nicht per Test
- * isoliert - anders als KV, das laut @cloudflare/vitest-plugin-Doku pro Test zurückgesetzt wird).
- * OHNE das würden mehrere Tests, die denselben dataCenter browsen, den 20-Sekunden-Cache-Eintrag
- * eines VORHERIGEN Tests treffen und dessen (zu dem Zeitpunkt noch unvollständige) Ergebnisliste
- * sehen - kein Worker-Bug, sondern genau das beabsichtigte Server-Cache-Verhalten (siehe
- * BROWSE_CACHE_TTL_SECONDS-Doc), das hier bewusst umgangen wird, weil Integrationstests frische
- * Ergebnisse pro Aufruf brauchen. */
-function cacheBustParam(): string {
-  return `_cacheBust=${Date.now()}_${Math.random().toString(36).slice(2)}`;
+/** Eindeutiger Hostname pro Browse-Aufruf. withCache (src/index.ts) bildet den Cache-Key bewusst
+ * nur aus origin + pathname + kanonischem dataCenter und ignoriert alle anderen Query-Parameter
+ * (Schutz gegen Cache-Busting) - ein Zusatzparameter reicht deshalb NICHT mehr, um in Tests den
+ * 20-Sekunden-Cache-Eintrag eines vorherigen Tests zu umgehen (caches.default ist nicht pro Test
+ * isoliert, anders als KV). Ein anderer Host ist eine andere origin und damit ein anderer Key. */
+function uniqueBrowseOrigin(): string {
+  return `http://browse-${Date.now()}-${Math.random().toString(36).slice(2)}.example.com`;
 }
 
 export async function browseProfiles(dataCenter: string | null): Promise<Response> {
   const url = dataCenter
-    ? `http://example.com/profiles/browse?dataCenter=${encodeURIComponent(dataCenter)}&${cacheBustParam()}`
-    : `http://example.com/profiles/browse?${cacheBustParam()}`;
+    ? `${uniqueBrowseOrigin()}/profiles/browse?dataCenter=${encodeURIComponent(dataCenter)}`
+    : `${uniqueBrowseOrigin()}/profiles/browse`;
   return callWorker(new Request(url, { method: "GET" }));
 }
 
@@ -107,16 +103,38 @@ export async function deleteGroup(groupId: string, editToken?: string): Promise<
 
 export async function browseGroups(dataCenter: string | null): Promise<Response> {
   const url = dataCenter
-    ? `http://example.com/groups/browse?dataCenter=${encodeURIComponent(dataCenter)}&${cacheBustParam()}`
-    : `http://example.com/groups/browse?${cacheBustParam()}`;
+    ? `${uniqueBrowseOrigin()}/groups/browse?dataCenter=${encodeURIComponent(dataCenter)}`
+    : `${uniqueBrowseOrigin()}/groups/browse`;
   return callWorker(new Request(url, { method: "GET" }));
 }
 
-/** Eindeutiger Charaktername pro Test - vermeidet Kollisionen zwischen Tests über denselben
- * (persistenten, siehe cloudflare:test "reset()"-Doku - hier bewusst NICHT genutzt, um dem
- * bestehenden KV-Persistenzverhalten möglichst nahezukommen) KV-Namespace hinweg. */
+/** Eindeutiger, nach FFXIV-Regeln GÜLTIGER Charaktername pro Test (siehe isValidCharacterName in
+ * src/index.ts: "Vorname Nachname", je 2-15 Buchstaben, max. 21 Zeichen gesamt) - vermeidet
+ * Kollisionen zwischen Tests über denselben (persistenten, siehe cloudflare:test "reset()"-Doku -
+ * hier bewusst NICHT genutzt, um dem bestehenden KV-Persistenzverhalten möglichst nahezukommen)
+ * KV-Namespace hinweg. Der Vorname kommt aus dem (auf Buchstaben reduzierten, auf 12 Zeichen
+ * gekürzten) Präfix, der Nachname aus Zähler + Zufall, beides nur Buchstaben. */
 let uniqueCounter = 0;
 export function uniqueName(prefix: string): string {
   uniqueCounter += 1;
-  return `${prefix}${uniqueCounter}_${Date.now()}`;
+
+  const letters = prefix.replace(/[^A-Za-z]/g, "");
+  const firstName = (letters.charAt(0).toUpperCase() + letters.slice(1) + "xx").slice(0, Math.max(2, Math.min(12, letters.length)));
+  const lastName = "Q" + toLetters(uniqueCounter, 3) + toLetters(Math.floor(Math.random() * 26 ** 4), 4);
+
+  return `${firstName} ${lastName}`;
+}
+
+function toLetters(value: number, length: number): string {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result = String.fromCharCode(97 + (value % 26)) + result;
+    value = Math.floor(value / 26);
+  }
+  return result;
+}
+
+/** Gültige groupId (siehe isValidGroupId in src/index.ts - Plugin/Web-Companion erzeugen UUIDs). */
+export function uniqueGroupId(): string {
+  return crypto.randomUUID();
 }

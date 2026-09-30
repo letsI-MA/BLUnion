@@ -48,27 +48,27 @@ if (!DISCORD_APPLICATION_ID || !DISCORD_BOT_TOKEN || !DISCORD_TEST_GUILD_ID) {
 // eigenen Sub-Commands - dieselbe Kernlogik (browse), nur ein anderer Ergebnis-/Embed-Typ.
 const commandDefinition = {
   name: "blunion",
-  description: "BLUnion Gruppenfinder",
+  description: "BLUnion group finder",
   options: [
     {
       name: "browse",
-      description: "Öffentlich gelistete Blue-Mage-Gruppen oder Spieler-Gesuche auf einem Data Center anzeigen",
+      description: "Show publicly listed Blue Mage groups or players looking for a group on a data center",
       type: 1, // SUB_COMMAND
       options: [
         {
           name: "datacenter",
-          description: 'Data Center, z.B. "Aether", "Chaos", "Light" (optional)',
+          description: 'Data center, e.g. "Aether", "Chaos", "Light" (optional)',
           type: 3, // STRING
           required: false,
         },
         {
           name: "type",
-          description: 'Was anzeigen: Gruppen (Standard) oder einzelne Spieler-Gesuche (optional)',
+          description: 'What to show: groups (default) or individual players looking for a group (optional)',
           type: 3, // STRING
           required: false,
           choices: [
-            { name: "Gruppen", value: "groups" },
-            { name: "Spieler", value: "players" },
+            { name: "Groups", value: "groups" },
+            { name: "Players", value: "players" },
           ],
         },
       ],

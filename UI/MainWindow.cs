@@ -98,6 +98,10 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private bool lastMessageIsError;
 
+    // Optionaler Link zur aktuellen Meldung (z.B. Discord bei "Name bereits belegt") - DrawLastMessage
+    // zeigt dann einen Button daneben. Wird von jedem Set*Message/ClearMessage zurückgesetzt.
+    private string? lastMessageLinkUrl;
+
     // Eigenes Feld statt lastMessageIsError wiederzuverwenden (siehe DrawStatusBar) - lastError wird
     // auch für sync-fremde Fehler gesetzt (z.B. ImportFailed, GenericError beim Browser-Öffnen), das
     // Status-Symbol soll aber ausschließlich den letzten LiveSync-Vorgang widerspiegeln. Nur in
@@ -105,19 +109,21 @@ public sealed partial class MainWindow : Window, IDisposable
     // *Published-Kind.
     private bool lastSyncHadError;
 
-    private bool autoShareToPartyChat = true;
-
     private DateTimeOffset? lastAutoShareAt;
 
     // Einmal-Latch für TryAutoPublishOwnStatus (nur Speicher, nicht persistiert) - unabhängig von
-    // autoShareToPartyChat/lastAutoShareAt oben, die nur das Teilen per Button betreffen.
+    // configuration.AutoShareToPartyChat/lastAutoShareAt oben, die nur das Teilen per Button betreffen.
     private bool ownStatusAutoPublishDone;
 
     private DateTimeOffset? localPlayerFirstSeenAt;
 
     private bool excludeTotems;
 
+    // Effektive Anzeigesprache: configuration.DisplayLanguage, oder - wenn dort null (= automatisch) -
+    // clientDisplayLanguage. Siehe ApplyDisplayLanguageSetting.
     private DisplayLanguage displayLanguage;
+
+    private readonly DisplayLanguage clientDisplayLanguage;
 
     private bool groupFinderTabWasActive;
 
@@ -275,7 +281,7 @@ public sealed partial class MainWindow : Window, IDisposable
         this.chatGui = chatGui;
         this.log = log;
 
-        this.displayLanguage = clientState.ClientLanguage switch
+        this.clientDisplayLanguage = clientState.ClientLanguage switch
         {
             ClientLanguage.German => DisplayLanguage.German,
             ClientLanguage.English => DisplayLanguage.English,
@@ -283,6 +289,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ClientLanguage.Japanese => DisplayLanguage.Japanese,
             _ => DisplayLanguage.English,
         };
+        this.ApplyDisplayLanguageSetting();
 
         this.SizeConstraints = new WindowSizeConstraints
         {
@@ -581,12 +588,15 @@ public sealed partial class MainWindow : Window, IDisposable
         this.lastSyncHadError = kind switch
         {
             LiveSyncEventKind.PushFailed
+                or LiveSyncEventKind.PushNameTaken
                 or LiveSyncEventKind.FetchFailed
                 or LiveSyncEventKind.DeleteFailed
                 or LiveSyncEventKind.BrowseFailed
                 or LiveSyncEventKind.GroupBrowseFailed
                 or LiveSyncEventKind.DevTestProfilesFailed
                 or LiveSyncEventKind.GroupPublishFailed
+                or LiveSyncEventKind.GroupPublishCreatorRejected
+                or LiveSyncEventKind.GroupPublishMissingMembers
                 or LiveSyncEventKind.GroupUnpublishFailed => true,
             LiveSyncEventKind.PushSucceeded
                 or LiveSyncEventKind.DeleteSucceeded
@@ -603,6 +613,9 @@ public sealed partial class MainWindow : Window, IDisposable
                 break;
             case LiveSyncEventKind.PushFailed:
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncPushFailed, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.PushNameTaken:
+                this.SetErrorMessage(UiStrings.Get(UiStrings.Key.LiveSyncPushNameTaken, this.displayLanguage), DiscordInviteUrl);
                 break;
             case LiveSyncEventKind.FetchFailed:
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.LiveSyncFetchFailed, this.displayLanguage, detail ?? "?"));
@@ -631,6 +644,12 @@ public sealed partial class MainWindow : Window, IDisposable
                 break;
             case LiveSyncEventKind.GroupPublishFailed:
                 this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GroupPublishFailedMessage, this.displayLanguage, detail ?? "?"));
+                break;
+            case LiveSyncEventKind.GroupPublishCreatorRejected:
+                this.SetErrorMessage(UiStrings.Get(UiStrings.Key.GroupPublishCreatorRejectedMessage, this.displayLanguage));
+                break;
+            case LiveSyncEventKind.GroupPublishMissingMembers:
+                this.SetErrorMessage(UiStrings.Format(UiStrings.Key.GroupPublishMissingMembersMessage, this.displayLanguage, detail ?? "?"));
                 break;
             case LiveSyncEventKind.GroupUnpublishSucceeded:
                 this.SetSuccessMessage(UiStrings.Get(UiStrings.Key.GroupUnpublishSucceededMessage, this.displayLanguage));

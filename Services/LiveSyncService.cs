@@ -11,6 +11,10 @@ public enum LiveSyncEventKind
 {
     PushSucceeded,
     PushFailed,
+
+    // Worker-409 mit reason "name_taken": für diesen Charakter existiert ein Profil, und wir haben
+    // kein Token dafür - vermutlich hat jemand anderes den Namen belegt (siehe ClassifyPushFailure).
+    PushNameTaken,
     FetchFailed,
     DeleteSucceeded,
     DeleteFailed,
@@ -24,6 +28,13 @@ public enum LiveSyncEventKind
     GroupPublishSucceeded,
 
     GroupPublishFailed,
+
+    // Worker-403 beim Gruppen-Publish: eigenes Profil fehlt/abgelaufen oder X-Creator-Token passt
+    // nicht (siehe verifyGroupCreator im Worker). Auch lokal gesetzt, wenn gar kein Token existiert.
+    GroupPublishCreatorRejected,
+
+    // Worker-400 mit missingMembers - detail = "Name (World), ..." der Mitglieder ohne Profil.
+    GroupPublishMissingMembers,
 
     GroupUnpublishSucceeded,
 
@@ -231,7 +242,11 @@ public sealed class LiveSyncService : IDisposable
                 {
                     var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
                     this.log.Warning($"LiveSyncService: Push fehlgeschlagen ({detail}) für \"{localName}@{localWorld}\".");
-                    this.SetPendingResult(LiveSyncEventKind.PushFailed, detail);
+
+                    var reason = response.StatusCode == HttpStatusCode.Conflict
+                        ? (await TryReadJsonAsync<PushErrorBody>(response).ConfigureAwait(false))?.Reason
+                        : null;
+                    this.SetPendingResult(ClassifyPushFailure(response.StatusCode, reason), detail);
                     return;
                 }
 
@@ -538,11 +553,11 @@ public sealed class LiveSyncService : IDisposable
     // Charles (maxStars 4): 5-Stern-Spells (das aktuelle Maximum).
     private static readonly IReadOnlyList<DevTestProfileSpec> DevTestProfileSpecs = new List<DevTestProfileSpec>
     {
-        new("Alice", DevTestFixtures.CreateAlice, new List<string> { "evening" }, "Testgruppe mit Charles", 1,
+        new("Alice Test", DevTestFixtures.CreateAlice, new List<string> { "evening" }, "Testgruppe mit Charles", 1,
             new List<uint> { 11386, 11391, 11393 }), // Song of Torment, Plaincracker, Bristle
-        new("Bob", DevTestFixtures.CreateBob, new List<string> { "flexible" }, "Suche Gruppe", 3,
+        new("Bob Test", DevTestFixtures.CreateBob, new List<string> { "flexible" }, "Suche Gruppe", 3,
             new List<uint> { 11383, 11384, 11387 }), // Snort, 4-tonze Weight, High Voltage
-        new("Charles", DevTestFixtures.CreateCharles, new List<string> { "evening" }, "Testgruppe mit Alice", 1,
+        new("Charles Test", DevTestFixtures.CreateCharles, new List<string> { "evening" }, "Testgruppe mit Alice", 1,
             new List<uint> { 11426, 11427, 11428 }), // Feather Rain, Eruption, Mountain Buster
     };
 
@@ -772,8 +787,38 @@ public sealed class LiveSyncService : IDisposable
             return;
         }
 
+        // Ersteller-Nachweis (Worker: verifyGroupCreator) - ohne eigenes Live-Sync-Profil kein Publish.
+        // Die UI deaktiviert den Button in dem Fall schon, das hier ist nur die zweite Absicherung.
+        if (!this.configuration.LiveSyncEditTokens.TryGetValue(BuildTokenKey(localName, localWorld), out var creatorToken))
+        {
+            this.SetPendingResult(LiveSyncEventKind.GroupPublishCreatorRejected, null);
+            return;
+        }
+
+        var membersWithCreator = WithCreatorAsMember(members, localName, localWorld);
+        if (membersWithCreator.Count > GroupMemberCountMax)
+        {
+            this.SetPendingResult(
+                LiveSyncEventKind.GroupPublishFailed,
+                $"Mitgliederanzahl muss zwischen {GroupMemberCountMin} und {GroupMemberCountMax} liegen (aktuell {membersWithCreator.Count}).");
+            return;
+        }
+
         this.groupPublishInFlight = true;
-        _ = this.PublishGroupAsync(members, visible, tags, note, wantedPlayerCount, targetSpellIds, localName, localWorld);
+        _ = this.PublishGroupAsync(
+            membersWithCreator, visible, tags, note, wantedPlayerCount, targetSpellIds, localName, localWorld, creatorToken);
+    }
+
+    // Der Worker verlangt, dass der Ersteller selbst Mitglied ist - fehlt er in der Auswahl, wird er
+    // vorne eingefügt (Vergleich case-insensitiv wie der KV-Key im Worker).
+    internal static IReadOnlyList<(string World, string CharacterName)> WithCreatorAsMember(
+        IReadOnlyList<(string World, string CharacterName)> members, string creatorName, string creatorWorld)
+    {
+        var containsCreator = members.Any(member =>
+            string.Equals(member.CharacterName, creatorName, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(member.World, creatorWorld, StringComparison.OrdinalIgnoreCase));
+
+        return containsCreator ? members : [(creatorWorld, creatorName), .. members];
     }
 
     private Task PublishGroupAsync(
@@ -784,7 +829,8 @@ public sealed class LiveSyncService : IDisposable
         int wantedPlayerCount,
         IReadOnlyCollection<uint> targetSpellIds,
         string localName,
-        string localWorld) =>
+        string localWorld,
+        string creatorToken) =>
         this.RunGuardedAsync(
             async () =>
             {
@@ -796,15 +842,41 @@ public sealed class LiveSyncService : IDisposable
                 if (isUpdate)
                     this.configuration.GroupFinderGroupEditTokens.TryGetValue(groupId, out editToken);
 
-                var requestBody = BuildPutGroupRequestBody(members, visible, tags, note, wantedPlayerCount, targetSpellIds, editToken);
+                var requestBody = BuildPutGroupRequestBody(
+                    members, visible, tags, note, wantedPlayerCount, targetSpellIds, editToken, localWorld, localName);
 
-                var url = BuildGroupUrl(groupId);
-                using var response = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
+                using var request = new HttpRequestMessage(HttpMethod.Put, BuildGroupUrl(groupId))
+                {
+                    Content = JsonContent.Create(requestBody, options: JsonOptions),
+                };
+                request.Headers.Add("X-Creator-Token", creatorToken);
+
+                using var response = await this.httpClient.SendAsync(request).ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var detail = DescribeHttpFailure(response.StatusCode, response.ReasonPhrase);
                     this.log.Warning($"LiveSyncService: Gruppen-Publish fehlgeschlagen ({detail}) für groupId \"{groupId}\".");
+
+                    if (response.StatusCode == HttpStatusCode.Forbidden)
+                    {
+                        this.SetPendingResult(LiveSyncEventKind.GroupPublishCreatorRejected, null);
+                        return;
+                    }
+
+                    if (response.StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        var errorBody = await TryReadJsonAsync<GroupPublishErrorBody>(response).ConfigureAwait(false);
+                        if (errorBody?.MissingMembers is { Count: > 0 } missingMembers)
+                        {
+                            this.SetPendingResult(LiveSyncEventKind.GroupPublishMissingMembers, DescribeMissingMembers(missingMembers));
+                            return;
+                        }
+
+                        if (!string.IsNullOrEmpty(errorBody?.Error))
+                            detail = errorBody!.Error!;
+                    }
+
                     this.SetPendingResult(LiveSyncEventKind.GroupPublishFailed, detail);
                     return;
                 }
@@ -957,6 +1029,31 @@ public sealed class LiveSyncService : IDisposable
             .Select(tag => tag!.Value)
             .ToList();
 
+    // Kaputter/fehlender Fehler-Body ist kein eigener Fehler - dann bleibt es bei der HTTP-Statusmeldung.
+    private static async Task<T?> TryReadJsonAsync<T>(HttpResponseMessage response)
+        where T : class
+    {
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<T>(JsonOptions).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    // 409 "name_taken" (kein eigenes Token, Profil existiert) bekommt eine eigene Meldung mit
+    // Discord-Hinweis; "token_mismatch" (gespeichertes Token passt nicht mehr) und alles andere
+    // bleiben ein normaler PushFailed.
+    private static LiveSyncEventKind ClassifyPushFailure(HttpStatusCode statusCode, string? reason) =>
+        statusCode == HttpStatusCode.Conflict && reason == "name_taken"
+            ? LiveSyncEventKind.PushNameTaken
+            : LiveSyncEventKind.PushFailed;
+
+    private static string DescribeMissingMembers(IEnumerable<GroupMemberWire> missingMembers) =>
+        string.Join(", ", missingMembers.Select(member => $"{member.CharacterName} ({member.World})"));
+
     private static string DescribeHttpFailure(HttpStatusCode statusCode, string? reasonPhrase) =>
         string.IsNullOrEmpty(reasonPhrase) ? $"HTTP {(int)statusCode}" : $"HTTP {(int)statusCode} {reasonPhrase}";
 
@@ -977,7 +1074,9 @@ public sealed class LiveSyncService : IDisposable
         string note,
         int wantedPlayerCount,
         IReadOnlyCollection<uint> targetSpellIds,
-        string? editToken) =>
+        string? editToken,
+        string creatorWorld,
+        string creatorCharacterName) =>
         new(
             members.Select(m => new GroupMemberWire(m.World, m.CharacterName)).ToList(),
             editToken,
@@ -985,7 +1084,9 @@ public sealed class LiveSyncService : IDisposable
             tags.Select(tag => tag.ToWireValue()).ToList(),
             note,
             wantedPlayerCount,
-            targetSpellIds.ToList());
+            targetSpellIds.ToList(),
+            creatorWorld,
+            creatorCharacterName);
 
     public void Dispose() => this.httpClient.Dispose();
 
@@ -1010,6 +1111,9 @@ public sealed class LiveSyncService : IDisposable
 
     private sealed record FetchResponseBody(string? SpellBitmaskBase64);
 
+    // Fehler-Body von PUT /profile - reason nur bei 409 ("name_taken" | "token_mismatch").
+    private sealed record PushErrorBody(string? Error, string? Reason);
+
     private sealed record GroupMemberWire(string World, string CharacterName);
 
     private sealed record PutGroupRequestBody(
@@ -1019,7 +1123,12 @@ public sealed class LiveSyncService : IDisposable
         List<string>? AvailabilityTags,
         string? Note,
         int? WantedPlayerCount,
-        List<uint>? TargetSpellIds);
+        List<uint>? TargetSpellIds,
+        string CreatorWorld,
+        string CreatorCharacterName);
+
+    // Fehler-Body von PUT /group - missingMembers nur bei 400 wegen Mitgliedern ohne Profil.
+    private sealed record GroupPublishErrorBody(string? Error, List<GroupMemberWire>? MissingMembers);
 
     private sealed record PutGroupResponseBody(
         string? EditToken,

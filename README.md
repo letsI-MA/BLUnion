@@ -40,6 +40,8 @@ Built on top of Live-Sync. You can put yourself (or your current party) into a p
 
 Nothing is public unless you actually publish an entry, and you can delete it at any time.
 
+Character names in the Group Finder are not verified - anyone could publish under someone else's name. If you spot a fake entry or someone is using your name, report it on the [Discord](https://discord.gg/uGW7kBG67) and it will be removed.
+
 ## What gets stored
 
 Only relevant if you use Live-Sync or the Group Finder - otherwise nothing leaves your PC.
@@ -49,7 +51,7 @@ Only relevant if you use Live-Sync or the Group Finder - otherwise nothing leave
 - If you publish a Group Finder entry: your note, availability, wanted player count, and target spells
 - A hashed edit token, so only you can change or delete your profile
 
-Profiles expire on their own after 90 days without an update, and "Delete my profile" in the settings removes yours right away. The backend is a Cloudflare Worker, the code is in [`worker/`](worker/).
+Profiles expire on their own after 90 days without an update, and "Delete my profile" in the settings removes yours right away. Names are not verified against the game; misuse (e.g. a profile under your name that isn't yours) can be reported on the [Discord](https://discord.gg/uGW7kBG67). The backend is a Cloudflare Worker, the code is in [`worker/`](worker/).
 
 ## Installing it
 

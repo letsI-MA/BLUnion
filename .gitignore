@@ -3,6 +3,9 @@ obj/
 *.user
 .vs/
 
+# Release-Zip (DalamudPackager) - Releases laufen über GitHub Releases, siehe pluginmaster.json.
+BLUnion-latest.zip
+
 # OS-generierte Dateien (repo-weit, Muster ohne führenden Slash greift auf jeder Ebene) -
 # betrifft potenziell jeden Ordner (worker/, docs/, tools/kv-mirror/, ...), daher hier zentral
 # statt in jedem Unterordner einzeln.

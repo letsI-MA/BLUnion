@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatTargetSpellOrders } from "../src/index";
 import {
   browseProfiles, callWorker, KNOWN_SPELL_IDS_SAMPLE, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, putProfile,
-  uniqueName, validBitmaskBase64,
+  uniqueGroupId, uniqueName, validBitmaskBase64,
 } from "./helpers";
 
 /**
@@ -157,22 +157,22 @@ describe("POST /discord/interactions - /blunion browse", () => {
 
     expect(response.status).toBe(200);
     expect(json.type).toBe(4); // CHANNEL_MESSAGE_WITH_SOURCE
-    expect(json.data.content).toMatch(/Data Center/);
+    expect(json.data.content).toMatch(/data center/);
   });
 
   it("returns a friendly chat message (no empty embed) when no groups are listed", async () => {
     const request = await signedDiscordRequest(
-      JSON.stringify(browseCommandInteraction(uniqueName("KeinSolchesDC"))));
+      JSON.stringify(browseCommandInteraction("Materia")));
     const response = await callWorker(request);
     const json = await response.json<{ type: number; data: { content: string; embeds?: unknown[] } }>();
 
     expect(response.status).toBe(200);
     expect(json.data.embeds).toBeUndefined();
-    expect(json.data.content).toMatch(/[Kk]eine.*Gruppen/);
+    expect(json.data.content).toMatch(/No publicly listed groups/);
   });
 
   it("returns an embed with the group's note/members/availability for a listed group, without editToken", async () => {
-    const groupId = uniqueName("discord-group-");
+    const groupId = uniqueGroupId();
     const memberName = uniqueName("DiscordMitglied");
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: memberName }],
@@ -197,7 +197,7 @@ describe("POST /discord/interactions - /blunion browse", () => {
     expect(field).toBeDefined();
     expect(field!.value).toContain(KNOWN_WORLD);
     expect(field!.value).toContain(memberName);
-    expect(field!.value).toContain("evening");
+    expect(field!.value).toContain("Evening");
     expect(field!.value).toContain("1/4");
 
     // Ohne editToken/interne Felder im Embed (siehe Aufgabenstellung).
@@ -209,7 +209,7 @@ describe("POST /discord/interactions - /blunion browse", () => {
   });
 
   it("shows targetSpellIds as sorted, language-independent order numbers (e.g. '#25, #26')", async () => {
-    const groupId = uniqueName("discord-group-spells-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("SpellMitglied") }],
       visibility: "listed",
@@ -229,11 +229,11 @@ describe("POST /discord/interactions - /blunion browse", () => {
     expect(field).toBeDefined();
     // KNOWN_SPELL_IDS_SAMPLE = [11383, 11384], deren order-Werte sind 25 und 26 (siehe
     // src/spellOrder.ts) - aufsteigend sortiert also #25 vor #26.
-    expect(field!.value).toContain("Ziel-Spells: #25, #26");
+    expect(field!.value).toContain("Target spells: #25, #26");
   });
 
-  it("omits the 'Ziel-Spells' line entirely when the group has no targetSpellIds", async () => {
-    const groupId = uniqueName("discord-group-nospells-");
+  it("omits the 'Target spells' line entirely when the group has no targetSpellIds", async () => {
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -249,11 +249,11 @@ describe("POST /discord/interactions - /blunion browse", () => {
 
     const field = json.data.embeds[0]!.fields.find((f) => f.name === "Ohne Ziel-Spells");
     expect(field).toBeDefined();
-    expect(field!.value).not.toContain("Ziel-Spells");
+    expect(field!.value).not.toContain("Target spells");
   });
 
-  it("omits the 'Verfügbarkeit' line entirely (no '-' placeholder) when availabilityTags is empty", async () => {
-    const groupId = uniqueName("discord-group-noavail-");
+  it("omits the 'Availability' line entirely (no '-' placeholder) when availabilityTags is empty", async () => {
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -269,12 +269,12 @@ describe("POST /discord/interactions - /blunion browse", () => {
 
     const field = json.data.embeds[0]!.fields.find((f) => f.name === "Ohne Verfügbarkeit");
     expect(field).toBeDefined();
-    expect(field!.value).not.toContain("Verfügbarkeit");
+    expect(field!.value).not.toContain("Availability");
     expect(field!.value).not.toContain(" - ");
   });
 
   it("does not surface unlisted groups", async () => {
-    const groupId = uniqueName("discord-unlisted-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "unlisted",
@@ -297,7 +297,7 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
     // Ein Data Center mit sowohl einer gelisteten Gruppe ALS AUCH einem gelisteten Einzelprofil -
     // zeigt in einem Test direkt, dass die "type"-Option tatsächlich zwischen den beiden Embeds
     // umschaltet, statt nur zufällig das jeweils einzige vorhandene Ergebnis zu zeigen.
-    const groupId = uniqueName("discord-switch-group-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -320,7 +320,7 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
     const playerFieldNames = playersJson.data.embeds[0]!.fields.map((f) => f.name);
     expect(playerFieldNames).toContain(`${characterName} (${KNOWN_WORLD})`);
     expect(playerFieldNames).not.toContain("Umschalt-Testgruppe");
-    expect(playersJson.data.embeds[0]!.title).toContain("Spieler");
+    expect(playersJson.data.embeds[0]!.title).toContain("looking for groups");
 
     // KEINE "type"-Option -> weiterhin das bisherige Gruppen-Embed (Rückwärtskompatibilität für
     // bereits registrierte Guild-Commands ohne diese neuere Option, siehe
@@ -333,14 +333,14 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
     const groupFieldNames = groupsJson.data.embeds[0]!.fields.map((f) => f.name);
     expect(groupFieldNames).toContain("Umschalt-Testgruppe");
     expect(groupFieldNames).not.toContain(`${characterName} (${KNOWN_WORLD})`);
-    expect(groupsJson.data.embeds[0]!.title).toContain("Gruppen");
+    expect(groupsJson.data.embeds[0]!.title).toContain("Blue Mage groups");
   });
 
   it("falls back to groups for an unknown/unregistered type value", async () => {
     // Simuliert eine Interaction von einem Server, dessen Command-Registrierung noch die
     // choices-Liste einer künftigen Discord-Version kennt, die dieser Wrangler-Stand nicht
     // (siehe handleDiscordApplicationCommand-Doc) - darf NICHT abstürzen, sondern zeigt Gruppen.
-    const groupId = uniqueName("discord-group-fallback-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -363,18 +363,18 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
 
     expect(response.status).toBe(200);
     expect(json.type).toBe(4); // CHANNEL_MESSAGE_WITH_SOURCE
-    expect(json.data.content).toMatch(/Data Center/);
+    expect(json.data.content).toMatch(/data center/);
   });
 
   it("returns a friendly chat message (no empty embed) when no players are listed", async () => {
     const request = await signedDiscordRequest(
-      JSON.stringify(browseCommandInteraction(uniqueName("KeinSolchesDC"), "players")));
+      JSON.stringify(browseCommandInteraction("Materia", "players")));
     const response = await callWorker(request);
     const json = await response.json<{ type: number; data: { content: string; embeds?: unknown[] } }>();
 
     expect(response.status).toBe(200);
     expect(json.data.embeds).toBeUndefined();
-    expect(json.data.content).toMatch(/[Kk]eine.*Spieler/);
+    expect(json.data.content).toMatch(/No publicly listed players/);
   });
 
   it("returns an embed with the player's note/availability/wantedPlayerCount for a listed profile", async () => {
@@ -401,8 +401,8 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
     const field = json.data.embeds[0]!.fields.find((f) => f.name === `${characterName} (${KNOWN_WORLD})`);
     expect(field).toBeDefined();
     expect(field!.value).toContain("Testspieler für Discord");
-    expect(field!.value).toContain("evening");
-    expect(field!.value).toContain("Gesucht: 4 Mitspieler");
+    expect(field!.value).toContain("Evening");
+    expect(field!.value).toContain("Looking for: 4 players");
 
     // Ohne editToken/interne Felder im Embed (siehe Aufgabenstellung, gilt hier analog).
     const embedJson = JSON.stringify(json.data.embeds);
@@ -433,10 +433,10 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
     expect(field).toBeDefined();
     // KNOWN_SPELL_IDS_SAMPLE = [11383, 11384], deren order-Werte sind 25 und 26 (siehe
     // src/spellOrder.ts) - aufsteigend sortiert also #25 vor #26.
-    expect(field!.value).toContain("Ziel-Spells: #25, #26");
+    expect(field!.value).toContain("Target spells: #25, #26");
   });
 
-  it("omits the 'Ziel-Spells' line entirely when the profile has no targetSpellIds", async () => {
+  it("omits the 'Target spells' line entirely when the profile has no targetSpellIds", async () => {
     const characterName = uniqueName("DiscordNoSpellSpieler");
     await putProfile(KNOWN_WORLD, characterName, {
       spellBitmaskBase64: validBitmaskBase64(),
@@ -453,7 +453,7 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
 
     const field = json.data.embeds[0]!.fields.find((f) => f.name === `${characterName} (${KNOWN_WORLD})`);
     expect(field).toBeDefined();
-    expect(field!.value).not.toContain("Ziel-Spells");
+    expect(field!.value).not.toContain("Target spells");
   });
 
   it("does not surface unlisted profiles", async () => {

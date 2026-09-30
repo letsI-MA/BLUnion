@@ -220,7 +220,7 @@ public class LiveSyncServiceTests
 
         var body = InvokeStatic(
             "BuildPutGroupRequestBody",
-            members, true, new List<AvailabilityTag> { AvailabilityTag.Morning }, "Gruppennotiz", 3, new List<uint> { 5u }, "grp-token")!;
+            members, true, new List<AvailabilityTag> { AvailabilityTag.Morning }, "Gruppennotiz", 3, new List<uint> { 5u }, "grp-token", "Gilgamesh", "Alice")!;
 
         Assert.Equal("listed", GetProperty<string?>(body, "Visibility"));
         Assert.Equal("grp-token", GetProperty<string?>(body, "EditToken"));
@@ -228,6 +228,8 @@ public class LiveSyncServiceTests
         Assert.Equal(3, GetProperty<int?>(body, "WantedPlayerCount"));
         Assert.Equal(["morning"], GetProperty<List<string>?>(body, "AvailabilityTags"));
         Assert.Equal([5u], GetProperty<List<uint>?>(body, "TargetSpellIds"));
+        Assert.Equal("Gilgamesh", GetProperty<string>(body, "CreatorWorld"));
+        Assert.Equal("Alice", GetProperty<string>(body, "CreatorCharacterName"));
 
         var membersWire = ((System.Collections.IEnumerable)GetProperty<object>(body, "Members")!).Cast<object>().ToList();
         Assert.Equal(2, membersWire.Count);
@@ -242,7 +244,7 @@ public class LiveSyncServiceTests
         IReadOnlyList<(string World, string CharacterName)> members = [("Gilgamesh", "Alice")];
 
         var body = InvokeStatic(
-            "BuildPutGroupRequestBody", members, false, new List<AvailabilityTag>(), "", 0, new List<uint>(), null)!;
+            "BuildPutGroupRequestBody", members, false, new List<AvailabilityTag>(), "", 0, new List<uint>(), null, "Gilgamesh", "Alice")!;
 
         Assert.Equal("unlisted", GetProperty<string?>(body, "Visibility"));
         Assert.Null(GetProperty<string?>(body, "EditToken"));
@@ -523,5 +525,155 @@ public class LiveSyncServiceTests
         Assert.True(service.TryTakePendingResult(out var kind, out var detail));
         Assert.Equal(LiveSyncEventKind.GroupPublishFailed, kind);
         Assert.Contains("Ziel-Spells", detail);
+    }
+
+    // ----- Gruppen-Ersteller (Worker: verifyGroupCreator) -----
+
+    [Fact]
+    public void WithCreatorAsMember_AddsMissingCreatorAtFront()
+    {
+        IReadOnlyList<(string World, string CharacterName)> members = [("Cerberus", "Bob Test")];
+
+        var result = (IReadOnlyList<(string World, string CharacterName)>)InvokeStatic(
+            "WithCreatorAsMember", members, "Alice Test", "Gilgamesh")!;
+
+        Assert.Equal([("Gilgamesh", "Alice Test"), ("Cerberus", "Bob Test")], result);
+    }
+
+    [Fact]
+    public void WithCreatorAsMember_DoesNotDuplicateCreator_CaseInsensitive()
+    {
+        IReadOnlyList<(string World, string CharacterName)> members = [("gilgamesh", "alice test"), ("Cerberus", "Bob Test")];
+
+        var result = (IReadOnlyList<(string World, string CharacterName)>)InvokeStatic(
+            "WithCreatorAsMember", members, "Alice Test", "Gilgamesh")!;
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task PublishGroupAsync_SendsCreatorFieldsAndCreatorTokenHeader()
+    {
+        string? creatorHeader = null;
+        using var handler = new FakeHttpMessageHandler(request =>
+        {
+            creatorHeader = request.Headers.TryGetValues("X-Creator-Token", out var values) ? values.Single() : null;
+            return JsonResponse(HttpStatusCode.Created, """{ "editToken": "grp", "visibility": "listed" }""");
+        });
+        using var service = CreateService(handler);
+
+        await InvokePublishGroupAsync(service, "profil-token");
+
+        Assert.Equal("profil-token", creatorHeader);
+        var body = Assert.Single(handler.Requests).Body!;
+        Assert.Contains("\"creatorWorld\":\"Gilgamesh\"", body);
+        Assert.Contains("\"creatorCharacterName\":\"Alice Test\"", body);
+        Assert.True(service.TryTakePendingResult(out var kind, out _));
+        Assert.Equal(LiveSyncEventKind.GroupPublishSucceeded, kind);
+    }
+
+    [Fact]
+    public async Task PublishGroupAsync_Forbidden_SetsCreatorRejected()
+    {
+        using var handler = new FakeHttpMessageHandler(_ =>
+            JsonResponse(HttpStatusCode.Forbidden, """{ "error": "Ersteller-Nachweis fehlgeschlagen" }"""));
+        using var service = CreateService(handler);
+
+        await InvokePublishGroupAsync(service, "falsch");
+
+        Assert.True(service.TryTakePendingResult(out var kind, out _));
+        Assert.Equal(LiveSyncEventKind.GroupPublishCreatorRejected, kind);
+    }
+
+    [Fact]
+    public async Task PublishGroupAsync_BadRequestWithMissingMembers_ListsTheirNames()
+    {
+        using var handler = new FakeHttpMessageHandler(_ => JsonResponse(
+            HttpStatusCode.BadRequest,
+            """
+            {
+              "error": "Nicht alle Mitglieder haben ein Live-Sync-Profil",
+              "missingMembers": [
+                { "world": "Gilgamesh", "characterName": "Bob Test" },
+                { "world": "Cerberus", "characterName": "Charles Test" }
+              ]
+            }
+            """));
+        using var service = CreateService(handler);
+
+        await InvokePublishGroupAsync(service, "profil-token");
+
+        Assert.True(service.TryTakePendingResult(out var kind, out var detail));
+        Assert.Equal(LiveSyncEventKind.GroupPublishMissingMembers, kind);
+        Assert.Equal("Bob Test (Gilgamesh), Charles Test (Cerberus)", detail);
+    }
+
+    [Fact]
+    public async Task PublishGroupAsync_BadRequestWithoutMissingMembers_ShowsWorkerError()
+    {
+        using var handler = new FakeHttpMessageHandler(_ =>
+            JsonResponse(HttpStatusCode.BadRequest, """{ "error": "groupId muss eine UUID sein." }"""));
+        using var service = CreateService(handler);
+
+        await InvokePublishGroupAsync(service, "profil-token");
+
+        Assert.True(service.TryTakePendingResult(out var kind, out var detail));
+        Assert.Equal(LiveSyncEventKind.GroupPublishFailed, kind);
+        Assert.Equal("groupId muss eine UUID sein.", detail);
+    }
+
+    [Fact]
+    public async Task PublishGroupAsync_BadRequestWithInvalidJson_FallsBackToHttpStatus()
+    {
+        using var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("kein json", Encoding.UTF8, "text/plain"),
+        });
+        using var service = CreateService(handler);
+
+        await InvokePublishGroupAsync(service, "profil-token");
+
+        Assert.True(service.TryTakePendingResult(out var kind, out var detail));
+        Assert.Equal(LiveSyncEventKind.GroupPublishFailed, kind);
+        Assert.StartsWith("HTTP 400", detail);
+    }
+
+    // PublishGroupAsync direkt (PublishGroup selbst liest vorher den lokalen Charakter über
+    // PartyService, der ohne Spiel nicht verfügbar ist - siehe Klassendoc).
+    private static Task InvokePublishGroupAsync(LiveSyncService service, string creatorToken)
+    {
+        IReadOnlyList<(string World, string CharacterName)> members = [("Gilgamesh", "Alice Test")];
+        return (Task)InvokeInstance(
+            service, "PublishGroupAsync",
+            members, true, new List<AvailabilityTag>(), "", 0, new List<uint>(), "Alice Test", "Gilgamesh", creatorToken)!;
+    }
+
+    // ----- 409 beim Profil-Push (ClassifyPushFailure) -----
+
+    [Fact]
+    public void ClassifyPushFailure_ConflictNameTaken_IsPushNameTaken()
+    {
+        Assert.Equal(
+            LiveSyncEventKind.PushNameTaken,
+            (LiveSyncEventKind)InvokeStatic("ClassifyPushFailure", HttpStatusCode.Conflict, "name_taken")!);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Conflict, "token_mismatch")]
+    [InlineData(HttpStatusCode.Conflict, null)]
+    [InlineData(HttpStatusCode.BadRequest, "name_taken")]
+    [InlineData(HttpStatusCode.InternalServerError, null)]
+    public void ClassifyPushFailure_Other_IsPushFailed(HttpStatusCode statusCode, string? reason)
+    {
+        Assert.Equal(
+            LiveSyncEventKind.PushFailed,
+            (LiveSyncEventKind)InvokeStatic("ClassifyPushFailure", statusCode, reason)!);
+    }
+
+    [Fact]
+    public void LiveSyncPushNameTaken_IsTranslatedAndMentionsDiscord()
+    {
+        foreach (var language in Enum.GetValues<DisplayLanguage>())
+            Assert.Contains("Discord", UiStrings.Get(UiStrings.Key.LiveSyncPushNameTaken, language));
     }
 }

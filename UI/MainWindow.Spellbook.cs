@@ -117,7 +117,7 @@ public sealed partial class MainWindow
                     foreach (var (monster, location, method) in sources)
                     {
                         ImGui.TextUnformatted(UiStrings.Format(
-                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
+                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
                     }
 
                     if (partyMissingEntry is not null)
@@ -218,7 +218,7 @@ public sealed partial class MainWindow
         foreach (var (monster, location, method) in sources)
         {
             ImGui.TextUnformatted(UiStrings.Format(
-                UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(), this.FormatLocation(location)));
+                UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
         }
 
         if (!isLearned && partyMissingBySpellId is not null && partyMissingBySpellId.TryGetValue(spell.Id, out var missingEntry))

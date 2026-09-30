@@ -10,7 +10,7 @@ import type { PlayerCardIndexEntry } from "../src/index";
 import { setDiscordFetchForTests } from "../src/discordWebhook";
 import {
   deleteGroup, deleteProfile, KNOWN_SPELL_IDS_SAMPLE, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, putProfile,
-  uniqueName, validBitmaskBase64,
+  uniqueGroupId, uniqueName, validBitmaskBase64,
 } from "./helpers";
 
 /**
@@ -146,19 +146,19 @@ describe("formatAvailabilityAndNoteLines", () => {
     expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Testnotiz");
   });
 
-  it("includes a 'Verfügbarkeit' line only when availabilityTags is non-empty", () => {
-    expect(formatAvailabilityAndNoteLines("", ["evening", "weekend"], 0)).toBe("Verfügbarkeit: evening, weekend");
-    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Verfügbarkeit");
+  it("includes an 'Availability' line only when availabilityTags is non-empty", () => {
+    expect(formatAvailabilityAndNoteLines("", ["evening", "weekend"], 0)).toBe("Availability: Evening, Weekend");
+    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Availability");
   });
 
-  it("omits the 'Gesucht'-line for wantedPlayerCount 0 ('egal wie viele'), includes it for >0", () => {
-    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Gesucht");
-    expect(formatAvailabilityAndNoteLines("", [], 5)).toBe("Gesucht: 5 Mitspieler");
+  it("omits the 'Looking for' line for wantedPlayerCount 0 ('egal wie viele'), includes it for >0", () => {
+    expect(formatAvailabilityAndNoteLines("", [], 0)).not.toContain("Looking for");
+    expect(formatAvailabilityAndNoteLines("", [], 5)).toBe("Looking for: 5 players");
   });
 
-  it("joins multiple present lines with a blank line in between, in note/Verfügbarkeit/Gesucht order", () => {
+  it("joins multiple present lines with a blank line in between, in note/Availability/Looking for order", () => {
     expect(formatAvailabilityAndNoteLines("Notiz", ["evening"], 3)).toBe(
-      "Notiz\n\nVerfügbarkeit: evening\n\nGesucht: 3 Mitspieler",
+      "Notiz\n\nAvailability: Evening\n\nLooking for: 3 players",
     );
   });
 });
@@ -200,7 +200,7 @@ describe("buildPlayerCardEmbed", () => {
 
   it("titles the embed with character name and world", () => {
     const embed = buildPlayerCardEmbed(fakeStoredProfile({ characterName: "Klaus", world: KNOWN_WORLD }));
-    expect(embed.title).toBe(`Klaus (${KNOWN_WORLD}) sucht Mitspieler`);
+    expect(embed.title).toBe(`Klaus (${KNOWN_WORLD}) is looking for players`);
   });
 
   it("has no member list ('fields'), unlike a group card (buildGroupCardEmbed)", () => {
@@ -222,10 +222,10 @@ describe("buildPlayerCardEmbed", () => {
       note: "Testnotiz",
       targetSpellIds: [KNOWN_SPELL_IDS_SAMPLE[1], KNOWN_SPELL_IDS_SAMPLE[0]],
     }));
-    expect(embed.description).toBe("Testnotiz\n\nZiel-Spells: #25, #26");
+    expect(embed.description).toBe("Testnotiz\n\nTarget spells: #25, #26");
 
     const emptyEmbed = buildPlayerCardEmbed(fakeStoredProfile({ note: "Testnotiz" }));
-    expect(emptyEmbed.description).not.toContain("Ziel-Spells");
+    expect(emptyEmbed.description).not.toContain("Target spells");
   });
 });
 
@@ -289,7 +289,7 @@ describe("persistent Discord group cards - creation and updates", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-create-");
+    const groupId = uniqueGroupId();
     const memberName = uniqueName("KartenMitglied");
     const response = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: memberName }],
@@ -312,7 +312,7 @@ describe("persistent Discord group cards - creation and updates", () => {
     expect(field.name).toBe("Karten-Testgruppe");
     expect(field.value).toContain(WORLD_BY_REGION.NA);
     expect(field.value).toContain(memberName);
-    expect(field.value).toContain("evening");
+    expect(field.value).toContain("Evening");
     expect(field.value).toContain("1/3");
   });
 
@@ -321,7 +321,7 @@ describe("persistent Discord group cards - creation and updates", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    await putGroup(uniqueName("discordcard-spells-"), {
+    await putGroup(uniqueGroupId(), {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
       note: "Karte mit Ziel-Spells",
@@ -330,16 +330,16 @@ describe("persistent Discord group cards - creation and updates", () => {
 
     const postCalls = calls.filter((call) => call.method === "POST");
     const field = postCalls[0]!.body!.embeds![0]!.fields![0]!;
-    expect(field.value).toContain("Ziel-Spells: #25, #26");
+    expect(field.value).toContain("Target spells: #25, #26");
 
-    await putGroup(uniqueName("discordcard-nospells-"), {
+    await putGroup(uniqueGroupId(), {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
       note: "Karte ohne Ziel-Spells",
     });
 
     const secondField = calls.filter((call) => call.method === "POST")[1]!.body!.embeds![0]!.fields![0]!;
-    expect(secondField.value).not.toContain("Ziel-Spells");
+    expect(secondField.value).not.toContain("Target spells");
   });
 
   it.each(["NA", "EU", "JP", "OC"] as const)(
@@ -349,7 +349,7 @@ describe("persistent Discord group cards - creation and updates", () => {
       const { fetchImpl, calls } = createRecordingDiscordFetch();
       setDiscordFetchForTests(fetchImpl);
 
-      await putGroup(uniqueName(`discordcard-${region}-`), {
+      await putGroup(uniqueGroupId(), {
         members: [{ world: WORLD_BY_REGION[region], characterName: uniqueName("M") }],
         visibility: "listed",
       });
@@ -365,7 +365,7 @@ describe("persistent Discord group cards - creation and updates", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-edit-");
+    const groupId = uniqueGroupId();
     const createResponse = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -393,7 +393,7 @@ describe("persistent Discord group cards - creation and updates", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-move-");
+    const groupId = uniqueGroupId();
     const createResponse = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -422,7 +422,7 @@ describe("persistent Discord group cards - removal", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-unlist-");
+    const groupId = uniqueGroupId();
     const createResponse = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -455,7 +455,7 @@ describe("persistent Discord group cards - removal", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-delete-");
+    const groupId = uniqueGroupId();
     const createResponse = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -477,7 +477,7 @@ describe("persistent Discord group cards - removal", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-nocard-");
+    const groupId = uniqueGroupId();
     const createResponse = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -496,7 +496,7 @@ describe("persistent Discord group cards - Discord failures never break the grou
     const { fetchImpl } = createRecordingDiscordFetch({ fail: true });
     setDiscordFetchForTests(fetchImpl);
 
-    const response = await putGroup(uniqueName("discordcard-outage-put-"), {
+    const response = await putGroup(uniqueGroupId(), {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
     });
@@ -511,7 +511,7 @@ describe("persistent Discord group cards - Discord failures never break the grou
     const { fetchImpl: workingFetch } = createRecordingDiscordFetch();
     setDiscordFetchForTests(workingFetch);
 
-    const groupId = uniqueName("discordcard-outage-delete-");
+    const groupId = uniqueGroupId();
     const createResponse = await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -535,7 +535,7 @@ describe("persistent Discord group cards - no region configured", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const response = await putGroup(uniqueName("discordcard-noregion-"), {
+    const response = await putGroup(uniqueGroupId(), {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
     });
@@ -558,7 +558,7 @@ describe("cron cleanup of orphaned Discord cards", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-orphan-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -583,7 +583,7 @@ describe("cron cleanup of orphaned Discord cards", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    await putGroup(uniqueName("discordcard-still-alive-"), {
+    await putGroup(uniqueGroupId(), {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
     });
@@ -599,7 +599,7 @@ describe("cron cleanup of orphaned Discord cards", () => {
     const { fetchImpl, calls } = createRecordingDiscordFetch();
     setDiscordFetchForTests(fetchImpl);
 
-    const groupId = uniqueName("discordcard-orphan-twice-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: WORLD_BY_REGION.NA, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -643,10 +643,10 @@ describe("persistent Discord player cards", () => {
     expect(postCalls[0]!.url).toBe(`${FAKE_WEBHOOK_URLS.NA}?wait=true`);
 
     const embed = postCalls[0]!.body!.embeds![0]!;
-    expect(embed.title).toBe(`${characterName} (${KNOWN_WORLD}) sucht Mitspieler`);
+    expect(embed.title).toBe(`${characterName} (${KNOWN_WORLD}) is looking for players`);
     expect(embed.description).toContain("Spieler-Karten-Test");
-    expect(embed.description).toContain("Verfügbarkeit: evening");
-    expect(embed.description).toContain("Gesucht: 3 Mitspieler");
+    expect(embed.description).toContain("Availability: Evening");
+    expect(embed.description).toContain("Looking for: 3 players");
 
     // Zurück auf "unlisted" entfernt die Karte wieder, statt sie z.B. stehen zu lassen.
     const unlistResponse = await putProfile(KNOWN_WORLD, characterName, {

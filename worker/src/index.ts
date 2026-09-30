@@ -23,7 +23,7 @@
 
 import { base64UrlDecode, generateEditToken, hexToBytes, sha256Hex } from "./crypto";
 import { createWebhookMessage, deleteWebhookMessage, editWebhookMessage, extractWebhookId } from "./discordWebhook";
-import { lookupDataCenter } from "./worlds";
+import { lookupCanonicalDataCenter, lookupDataCenter } from "./worlds";
 import { KNOWN_SPELL_IDS } from "./spellIds";
 import { SPELL_ORDER_BY_ID } from "./spellOrder";
 
@@ -31,6 +31,9 @@ export interface Env {
   BLUNION_PROFILES: KVNamespace;
   /** Rate-Limiting-Binding für die vier schreibenden Endpunkte (siehe enforceWriteRateLimit). */
   WRITE_RATE_LIMITER: RateLimit;
+  /** Rate-Limiting-Binding für die lesenden Endpunkte GET /profile/..., /profiles/browse und
+   * /groups/browse (siehe enforceReadRateLimit). */
+  READ_RATE_LIMITER: RateLimit;
   /** Ed25519-Public-Key der Discord-App (Hex) - Secret, nie im Code (wrangler secret put
    * DISCORD_PUBLIC_KEY, lokal via .dev.vars). */
   DISCORD_PUBLIC_KEY: string;
@@ -56,6 +59,15 @@ export interface Env {
   DISCORD_CHANNEL_NAME_EU?: string;
   DISCORD_CHANNEL_NAME_JP?: string;
   DISCORD_CHANNEL_NAME_OC?: string;
+  /** Feature-Flag für den Gruppen-Ersteller-Nachweis (siehe verifyGroupCreator): "true" macht
+   * creatorWorld/creatorCharacterName/X-Creator-Token bei PUT /group zur Pflicht. Bei jedem anderen
+   * Wert (Default "false" in wrangler.toml) werden mitgeschickte Creator-Angaben trotzdem voll
+   * geprüft und gespeichert, fehlende aber toleriert (ältere Plugin-/Website-Versionen). */
+  REQUIRE_GROUP_CREATOR?: string;
+  /** Moderations-Secret für die /admin/*-Endpunkte (siehe handleAdminRequest) - nur per
+   * "wrangler secret put ADMIN_TOKEN" bzw. lokal über .dev.vars. Fehlt es, antworten alle
+   * Admin-Endpunkte mit demselben 404 wie ein unbekannter Pfad. */
+  ADMIN_TOKEN?: string;
 }
 
 /** Muss mit ManualCodeSyncProvider.BitmaskBytes im Plugin übereinstimmen (16 Byte = 128 Bit). */
@@ -79,11 +91,34 @@ const BROWSE_PATH = /^\/profiles\/browse\/?$/;
 const GROUP_PATH = /^\/group\/([^/]+)\/?$/;
 const GROUPS_BROWSE_PATH = /^\/groups\/browse\/?$/;
 const DISCORD_INTERACTIONS_PATH = /^\/discord\/interactions\/?$/;
+const ADMIN_PATH_PREFIX = "/admin/";
+const ADMIN_PROFILE_PATH = /^\/admin\/profile\/([^/]+)\/([^/]+)\/?$/;
+const ADMIN_GROUP_PATH = /^\/admin\/group\/([^/]+)\/?$/;
+
+/** Plugin erzeugt Guid.NewGuid(), Web-Companion crypto.randomUUID() - beides ist eine UUID. */
+const GROUP_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** FFXIV-Namensregeln: Vor- und Nachname, je 2-15 Zeichen aus Buchstaben/Apostroph/Bindestrich,
+ * beginnend mit einem Buchstaben, genau ein Leerzeichen dazwischen, insgesamt max. 21 Zeichen. */
+const CHARACTER_NAME_PATTERN = /^[A-Za-z][A-Za-z'-]{1,14} [A-Za-z][A-Za-z'-]{1,14}$/;
+const CHARACTER_NAME_MAX_LENGTH = 21;
+
+export function isValidCharacterName(name: string): boolean {
+  return name.length <= CHARACTER_NAME_MAX_LENGTH && CHARACTER_NAME_PATTERN.test(name);
+}
+
+export function isValidGroupId(groupId: string): boolean {
+  return GROUP_ID_PATTERN.test(groupId);
+}
+
+const INVALID_CHARACTER_NAME_MESSAGE =
+  "Ungültiger Charaktername - erwartet werden Vor- und Nachname (je 2-15 Buchstaben, ' oder -, " +
+  "beginnend mit einem Buchstaben), getrennt durch genau ein Leerzeichen, insgesamt max. 21 Zeichen.";
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Edit-Token",
+  "Access-Control-Allow-Headers": "Content-Type, X-Edit-Token, X-Creator-Token",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -275,6 +310,10 @@ interface StoredGroupProfile {
   wantedPlayerCount?: number;
   targetSpellIds?: number[];
   dataCenter: string;
+  /** Ersteller mit nachgewiesenem eigenem Live-Sync-Profil (siehe verifyGroupCreator). Optional,
+   * da ältere Einträge/Clients ihn nicht kennen. Verlässt KV nie - weder in PUT-/Browse-Antworten
+   * (Allowlist in stripForGroupResponse/computeGroupsBrowse) noch in Discord-Embeds. */
+  creator?: GroupMember;
   discordCard?: DiscordCard;
   createdAt: string;
   updatedAt: string;
@@ -291,6 +330,8 @@ interface DiscordCard {
 interface PutGroupRequestBody {
   members?: unknown;
   editToken?: unknown;
+  creatorWorld?: unknown;
+  creatorCharacterName?: unknown;
   visibility?: unknown;
   availabilityTags?: unknown;
   note?: unknown;
@@ -360,14 +401,22 @@ function errorResponse(status: number, message: string): Response {
 
 /** Cache-API (per Edge-Standort, kein globaler Cache) nur für die Browse-Endpunkte, nie für
  * PUT/DELETE. response.clone() vor cache.put() ist zwingend - der Body ist sonst nur einmal lesbar
- * und cache.put()/die zurückgegebene Response würden sich einen bereits konsumierten Stream teilen. */
+ * und cache.put()/die zurückgegebene Response würden sich einen bereits konsumierten Stream teilen.
+ * Cache-Key ist NICHT die Original-URL, sondern origin + pathname + kanonisches dataCenter - sonst
+ * könnte jeder beliebige Zusatzparameter (?x=<zufall>) den Cache umgehen und pro Aufruf einen
+ * kompletten KV-Scan auslösen. */
 async function withCache(
   request: Request,
+  canonicalDataCenter: string,
   ctx: ExecutionContext,
   compute: () => Promise<Response>,
 ): Promise<Response> {
+  const url = new URL(request.url);
+  const cacheKey = new Request(
+    `${url.origin}${url.pathname}?dataCenter=${encodeURIComponent(canonicalDataCenter)}`, { method: "GET" });
+
   const cache = caches.default;
-  const cached = await cache.match(request);
+  const cached = await cache.match(cacheKey);
   if (cached)
     return cached;
 
@@ -375,7 +424,7 @@ async function withCache(
   if (response.ok) {
     const cacheableResponse = new Response(response.body, response);
     cacheableResponse.headers.set("Cache-Control", `public, max-age=${BROWSE_CACHE_TTL_SECONDS}`);
-    ctx.waitUntil(cache.put(request, cacheableResponse.clone()));
+    ctx.waitUntil(cache.put(cacheKey, cacheableResponse.clone()));
     return cacheableResponse;
   }
 
@@ -388,15 +437,39 @@ async function withCache(
  * *.workers.dev. Fehlt der CF-Connecting-IP-Header (z.B. lokal ohne echten Edge davor), wird NICHT
  * limitiert statt mit 500 zu antworten. Rückgabe: fertige 429-Response oder null (weitermachen). */
 async function enforceWriteRateLimit(env: Env, request: Request): Promise<Response | null> {
+  return enforceRateLimit(env.WRITE_RATE_LIMITER, request);
+}
+
+/** Lese-Pendant zu enforceWriteRateLimit (Binding READ_RATE_LIMITER, siehe wrangler.toml) für
+ * GET /profile/..., /profiles/browse und /groups/browse - gleiche Logik, eigenes Kontingent. */
+async function enforceReadRateLimit(env: Env, request: Request): Promise<Response | null> {
+  return enforceRateLimit(env.READ_RATE_LIMITER, request);
+}
+
+async function enforceRateLimit(limiter: RateLimit, request: Request): Promise<Response | null> {
   const ip = request.headers.get("CF-Connecting-IP");
   if (!ip)
     return null;
 
-  const { success } = await env.WRITE_RATE_LIMITER.limit({ key: ip });
+  const { success } = await limiter.limit({ key: ip });
   if (!success)
     return errorResponse(429, "Zu viele Anfragen von dieser IP - bitte kurz warten und erneut versuchen.");
 
   return null;
+}
+
+/** Gemeinsame dataCenter-Prüfung für /profiles/browse, /groups/browse und den Discord-Browse -
+ * liefert die kanonische Schreibweise (siehe lookupCanonicalDataCenter) oder eine fertige
+ * 400-Response. */
+function resolveBrowseDataCenter(dataCenter: string | null | undefined): string | Response {
+  if (!dataCenter)
+    return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
+
+  const canonicalDataCenter = lookupCanonicalDataCenter(dataCenter);
+  if (!canonicalDataCenter)
+    return errorResponse(400, "Unbekanntes Data Center.");
+
+  return canonicalDataCenter;
 }
 
 function kvKey(world: string, characterName: string): string {
@@ -676,7 +749,11 @@ function resolvePhase2Fields(
   return { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds };
 }
 
-async function handleGet(env: Env, world: string, characterName: string): Promise<Response> {
+async function handleGet(env: Env, request: Request, world: string, characterName: string): Promise<Response> {
+  const rateLimited = await enforceReadRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
   const stored = await env.BLUNION_PROFILES.get<StoredProfile>(kvKey(world, characterName), "json");
 
   if (!stored)
@@ -727,12 +804,22 @@ async function handlePut(
 
   if (existing) {
     const providedToken = typeof body.editToken === "string" ? body.editToken : null;
-    if (!providedToken)
-      return errorResponse(409, "Profil existiert bereits - editToken erforderlich, um es zu aktualisieren.");
+    // reason ist maschinenlesbar, damit Plugin/Website "Name gehört jemand anderem" (name_taken,
+    // kein eigenes Token) von "gespeichertes Token veraltet" (token_mismatch) unterscheiden können.
+    if (!providedToken) {
+      return jsonResponse({
+        error: "Profil existiert bereits - editToken erforderlich, um es zu aktualisieren.",
+        reason: "name_taken",
+      }, 409);
+    }
 
     const providedHash = await sha256Hex(providedToken);
-    if (providedHash !== existing.editTokenHash)
-      return errorResponse(409, "editToken stimmt nicht mit dem gespeicherten Profil überein.");
+    if (providedHash !== existing.editTokenHash) {
+      return jsonResponse({
+        error: "editToken stimmt nicht mit dem gespeicherten Profil überein.",
+        reason: "token_mismatch",
+      }, 409);
+    }
 
     editTokenHash = existing.editTokenHash;
     createdAt = existing.createdAt;
@@ -776,10 +863,11 @@ async function handlePut(
  * Bewusst ohne Sekundär-Index: iteriert über alle "profile:"-Keys und filtert in-memory - für die
  * erwartete Nutzerzahl unkritisch, ein Index wäre verfrühte Optimierung. */
 async function computePlayersBrowse(env: Env, dataCenter: string | null): Promise<Response> {
-  if (!dataCenter)
-    return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
+  const canonicalDataCenter = resolveBrowseDataCenter(dataCenter);
+  if (canonicalDataCenter instanceof Response)
+    return canonicalDataCenter;
 
-  const normalizedDataCenter = dataCenter.toLowerCase();
+  const normalizedDataCenter = canonicalDataCenter.toLowerCase();
   const results: ReturnType<typeof stripForBrowseResponse>[] = [];
 
   // list() liefert max. 1000 Keys/Aufruf (KV-Limit) - per cursor weiter paginieren.
@@ -802,11 +890,18 @@ async function computePlayersBrowse(env: Env, dataCenter: string | null): Promis
   return jsonResponse(results);
 }
 
+/** Reihenfolge: Rate-Limit, dann dataCenter-Prüfung, erst danach Cache/KV - ein unbekanntes
+ * dataCenter legt so nie einen Cache-Eintrag an. */
 async function handleBrowse(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
-  return withCache(request, ctx, () => {
-    const url = new URL(request.url);
-    return computePlayersBrowse(env, url.searchParams.get("dataCenter"));
-  });
+  const rateLimited = await enforceReadRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
+  const canonicalDataCenter = resolveBrowseDataCenter(new URL(request.url).searchParams.get("dataCenter"));
+  if (canonicalDataCenter instanceof Response)
+    return canonicalDataCenter;
+
+  return withCache(request, canonicalDataCenter, ctx, () => computePlayersBrowse(env, canonicalDataCenter));
 }
 
 async function handleDelete(
@@ -829,12 +924,78 @@ async function handleDelete(
   if (providedHash !== existing.editTokenHash)
     return errorResponse(403, "editToken stimmt nicht mit dem gespeicherten Profil überein.");
 
+  await deleteProfileRecord(env, key, existing, ctx);
+  return jsonResponse({ deleted: true });
+}
+
+/** Gemeinsame Löschlogik für DELETE /profile und DELETE /admin/profile (inkl. Discord-Karte).
+ * Index-Eintrag über die GESPEICHERTE (kanonische) World/Name-Schreibweise, mit der
+ * addPlayerCardIndexEntry ihn angelegt hat - nicht über die Schreibweise der Anfrage-URL. */
+async function deleteProfileRecord(env: Env, key: string, existing: StoredProfile, ctx: ExecutionContext): Promise<void> {
   await env.BLUNION_PROFILES.delete(key);
 
   if (existing.discordCard)
-    ctx.waitUntil(removePlayerDiscordCard(env, world, characterName, existing.discordCard));
+    ctx.waitUntil(removePlayerDiscordCard(env, existing.world, existing.characterName, existing.discordCard));
+}
 
-  return jsonResponse({ deleted: true });
+/** Ersteller-Nachweis für PUT /group (bei JEDEM PUT, auch Updates - sonst könnten später Fremde
+ * nachgetragen werden): a) Ersteller-Profil existiert und X-Creator-Token passt zu dessen
+ * editTokenHash, b) Ersteller ist selbst Mitglied, c) jedes Mitglied hat ein Profil (Sichtbarkeit
+ * egal). Ohne Creator-Angaben: bei REQUIRE_GROUP_CREATOR="true" Fehler, sonst null (Altclient,
+ * keine Prüfung). Rückgabe: geprüfter Ersteller, null oder eine fertige Fehler-Response. */
+async function verifyGroupCreator(
+  env: Env, request: Request, body: PutGroupRequestBody, members: GroupMember[],
+): Promise<GroupMember | null | Response> {
+  const creatorToken = request.headers.get("X-Creator-Token");
+  const hasAnyCreatorInput = body.creatorWorld !== undefined || body.creatorCharacterName !== undefined
+    || creatorToken !== null;
+
+  if (!hasAnyCreatorInput) {
+    return env.REQUIRE_GROUP_CREATOR === "true"
+      ? errorResponse(
+        400, "creatorWorld, creatorCharacterName und Header \"X-Creator-Token\" sind erforderlich.")
+      : null;
+  }
+
+  if (typeof body.creatorWorld !== "string" || typeof body.creatorCharacterName !== "string")
+    return errorResponse(400, "creatorWorld und creatorCharacterName müssen als String angegeben werden.");
+
+  if (!isValidCharacterName(body.creatorCharacterName))
+    return errorResponse(400, `creatorCharacterName: ${INVALID_CHARACTER_NAME_MESSAGE}`);
+
+  const creatorDcLookup = lookupDataCenter(body.creatorWorld);
+  if (!creatorDcLookup)
+    return errorResponse(400, `Unbekannte World "${body.creatorWorld}" in creatorWorld.`);
+
+  if (!creatorToken)
+    return errorResponse(403, 'Header "X-Creator-Token" fehlt.');
+
+  const creator: GroupMember = { world: creatorDcLookup.canonicalWorld, characterName: body.creatorCharacterName };
+
+  // a) - bewusst dieselbe Meldung für "kein Profil" und "falscher Token" (kein Profil-Orakel).
+  const creatorProfile = await env.BLUNION_PROFILES.get<StoredProfile>(
+    kvKey(creator.world, creator.characterName), "json");
+  if (!creatorProfile || await sha256Hex(creatorToken) !== creatorProfile.editTokenHash)
+    return errorResponse(403, "Ersteller-Nachweis fehlgeschlagen - eigenes Live-Sync-Profil fehlt oder X-Creator-Token passt nicht.");
+
+  // b) - Vergleich wie kvKey() case-insensitiv.
+  const creatorKey = kvKey(creator.world, creator.characterName);
+  if (!members.some((member) => kvKey(member.world, member.characterName) === creatorKey))
+    return errorResponse(403, "Der Ersteller muss selbst in members[] enthalten sein.");
+
+  // c)
+  const memberProfiles = await Promise.all(members.map((member) =>
+    env.BLUNION_PROFILES.get(kvKey(member.world, member.characterName))));
+  const missingMembers = members.filter((_, index) => memberProfiles[index] === null);
+  if (missingMembers.length > 0) {
+    return jsonResponse({
+      error: "Nicht alle Mitglieder haben ein Live-Sync-Profil: "
+        + missingMembers.map((member) => `${member.characterName} (${member.world})`).join(", "),
+      missingMembers,
+    }, 400);
+  }
+
+  return creator;
 }
 
 /** Ablauf 1:1 wie handlePut, nur mit members[]-Validierung statt spellBitmaskBase64 (siehe
@@ -865,6 +1026,9 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
     if (!isValidRawGroupMember(rawMember))
       return errorResponse(400, "Jedes members[]-Element benötigt world und characterName als nicht-leeren String.");
 
+    if (!isValidCharacterName(rawMember.characterName))
+      return errorResponse(400, `members[]: ${INVALID_CHARACTER_NAME_MESSAGE}`);
+
     const memberDcLookup = lookupDataCenter(rawMember.world);
     if (!memberDcLookup)
       return errorResponse(400, `Unbekannte World "${rawMember.world}" in members[].`);
@@ -874,6 +1038,10 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
     if (dataCenter === undefined)
       dataCenter = memberDcLookup.dataCenter;
   }
+
+  const verifiedCreator = await verifyGroupCreator(env, request, body, members);
+  if (verifiedCreator instanceof Response)
+    return verifiedCreator;
 
   const key = groupKvKey(groupId);
   const existing = await env.BLUNION_PROFILES.get<StoredGroupProfile>(key, "json");
@@ -917,6 +1085,9 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
     wantedPlayerCount,
     targetSpellIds,
     dataCenter: dataCenter!,
+    // Ohne Creator-Angaben (Altclient bei REQUIRE_GROUP_CREATOR != "true") bleibt ein bereits
+    // gespeicherter Ersteller erhalten, statt still zu verschwinden.
+    creator: verifiedCreator ?? existing?.creator,
     // Unverändert aus "existing" übernommen (siehe DiscordCard-Doc) - discordCard wird
     // AUSSCHLIESSLICH von syncGroupDiscordCard weiter unten geschrieben, NIE hier direkt gesetzt.
     // Würde man es hier stattdessen weglassen (bzw. auf undefined setzen), ginge die Referenz auf
@@ -947,10 +1118,11 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
 /** Kernlogik von GET /groups/browse, ohne das HTTP-Cache-Wrapping von handleGroupsBrowse - so kann
  * handleDiscordBrowse dieselbe Logik nutzen. */
 async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise<Response> {
-  if (!dataCenter)
-    return errorResponse(400, 'Query-Parameter "dataCenter" fehlt.');
+  const canonicalDataCenter = resolveBrowseDataCenter(dataCenter);
+  if (canonicalDataCenter instanceof Response)
+    return canonicalDataCenter;
 
-  const normalizedDataCenter = dataCenter.toLowerCase();
+  const normalizedDataCenter = canonicalDataCenter.toLowerCase();
   const results: Record<string, unknown>[] = [];
 
   let cursor: string | undefined;
@@ -993,11 +1165,17 @@ async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise
   return jsonResponse(results);
 }
 
+/** Gleiche Reihenfolge wie handleBrowse. */
 async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
-  return withCache(request, ctx, () => {
-    const url = new URL(request.url);
-    return computeGroupsBrowse(env, url.searchParams.get("dataCenter"));
-  });
+  const rateLimited = await enforceReadRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
+  const canonicalDataCenter = resolveBrowseDataCenter(new URL(request.url).searchParams.get("dataCenter"));
+  if (canonicalDataCenter instanceof Response)
+    return canonicalDataCenter;
+
+  return withCache(request, canonicalDataCenter, ctx, () => computeGroupsBrowse(env, canonicalDataCenter));
 }
 
 /** Löscht NUR den "group:"-Eintrag - die referenzierten "profile:"-Einträge der Mitglieder bleiben
@@ -1022,12 +1200,117 @@ async function handleGroupDelete(
   if (providedHash !== existing.editTokenHash)
     return errorResponse(403, "editToken stimmt nicht mit der gespeicherten Gruppen-Listung überein.");
 
+  await deleteGroupRecord(env, key, existing, ctx);
+  return jsonResponse({ deleted: true });
+}
+
+/** Gemeinsame Löschlogik für DELETE /group und DELETE /admin/group (inkl. Discord-Karte). */
+async function deleteGroupRecord(env: Env, key: string, existing: StoredGroupProfile, ctx: ExecutionContext): Promise<void> {
   await env.BLUNION_PROFILES.delete(key);
 
   if (existing.discordCard)
-    ctx.waitUntil(removeGroupDiscordCard(env, groupId, existing.discordCard));
+    ctx.waitUntil(removeGroupDiscordCard(env, existing.groupId, existing.discordCard));
+}
 
-  return jsonResponse({ deleted: true });
+/** Antwort eines unbekannten Pfads - Admin-Endpunkte antworten bei fehlendem Secret, falschem/
+ * fehlendem Token oder Rate-Limit EXAKT so, damit ihre Existenz nicht erkennbar ist. */
+function unknownEndpointResponse(): Response {
+  return errorResponse(
+    404,
+    'Unbekannter Endpoint - erwartet wird "/profile/:world/:characterName", "/profiles/browse", ' +
+      '"/group/:groupId", "/groups/browse" oder "/discord/interactions".',
+  );
+}
+
+/** Admin-Antworten bewusst OHNE CORS-Header - die Endpunkte sind nur per Skript nutzbar (siehe
+ * tools/admin), ein Browser könnte die Antwort ohnehin nicht lesen. */
+function adminJsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
+
+async function sha256Bytes(value: string): Promise<ArrayBuffer> {
+  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+}
+
+/** "Authorization: Bearer <ADMIN_TOKEN>", zeitkonstant verglichen: beide Seiten werden zuerst
+ * gehasht (gleiche Länge, timingSafeEqual verlangt das), dann per crypto.subtle.timingSafeEqual. */
+async function isAdminAuthorized(env: Env, request: Request): Promise<boolean> {
+  if (!env.ADMIN_TOKEN)
+    return false;
+
+  const header = request.headers.get("Authorization");
+  if (!header || !header.startsWith("Bearer "))
+    return false;
+
+  const [provided, expected] = await Promise.all([
+    sha256Bytes(header.slice("Bearer ".length)),
+    sha256Bytes(env.ADMIN_TOKEN),
+  ]);
+  return crypto.subtle.timingSafeEqual(provided, expected);
+}
+
+/** Moderation: GET/DELETE /admin/profile/:world/:characterName, DELETE /admin/group/:groupId.
+ * Rate-Limit über WRITE_RATE_LIMITER VOR der Token-Prüfung (bremst Raten); auch ein Limit-Treffer
+ * antwortet mit dem generischen 404. Profilnamen werden bewusst NICHT per isValidCharacterName
+ * geprüft - so lassen sich auch Altlasten mit ungültigen Namen entfernen. */
+async function handleAdminRequest(env: Env, request: Request, url: URL, ctx: ExecutionContext): Promise<Response> {
+  if (!env.ADMIN_TOKEN)
+    return unknownEndpointResponse();
+
+  if (await enforceWriteRateLimit(env, request))
+    return unknownEndpointResponse();
+
+  if (!await isAdminAuthorized(env, request))
+    return unknownEndpointResponse();
+
+  const profileMatch = url.pathname.match(ADMIN_PROFILE_PATH);
+  if (profileMatch) {
+    const world = decodeURIComponent(profileMatch[1]!);
+    const characterName = decodeURIComponent(profileMatch[2]!);
+    const key = kvKey(world, characterName);
+    const existing = await env.BLUNION_PROFILES.get<StoredProfile>(key, "json");
+
+    if (request.method === "GET") {
+      if (!existing)
+        return adminJsonResponse({ error: "Kein Profil unter diesem Key gefunden.", key }, 404);
+
+      // Alles außer editTokenHash (Allowlist per Destructuring-Rest).
+      const { editTokenHash: _editTokenHash, ...visible } = existing;
+      return adminJsonResponse({ key, ...visible });
+    }
+
+    if (request.method === "DELETE") {
+      if (!existing)
+        return adminJsonResponse({ error: "Kein Profil unter diesem Key gefunden.", key }, 404);
+
+      await deleteProfileRecord(env, key, existing, ctx);
+      return adminJsonResponse({ deleted: true, key });
+    }
+
+    return adminJsonResponse({ error: `Methode "${request.method}" nicht unterstützt.` }, 405);
+  }
+
+  const groupMatch = url.pathname.match(ADMIN_GROUP_PATH);
+  if (groupMatch) {
+    // Keine UUID-Prüfung - auch Altlasten mit anderen groupIds sollen löschbar sein.
+    const groupId = decodeURIComponent(groupMatch[1]!);
+    const key = groupKvKey(groupId);
+
+    if (request.method !== "DELETE")
+      return adminJsonResponse({ error: `Methode "${request.method}" nicht unterstützt.` }, 405);
+
+    const existing = await env.BLUNION_PROFILES.get<StoredGroupProfile>(key, "json");
+    if (!existing)
+      return adminJsonResponse({ error: "Keine Gruppe unter diesem Key gefunden.", key }, 404);
+
+    await deleteGroupRecord(env, key, existing, ctx);
+    return adminJsonResponse({ deleted: true, key });
+  }
+
+  return adminJsonResponse({ error: "Unbekannter Admin-Endpoint." }, 404);
 }
 
 /** Muss vor jeder weiteren Verarbeitung in handleDiscordInteractions laufen, sonst könnte ein
@@ -1056,6 +1339,45 @@ async function verifyDiscordSignature(env: Env, request: Request, rawBody: strin
   }
 }
 
+/** Discord-Embed-Limits (harte API-Grenzen - ein überlanges Feld lässt Discord das GANZE Embed mit
+ * 400 ablehnen, was bei den Karten nur still geloggt würde, siehe discordWebhook.ts). */
+const DISCORD_EMBED_TITLE_MAX = 256;
+const DISCORD_EMBED_FIELD_NAME_MAX = 256;
+const DISCORD_EMBED_FIELD_VALUE_MAX = 1024;
+const DISCORD_EMBED_DESCRIPTION_MAX = 4096;
+
+const DISCORD_URL_PATTERN = /(?:https?:\/\/|www\.|discord(?:app)?\.com\/invite|discord\.gg\/)\S*/gi;
+const DISCORD_MARKDOWN_PATTERN = /[\\*_~`|>[\]()#]/g;
+const DISCORD_CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
+
+/** Für JEDEN nutzerkontrollierten Wert (note, characterName, world, ...), bevor er in ein Embed
+ * wandert: Steuerzeichen/Zeilenumbrüche -> Leerzeichen (kein Layout-Spoofing über mehrere Zeilen),
+ * URLs/Einladungen entfernen (kein Link-/Phishing-Spam über die offiziellen Kanal-Karten),
+ * Markdown escapen (kein [Text](Link), keine Überschriften/Spoiler/Codeblöcke) und @everyone/@here
+ * per Zero-Width-Space entschärfen. Die JSON-API-Antworten bleiben unverändert - Plugin und
+ * Web-Companion escapen selbst. */
+export function sanitizeForDiscord(text: string): string {
+  return text
+    .replace(DISCORD_CONTROL_CHARACTER_PATTERN, " ")
+    .replace(DISCORD_URL_PATTERN, "")
+    .replace(DISCORD_MARKDOWN_PATTERN, "\\$&")
+    .replace(/@(everyone|here)/gi, "@\u200b$1")
+    .trim();
+}
+
+/** Kürzt auf maxLength (inkl. "…"), ohne ein UTF-16-Surrogatpaar zu zerschneiden. */
+export function truncateForDiscord(text: string, maxLength: number): string {
+  if (text.length <= maxLength)
+    return text;
+
+  let cut = maxLength - 1;
+  const lastKept = text.charCodeAt(cut - 1);
+  if (lastKept >= 0xd800 && lastKept <= 0xdbff)
+    cut -= 1;
+
+  return `${text.slice(0, cut)}…`;
+}
+
 /** Formatiert targetSpellIds als sprachunabhängige order-Nummern (z.B. "#1, #3, #7"). Unbekannte
  * IDs werden übersprungen statt das Embed scheitern zu lassen; undefined, wenn nichts übrig bleibt
  * (Aufrufer lässt die Zeile dann weg). */
@@ -1072,7 +1394,7 @@ export function formatTargetSpellOrders(targetSpellIds: number[]): string | unde
  * (nicht existierenden) Gruppennamens als Feldtitel. */
 function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value: string; inline: boolean } {
   const memberList = group.members
-    .map((member) => `${member.world} ${member.characterName}`)
+    .map((member) => `${sanitizeForDiscord(member.world)} ${sanitizeForDiscord(member.characterName)}`)
     .join("\n");
 
   // 0 bedeutet "egal wie viele" - dann nur die Mitgliederzahl zeigen statt eines "3/0".
@@ -1080,7 +1402,7 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
     ? `${group.members.length}/${group.wantedPlayerCount}`
     : `${group.members.length}`;
 
-  let value = `Mitglieder (${memberCountLabel}):\n${memberList}`;
+  let value = `Members (${memberCountLabel}):\n${memberList}`;
 
   // note/wantedPlayerCount stecken hier schon anderswo (Feldname bzw. memberCountLabel), daher
   // "" und 0 statt der echten Werte.
@@ -1090,13 +1412,31 @@ function buildGroupEmbedField(group: DiscordBrowseGroup): { name: string; value:
 
   const targetSpellLabel = formatTargetSpellOrders(group.targetSpellIds);
   if (targetSpellLabel !== undefined)
-    value += `\n\nZiel-Spells: ${targetSpellLabel}`;
+    value += `\n\nTarget spells: ${targetSpellLabel}`;
+
+  // Eine Notiz, die nur aus einer URL bestand, ist nach dem Sanitizing leer - dann Platzhalter.
+  const safeNote = sanitizeForDiscord(group.note);
 
   return {
-    name: group.note.length > 0 ? group.note : "(ohne Notiz)",
-    value,
+    name: truncateForDiscord(safeNote.length > 0 ? safeNote : "(no note)", DISCORD_EMBED_FIELD_NAME_MAX),
+    value: truncateForDiscord(value, DISCORD_EMBED_FIELD_VALUE_MAX),
     inline: false,
   };
+}
+
+/** Wire-Wert -> lesbares englisches Label für die Discord-Embeds ("evening" -> "Evening").
+ * Unbekannte Werte (nur aus Altdaten möglich, PUT validiert per Allowlist) werden sanitisiert
+ * durchgereicht. */
+const AVAILABILITY_TAG_LABELS: Readonly<Record<string, string>> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+  weekend: "Weekend",
+  flexible: "Flexible",
+};
+
+function formatAvailabilityTag(tag: string): string {
+  return AVAILABILITY_TAG_LABELS[tag] ?? sanitizeForDiscord(tag);
 }
 
 /** Gemeinsam genutzt von buildGroupEmbedField und buildPlayerCardEmbed, damit sich das Format
@@ -1108,14 +1448,15 @@ export function formatAvailabilityAndNoteLines(
 ): string {
   const lines: string[] = [];
 
-  if (note.length > 0)
-    lines.push(note);
+  const safeNote = sanitizeForDiscord(note);
+  if (safeNote.length > 0)
+    lines.push(safeNote);
 
   if (availabilityTags.length > 0)
-    lines.push(`Verfügbarkeit: ${availabilityTags.join(", ")}`);
+    lines.push(`Availability: ${availabilityTags.map(formatAvailabilityTag).join(", ")}`);
 
   if (wantedPlayerCount > 0) // 0 = "egal wie viele", dann keine Zeile
-    lines.push(`Gesucht: ${wantedPlayerCount} Mitspieler`);
+    lines.push(`Looking for: ${wantedPlayerCount} ${wantedPlayerCount === 1 ? "player" : "players"}`);
 
   return lines.join("\n\n");
 }
@@ -1134,7 +1475,7 @@ function buildGroupCardEmbed(record: StoredGroupProfile): Record<string, unknown
   });
 
   return {
-    title: `Blue Mage Gruppe auf ${record.dataCenter}`,
+    title: truncateForDiscord(`Blue Mage group on ${sanitizeForDiscord(record.dataCenter)}`, DISCORD_EMBED_TITLE_MAX),
     color: 0x2b6cb0,
     fields: [field],
   };
@@ -1151,12 +1492,15 @@ export function buildPlayerCardEmbed(stored: StoredProfile): Record<string, unkn
 
   const targetSpellLabel = formatTargetSpellOrders(stored.targetSpellIds ?? []);
   if (targetSpellLabel !== undefined)
-    lines += `${lines.length > 0 ? "\n\n" : ""}Ziel-Spells: ${targetSpellLabel}`;
+    lines += `${lines.length > 0 ? "\n\n" : ""}Target spells: ${targetSpellLabel}`;
 
   return {
-    title: `${stored.characterName} (${stored.world}) sucht Mitspieler`,
+    title: truncateForDiscord(
+      `${sanitizeForDiscord(stored.characterName)} (${sanitizeForDiscord(stored.world)}) is looking for players`,
+      DISCORD_EMBED_TITLE_MAX,
+    ),
     color: 0x2f9e44,
-    description: lines.length > 0 ? lines : undefined,
+    description: lines.length > 0 ? truncateForDiscord(lines, DISCORD_EMBED_DESCRIPTION_MAX) : undefined,
   };
 }
 
@@ -1303,17 +1647,56 @@ export async function syncPlayerDiscordCard(
  * abgelehnt) - mehr Treffer werden selbst gekappt statt sich darauf zu verlassen. */
 const DISCORD_EMBED_MAX_FIELDS = 25;
 
-function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]): Record<string, unknown> {
-  const shownGroups = groups.slice(0, DISCORD_EMBED_MAX_FIELDS);
+/** Discord zählt title + description + alle field name/value + footer.text zusammen und lehnt ein
+ * Embed über 6000 Zeichen komplett ab. Der Puffer deckt description/footer (werden erst nach der
+ * Feldauswahl gebaut) und Zählunterschiede (Discord zählt Zeichen, hier UTF-16-Einheiten, die nie
+ * weniger sind) ab. */
+const DISCORD_EMBED_TOTAL_MAX = 6000;
+const DISCORD_EMBED_TOTAL_BUFFER = 300;
+
+interface DiscordEmbedField {
+  name: string;
+  value: string;
+  inline: boolean;
+}
+
+/** Gemeinsam für beide Browse-Embeds: nimmt Felder in Reihenfolge auf, bis 25 Felder oder das
+ * Gesamtlimit (mit Puffer) erreicht sind; der Rest wird per Fußzeile "+N weitere" angezeigt. */
+function buildBrowseEmbed(
+  title: string, fields: DiscordEmbedField[], describeShown: (shown: number, total: number) => string,
+): Record<string, unknown> {
+  const safeTitle = truncateForDiscord(title, DISCORD_EMBED_TITLE_MAX);
+  let used = safeTitle.length;
+  const shownFields: DiscordEmbedField[] = [];
+
+  for (const field of fields) {
+    const fieldLength = field.name.length + field.value.length;
+    if (shownFields.length >= DISCORD_EMBED_MAX_FIELDS
+        || used + fieldLength > DISCORD_EMBED_TOTAL_MAX - DISCORD_EMBED_TOTAL_BUFFER)
+      break;
+
+    shownFields.push(field);
+    used += fieldLength;
+  }
+
+  const hiddenCount = fields.length - shownFields.length;
 
   return {
-    title: `Blue Mage Gruppen auf ${dataCenter}`,
-    description: groups.length > shownGroups.length
-      ? `Zeige ${shownGroups.length} von ${groups.length} gelisteten Gruppen.`
-      : undefined,
+    title: safeTitle,
+    description: hiddenCount > 0 ? describeShown(shownFields.length, fields.length) : undefined,
     color: 0x2b6cb0,
-    fields: shownGroups.map(buildGroupEmbedField),
+    fields: shownFields,
+    footer: hiddenCount > 0 ? { text: `+${hiddenCount} more - see website` } : undefined,
   };
+}
+
+/** Exportiert für den Gesamtlimit-Test. */
+export function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowseGroup[]): Record<string, unknown> {
+  return buildBrowseEmbed(
+    `Blue Mage groups on ${sanitizeForDiscord(dataCenter)}`,
+    groups.map(buildGroupEmbedField),
+    (shown, total) => `Showing ${shown} of ${total} listed groups.`,
+  );
 }
 
 /** Pendant zu buildGroupEmbedField, aber ohne Mitgliederliste - Feldname ist World+Charaktername
@@ -1326,29 +1709,25 @@ function buildPlayerEmbedField(
 
   const targetSpellLabel = formatTargetSpellOrders(player.targetSpellIds);
   if (targetSpellLabel !== undefined)
-    lines += `${lines.length > 0 ? "\n\n" : ""}Ziel-Spells: ${targetSpellLabel}`;
+    lines += `${lines.length > 0 ? "\n\n" : ""}Target spells: ${targetSpellLabel}`;
 
   return {
-    name: `${player.characterName} (${player.world})`,
-    value: lines.length > 0 ? lines : "(keine weiteren Angaben)",
+    name: truncateForDiscord(
+      `${sanitizeForDiscord(player.characterName)} (${sanitizeForDiscord(player.world)})`, DISCORD_EMBED_FIELD_NAME_MAX),
+    value: truncateForDiscord(lines.length > 0 ? lines : "(no further details)", DISCORD_EMBED_FIELD_VALUE_MAX),
     inline: false,
   };
 }
 
 /** Pendant zu buildGroupsBrowseEmbed für "/blunion browse type:players". */
-function buildPlayersBrowseEmbed(
+export function buildPlayersBrowseEmbed(
   dataCenter: string, players: ReturnType<typeof stripForBrowseResponse>[],
 ): Record<string, unknown> {
-  const shownPlayers = players.slice(0, DISCORD_EMBED_MAX_FIELDS);
-
-  return {
-    title: `Blue Mage Spieler-Gesuche auf ${dataCenter}`,
-    description: players.length > shownPlayers.length
-      ? `Zeige ${shownPlayers.length} von ${players.length} gelisteten Spielern.`
-      : undefined,
-    color: 0x2b6cb0,
-    fields: shownPlayers.map(buildPlayerEmbedField),
-  };
+  return buildBrowseEmbed(
+    `Blue Mages looking for groups on ${sanitizeForDiscord(dataCenter)}`,
+    players.map(buildPlayerEmbedField),
+    (shown, total) => `Showing ${shown} of ${total} listed players.`,
+  );
 }
 
 /** Link-Button zur Web-Companion-Seite - style 5 ("Link") braucht keine custom_id. */
@@ -1359,7 +1738,7 @@ const DISCORD_WEBSITE_LINK_COMPONENTS = [
       {
         type: 2, // Button
         style: 5, // Link
-        label: "Companion-Website öffnen",
+        label: "Open companion website",
         url: COMPANION_WEBSITE_URL,
       },
     ],
@@ -1370,7 +1749,7 @@ const DISCORD_WEBSITE_LINK_COMPONENTS = [
 function discordMessageResponse(content: string): Response {
   return jsonResponse({
     type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
-    data: { content },
+    data: { content, allowed_mentions: { parse: [] } },
   });
 }
 
@@ -1383,20 +1762,27 @@ async function handleDiscordBrowse(
 ): Promise<Response> {
   if (!dataCenter) {
     return discordMessageResponse(
-      'Bitte ein Data Center angeben, z.B. "/blunion browse datacenter:Aether".',
+      'Please specify a data center, e.g. "/blunion browse datacenter:Aether".',
     );
   }
+
+  // Ab hier nur noch die kanonische Schreibweise - die rohe Slash-Command-Eingabe landet so weder
+  // im Embed-Titel noch in einer Chat-Antwort.
+  const canonicalDataCenter = lookupCanonicalDataCenter(dataCenter);
+  if (!canonicalDataCenter)
+    return discordMessageResponse('Unknown data center - e.g. "/blunion browse datacenter:Aether".');
+
+  dataCenter = canonicalDataCenter;
 
   if (type === "players") {
     const browseResponse = await computePlayersBrowse(env, dataCenter);
     if (!browseResponse.ok) {
-      const errorBody = await browseResponse.json().catch(() => null) as { error?: string } | null;
-      return discordMessageResponse(errorBody?.error ?? "Beim Abrufen der Spieler ist ein Fehler aufgetreten.");
+      return discordMessageResponse("Something went wrong while loading the players.");
     }
 
     const players = await browseResponse.json<ReturnType<typeof stripForBrowseResponse>[]>();
     if (players.length === 0)
-      return discordMessageResponse(`Keine öffentlich gelisteten Spieler auf "${dataCenter}" gefunden.`);
+      return discordMessageResponse(`No publicly listed players found on "${dataCenter}".`);
 
     return jsonResponse({
       type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
@@ -1409,13 +1795,12 @@ async function handleDiscordBrowse(
 
   const browseResponse = await computeGroupsBrowse(env, dataCenter);
   if (!browseResponse.ok) {
-    const errorBody = await browseResponse.json().catch(() => null) as { error?: string } | null;
-    return discordMessageResponse(errorBody?.error ?? "Beim Abrufen der Gruppen ist ein Fehler aufgetreten.");
+    return discordMessageResponse("Something went wrong while loading the groups.");
   }
 
   const groups = await browseResponse.json<DiscordBrowseGroup[]>();
   if (groups.length === 0)
-    return discordMessageResponse(`Keine öffentlich gelisteten Gruppen auf "${dataCenter}" gefunden.`);
+    return discordMessageResponse(`No publicly listed groups found on "${dataCenter}".`);
 
   return jsonResponse({
     type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
@@ -1443,11 +1828,11 @@ function findDiscordStringOption(options: DiscordInteractionOption[] | undefined
  * auftreten). */
 async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInteraction): Promise<Response> {
   if (interaction.data?.name !== "blunion")
-    return discordMessageResponse(`Unbekannter Command "${interaction.data?.name ?? "?"}".`);
+    return discordMessageResponse(`Unknown command "${sanitizeForDiscord(interaction.data?.name ?? "?")}".`);
 
   const browseSubcommand = findDiscordSubcommand(interaction.data, "browse");
   if (!browseSubcommand)
-    return discordMessageResponse('Unbekannter Sub-Command - aktuell wird nur "browse" unterstützt.');
+    return discordMessageResponse('Unknown subcommand - currently only "browse" is supported.');
 
   const dataCenter = findDiscordStringOption(browseSubcommand.options, "datacenter");
 
@@ -1529,6 +1914,9 @@ export default {
 
     const url = new URL(request.url);
 
+    if (url.pathname.startsWith(ADMIN_PATH_PREFIX))
+      return handleAdminRequest(env, request, url, ctx);
+
     if (BROWSE_PATH.test(url.pathname)) {
       if (request.method !== "GET")
         return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
@@ -1560,9 +1948,13 @@ export default {
       if (world.length === 0 || characterName.length === 0)
         return errorResponse(400, "world und characterName dürfen nicht leer sein.");
 
+      // Vor dem Methoden-Switch: gilt für GET/PUT/DELETE gleichermaßen (und vor jedem KV-Zugriff).
+      if (!isValidCharacterName(characterName))
+        return errorResponse(400, INVALID_CHARACTER_NAME_MESSAGE);
+
       switch (request.method) {
         case "GET":
-          return handleGet(env, world, characterName);
+          return handleGet(env, request, world, characterName);
         case "PUT":
           return handlePut(env, request, world, characterName, ctx);
         case "DELETE":
@@ -1580,6 +1972,9 @@ export default {
       if (groupId.length === 0)
         return errorResponse(400, "groupId darf nicht leer sein.");
 
+      if (!isValidGroupId(groupId))
+        return errorResponse(400, "groupId muss eine UUID sein.");
+
       switch (request.method) {
         case "PUT":
           return handleGroupPut(env, request, groupId, ctx);
@@ -1590,11 +1985,7 @@ export default {
       }
     }
 
-    return errorResponse(
-      404,
-      'Unbekannter Endpoint - erwartet wird "/profile/:world/:characterName", "/profiles/browse", ' +
-        '"/group/:groupId", "/groups/browse" oder "/discord/interactions".',
-    );
+    return unknownEndpointResponse();
   },
 
   /** Cron Trigger (siehe wrangler.toml) - räumt Karten von still per TTL abgelaufenen Einträgen auf. */

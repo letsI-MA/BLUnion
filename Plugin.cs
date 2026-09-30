@@ -45,7 +45,7 @@ public sealed class Plugin : IDalamudPlugin
 
         ECommonsMain.Init(pluginInterface, this);
 
-        this.partyService = new PartyService(partyList, objectTable);
+        this.partyService = new PartyService(partyList, objectTable, dataManager);
         this.spellDataService = new SpellDataService(log);
         this.comparisonService = new ComparisonService();
         this.localSpellUnlockService = new LocalSpellUnlockService(log, dataManager, unlockState, objectTable);
@@ -83,7 +83,7 @@ public sealed class Plugin : IDalamudPlugin
 
         this.commandManager.AddHandler(CommandName, new CommandInfo(this.OnCommand)
         {
-            HelpMessage = "Öffnet BLUnion.",
+            HelpMessage = "Opens BLUnion.",
         });
 
         this.pluginInterface.UiBuilder.Draw += this.windowSystem.Draw;

@@ -1,3 +1,4 @@
+using BLUnion.Models;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
@@ -10,6 +11,11 @@ public sealed class Configuration : IPluginConfiguration
     public bool LiveSyncEnabled { get; set; }
 
     public bool AutoImportSyncCodesFromPartyChat { get; set; } = true;
+
+    // null = automatisch anhand der Client-Sprache (siehe MainWindow-Konstruktor).
+    public DisplayLanguage? DisplayLanguage { get; set; } = null;
+
+    public bool AutoShareToPartyChat { get; set; } = true;
 
     public Dictionary<string, string> LiveSyncEditTokens { get; set; } = new();
 

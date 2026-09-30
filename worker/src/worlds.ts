@@ -143,3 +143,15 @@ export function lookupDataCenter(world: string): DataCenterLookupResult | null {
   }
   return null;
 }
+
+/** Case-insensitiver Data-Center-Lookup gegen die Werte von WORLD_DATA_CENTERS - liefert die
+ * kanonische Schreibweise oder null bei unbekanntem Data Center (siehe index.ts: Browse-Endpunkte
+ * antworten dann mit 400, statt für beliebige Strings eigene Cache-Einträge anzulegen). */
+export function lookupCanonicalDataCenter(dataCenter: string): string | null {
+  const normalized = dataCenter.toLowerCase();
+  for (const canonicalDataCenter of new Set(Object.values(WORLD_DATA_CENTERS))) {
+    if (canonicalDataCenter.toLowerCase() === normalized)
+      return canonicalDataCenter;
+  }
+  return null;
+}

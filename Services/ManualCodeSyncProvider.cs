@@ -50,7 +50,12 @@ public sealed class ManualCodeSyncProvider
         return CurrentPrefix + ToBase64Url(payload);
     }
 
-    public void ImportCode(string code)
+    public void ImportCode(string code) => this.TryImportCode(code, _ => true, out _);
+
+    // Wie ImportCode, übernimmt den Eintrag aber nur, wenn acceptCharacterName den im Code
+    // enthaltenen Namen akzeptiert (siehe ChatAutoImportFilter.EvaluateCodeName). characterName ist
+    // auch bei false gesetzt, damit der Aufrufer die Ablehnung protokollieren kann.
+    public bool TryImportCode(string code, Func<string, bool> acceptCharacterName, out string characterName)
     {
         PlayerSpellStatus status;
 
@@ -61,7 +66,12 @@ public sealed class ManualCodeSyncProvider
         else
             throw new FormatException("Unbekanntes Code-Format (erwartetes Präfix fehlt).");
 
+        characterName = status.CharacterName;
+        if (!acceptCharacterName(status.CharacterName))
+            return false;
+
         this.known[status.CharacterName] = status with { IsLocalPlayer = false };
+        return true;
     }
 
     private PlayerSpellStatus DecodeCurrentFormat(string payloadBase64Url)

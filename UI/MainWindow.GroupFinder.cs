@@ -43,6 +43,12 @@ public sealed partial class MainWindow
             this.groupFinderVisibilityInitialized = true;
         }
 
+        // Dezenter Moderationshinweis: Namen werden nicht verifiziert, Missbrauch über Discord melden.
+        this.DrawHintText(UiStrings.Get(UiStrings.Key.GroupFinderNamesNotVerifiedHint, this.displayLanguage));
+        ImGui.SameLine();
+        if (ImGui.SmallButton($"{UiStrings.Get(UiStrings.Key.OpenDiscordServerButton, this.displayLanguage)}##GroupFinderReportAbuse"))
+            this.OpenUrlInBrowser(DiscordInviteUrl);
+
         if (ImGui.BeginTabBar("GroupFinderSubTabs"))
         {
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.GroupFinderPublishSubTab, this.displayLanguage)))
@@ -376,6 +382,18 @@ public sealed partial class MainWindow
                 this.groupMemberSource == GroupMemberSource.SyncList))
             this.groupMemberSource = GroupMemberSource.SyncList;
 
+        // Ersteller = lokaler Charakter, immer Mitglied (Worker verlangt das, siehe verifyGroupCreator) -
+        // daher fest angehakt und nicht abwählbar; die Listen darunter blenden ihn aus.
+        var creatorKey = this.GetGroupPublishCreatorKey();
+        if (creatorKey is not null)
+        {
+            ImGui.BeginDisabled();
+            var alwaysSelected = true;
+            ImGui.Checkbox($"{FormatGroupPublishMemberKey(creatorKey)}##GroupPublishCreator", ref alwaysSelected);
+            ImGui.EndDisabled();
+            this.DrawHintText(UiStrings.Get(UiStrings.Key.GroupPublishCreatorAlwaysMemberHint, this.displayLanguage));
+        }
+
         if (this.groupMemberSource == GroupMemberSource.Party)
             this.DrawGroupPublishPartyMemberList();
         else
@@ -418,8 +436,14 @@ public sealed partial class MainWindow
         ImGui.Separator();
         DrawSectionGap();
 
-        var selectedCount = this.groupPublishSelectedMembers.Count;
-        var canPublish = selectedCount is >= 1 and <= 8;
+        var otherMembers = this.groupPublishSelectedMembers
+            .Where(key => creatorKey is null || !string.Equals(key, creatorKey, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var hasOwnProfile = this.liveSyncService.HasEditTokenForLocalCharacter();
+        var canPublish = creatorKey is not null && hasOwnProfile && otherMembers.Count + 1 <= 8;
+
+        if (creatorKey is not null && !hasOwnProfile)
+            this.DrawHintText(UiStrings.Get(UiStrings.Key.GroupPublishRequiresOwnProfileHint, this.displayLanguage));
 
         // Siehe HasEditTokenForLocalCharacter()-Doc oben in DrawMyEntrySection - dasselbe Prinzip,
         // hier über den Gruppen-Zustand, den auch DeletePublishedGroup nutzt.
@@ -436,7 +460,8 @@ public sealed partial class MainWindow
             wantedPlayerCount = Math.Clamp(wantedPlayerCount, 0, 8);
             this.groupPublishWantedPlayerCountBuffer = wantedPlayerCount.ToString();
 
-            var members = this.groupPublishSelectedMembers
+            var members = otherMembers
+                .Prepend(creatorKey!)
                 .Select(key =>
                 {
                     var atIndex = key.IndexOf('@');
@@ -517,9 +542,28 @@ public sealed partial class MainWindow
         }
     }
 
+    // null, solange kein Charakter eingeloggt ist - Format wie groupPublishSelectedMembers ("Name@World").
+    private string? GetGroupPublishCreatorKey()
+    {
+        var localName = this.partyService.GetLocalPlayerName();
+        var localWorld = this.partyService.GetLocalPlayerWorld();
+        return string.IsNullOrEmpty(localName) || string.IsNullOrEmpty(localWorld) ? null : $"{localName}@{localWorld}";
+    }
+
+    private static string FormatGroupPublishMemberKey(string key)
+    {
+        var atIndex = key.IndexOf('@');
+        return $"{key[..atIndex]} ({key[(atIndex + 1)..]})";
+    }
+
     private void DrawGroupPublishMemberCheckbox(string characterName, string world)
     {
         var key = $"{characterName}@{world}";
+
+        // Der Ersteller steht bereits fest angehakt über den Listen (siehe DrawGroupPublishSection).
+        if (string.Equals(key, this.GetGroupPublishCreatorKey(), StringComparison.OrdinalIgnoreCase))
+            return;
+
         var selected = this.groupPublishSelectedMembers.Contains(key);
 
         if (ImGui.Checkbox($"{characterName} ({world})##GroupPublishMember{key}", ref selected))

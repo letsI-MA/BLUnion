@@ -1,0 +1,5 @@
+# Enthält das ADMIN_TOKEN im Klartext (siehe README.md) - darf NIE ins Repo.
+.env
+
+# Python-Bytecode-Cache (entsteht beim Ausführen, kein Quellcode).
+__pycache__/

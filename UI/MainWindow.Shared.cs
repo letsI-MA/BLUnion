@@ -200,6 +200,14 @@ public sealed partial class MainWindow
             : SuccessMessageColor;
 
         ImGui.TextColored(color, this.lastError);
+
+        if (this.lastMessageLinkUrl is { } linkUrl)
+        {
+            ImGui.SameLine();
+            if (ImGui.SmallButton($"{UiStrings.Get(UiStrings.Key.OpenDiscordServerButton, this.displayLanguage)}##LastMessageLink"))
+                this.OpenUrlInBrowser(linkUrl);
+        }
+
         ImGui.Separator();
     }
 
@@ -207,15 +215,25 @@ public sealed partial class MainWindow
     {
         this.lastError = message;
         this.lastMessageIsError = false;
+        this.lastMessageLinkUrl = null;
     }
 
-    private void SetErrorMessage(string message)
+    private void SetErrorMessage(string message, string? linkUrl = null)
     {
         this.lastError = message;
         this.lastMessageIsError = true;
+        this.lastMessageLinkUrl = linkUrl;
     }
 
-    private void ClearMessage() => this.lastError = null;
+    private void ClearMessage()
+    {
+        this.lastError = null;
+        this.lastMessageLinkUrl = null;
+    }
+
+    // Allgemeine Server-Einladung (identisch zu DISCORD_INVITE_FALLBACK_URL im Worker) - für
+    // Missbrauchsmeldungen, unabhängig von einem Region-Kanal.
+    private const string DiscordInviteUrl = "https://discord.gg/uGW7kBG67";
 
     // Für die Discord-Kanal-Links bei aktiven Solo-/Gruppen-Veröffentlichungen (siehe
     // DrawMyEntrySection/DrawGroupPublishSection in MainWindow.GroupFinder.cs) - beide sonst

@@ -190,6 +190,24 @@ public static class UiStrings
         LoadoutSourceLabel,
         LoadoutProgressFormat,
         LoadoutOpenSourceButton,
+        DisplayLanguageAutomatic,
+        SourceMethodDuty,
+        SourceMethodOpenWorld,
+        SourceMethodLevequest,
+        SourceMethodDungeonTrash,
+        SourceMethodMaskedCarnivale,
+        SourceMethodTotem,
+        SourceMethodTotemSpellCount,
+        SourceMethodTotemLevel,
+        SourceMethodMaskedCarnivaleProgress,
+        SourceMethodStartingSpell,
+        GroupPublishRequiresOwnProfileHint,
+        GroupPublishCreatorAlwaysMemberHint,
+        GroupPublishCreatorRejectedMessage,
+        GroupPublishMissingMembersMessage,
+        GroupFinderNamesNotVerifiedHint,
+        OpenDiscordServerButton,
+        LiveSyncPushNameTaken,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -704,20 +722,17 @@ public static class UiStrings
         [Key.DisplayLanguageHint] = new()
         {
             [DisplayLanguage.German] =
-                "Gilt für die komplette Oberfläche (inkl. Spell-Namen) und nur für die laufende " +
-                "Sitzung - wird bewusst nicht gespeichert, beim nächsten Öffnen greift wieder der " +
-                "Default anhand deiner Client-Sprache.",
+                "Gilt für die komplette Oberfläche (inkl. Spell-Namen) und wird gespeichert. " +
+                "\"Automatisch\" folgt der Sprache deines Clients.",
             [DisplayLanguage.English] =
-                "Applies to the entire interface (including spell names) and only for the current " +
-                "session - intentionally not saved; the default based on your client language " +
-                "applies again next time you open the window.",
+                "Applies to the entire interface (including spell names) and is saved. " +
+                "\"Automatic\" follows your client language.",
             [DisplayLanguage.French] =
-                "S'applique à toute l'interface (y compris les noms de sorts) et uniquement à la " +
-                "session en cours - volontairement non enregistré : le réglage par défaut selon la " +
-                "langue de ton client sera réutilisé à la prochaine ouverture.",
+                "S'applique à toute l'interface (y compris les noms de sorts) et est enregistré. " +
+                "« Automatique » suit la langue de ton client.",
             [DisplayLanguage.Japanese] =
-                "画面全体(スペル名を含む)に適用され、現在のセッションのみ有効です。意図的に保存され" +
-                "ないため、次回開いたときはクライアント言語に基づくデフォルトに戻ります。",
+                "画面全体(スペル名を含む)に適用され、設定は保存されます。" +
+                "「自動」はクライアント言語に従います。",
         },
         [Key.HideTotemsToggle] = new()
         {
@@ -1553,6 +1568,169 @@ public static class UiStrings
             [DisplayLanguage.English] = "Open source",
             [DisplayLanguage.French] = "Ouvrir la source",
             [DisplayLanguage.Japanese] = "出典を開く",
+        },
+        [Key.DisplayLanguageAutomatic] = new()
+        {
+            [DisplayLanguage.German] = "Automatisch (Client-Sprache)",
+            [DisplayLanguage.English] = "Automatic (client language)",
+            [DisplayLanguage.French] = "Automatique (langue du client)",
+            [DisplayLanguage.Japanese] = "自動(クライアント言語)",
+        },
+        [Key.SourceMethodDuty] = new()
+        {
+            [DisplayLanguage.German] = "Duty",
+            [DisplayLanguage.English] = "Duty",
+            [DisplayLanguage.French] = "Mission",
+            [DisplayLanguage.Japanese] = "コンテンツ",
+        },
+        [Key.SourceMethodOpenWorld] = new()
+        {
+            [DisplayLanguage.German] = "Open World",
+            [DisplayLanguage.English] = "Open World",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.French] = "Monde ouvert",
+            [DisplayLanguage.Japanese] = "フィールド",
+        },
+        [Key.SourceMethodLevequest] = new()
+        {
+            [DisplayLanguage.German] = "Levequest",
+            [DisplayLanguage.English] = "Levequest",
+            [DisplayLanguage.French] = "Mandat",
+            [DisplayLanguage.Japanese] = "ギルドリーヴ",
+        },
+        [Key.SourceMethodDungeonTrash] = new()
+        {
+            [DisplayLanguage.German] = "Dungeon-Trash",
+            [DisplayLanguage.English] = "Dungeon trash",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.French] = "Monstres de donjon",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.Japanese] = "ダンジョンの雑魚",
+        },
+        [Key.SourceMethodMaskedCarnivale] = new()
+        {
+            [DisplayLanguage.German] = "Masked Carnivale",
+            [DisplayLanguage.English] = "Masked Carnivale",
+            [DisplayLanguage.French] = "La Grande Mascarade",
+            [DisplayLanguage.Japanese] = "マスクカーニバル",
+        },
+        [Key.SourceMethodTotem] = new()
+        {
+            [DisplayLanguage.German] = "Totem",
+            [DisplayLanguage.English] = "Totem",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.French] = "Totem",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.Japanese] = "トーテム",
+        },
+        [Key.SourceMethodTotemSpellCount] = new()
+        {
+            [DisplayLanguage.German] = "Totem (nach Spell-Anzahl)",
+            [DisplayLanguage.English] = "Totem (by spell count)",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.French] = "Totem (selon le nombre de sorts)",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.Japanese] = "トーテム(習得数に応じて)",
+        },
+        [Key.SourceMethodTotemLevel] = new()
+        {
+            [DisplayLanguage.German] = "Totem (nach Level)",
+            [DisplayLanguage.English] = "Totem (by level)",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.French] = "Totem (selon le niveau)",
+            // TODO: Übersetzung prüfen
+            [DisplayLanguage.Japanese] = "トーテム(レベルに応じて)",
+        },
+        [Key.SourceMethodMaskedCarnivaleProgress] = new()
+        {
+            [DisplayLanguage.German] = "Masked Carnivale (Fortschritt)",
+            [DisplayLanguage.English] = "Masked Carnivale (progress)",
+            [DisplayLanguage.French] = "La Grande Mascarade (progression)",
+            [DisplayLanguage.Japanese] = "マスクカーニバル(進行度)",
+        },
+        [Key.SourceMethodStartingSpell] = new()
+        {
+            [DisplayLanguage.German] = "Von Anfang an bekannt",
+            [DisplayLanguage.English] = "Known from the start",
+            [DisplayLanguage.French] = "Connu dès le départ",
+            [DisplayLanguage.Japanese] = "初期習得",
+        },
+        [Key.GroupPublishRequiresOwnProfileHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "Gruppen können nur mit eigenem Live-Sync-Profil veröffentlicht werden. Aktiviere zuerst " +
+                "Live-Sync (Einstellungen), damit dein eigenes Profil existiert.",
+            [DisplayLanguage.English] =
+                "Groups can only be published with your own Live Sync profile. Enable Live Sync first " +
+                "(Settings) so that your own profile exists.",
+            [DisplayLanguage.French] =
+                "Les groupes ne peuvent être publiés qu'avec ton propre profil Live Sync. Active d'abord " +
+                "Live Sync (Paramètres) pour que ton profil existe.",
+            [DisplayLanguage.Japanese] =
+                "グループを公開するには自分のLive Syncプロフィールが必要です。まず設定でLive Syncを有効にして、" +
+                "自分のプロフィールを作成してください。",
+        },
+        [Key.GroupPublishCreatorAlwaysMemberHint] = new()
+        {
+            [DisplayLanguage.German] = "Als Ersteller bist du immer Mitglied der Gruppe.",
+            [DisplayLanguage.English] = "As the creator, you are always a member of the group.",
+            [DisplayLanguage.French] = "En tant que créateur, tu fais toujours partie du groupe.",
+            [DisplayLanguage.Japanese] = "作成者であるあなたは常にグループのメンバーです。",
+        },
+        [Key.GroupPublishCreatorRejectedMessage] = new()
+        {
+            [DisplayLanguage.German] =
+                "Gruppe nicht veröffentlicht: Dein eigenes Live-Sync-Profil wurde nicht gefunden oder passt " +
+                "nicht. Aktiviere Live-Sync (bzw. veröffentliche dein Profil erneut) und versuche es noch einmal.",
+            [DisplayLanguage.English] =
+                "Group not published: your own Live Sync profile was not found or does not match. Enable " +
+                "Live Sync (or publish your profile again) and try again.",
+            [DisplayLanguage.French] =
+                "Groupe non publié : ton propre profil Live Sync est introuvable ou ne correspond pas. Active " +
+                "Live Sync (ou republie ton profil) puis réessaie.",
+            [DisplayLanguage.Japanese] =
+                "グループを公開できませんでした: 自分のLive Syncプロフィールが見つからないか一致しません。" +
+                "Live Syncを有効にする(またはプロフィールを再公開する)と、もう一度お試しください。",
+        },
+        [Key.GroupPublishMissingMembersMessage] = new()
+        {
+            [DisplayLanguage.German] =
+                "Gruppe nicht veröffentlicht - diese Mitglieder haben kein Live-Sync-Profil: {0}. Sie müssen " +
+                "Live-Sync aktivieren oder ihren Eintrag auf der Website veröffentlichen.",
+            [DisplayLanguage.English] =
+                "Group not published - these members have no Live Sync profile: {0}. They need to enable " +
+                "Live Sync or publish their entry on the website.",
+            [DisplayLanguage.French] =
+                "Groupe non publié - ces membres n'ont pas de profil Live Sync : {0}. Ils doivent activer " +
+                "Live Sync ou publier leur entrée sur le site web.",
+            [DisplayLanguage.Japanese] =
+                "グループを公開できませんでした - 次のメンバーにLive Syncプロフィールがありません: {0}。" +
+                "Live Syncを有効にするか、ウェブサイトで自分のエントリーを公開する必要があります。",
+        },
+        [Key.GroupFinderNamesNotVerifiedHint] = new()
+        {
+            [DisplayLanguage.German] = "Charakternamen werden nicht verifiziert. Missbrauch kannst du im Discord melden.",
+            [DisplayLanguage.English] = "Character names are not verified. You can report abuse on Discord.",
+            [DisplayLanguage.French] = "Les noms de personnage ne sont pas vérifiés. Tu peux signaler les abus sur Discord.",
+            [DisplayLanguage.Japanese] = "キャラクター名は検証されていません。不正利用はDiscordで報告できます。",
+        },
+        [Key.OpenDiscordServerButton] = new()
+        {
+            [DisplayLanguage.German] = "Discord öffnen",
+            [DisplayLanguage.English] = "Open Discord",
+            [DisplayLanguage.French] = "Ouvrir Discord",
+            [DisplayLanguage.Japanese] = "Discordを開く",
+        },
+        [Key.LiveSyncPushNameTaken] = new()
+        {
+            [DisplayLanguage.German] =
+                "Für diesen Charakter existiert bereits ein Profil. Wenn das nicht deins ist, melde dich im Discord.",
+            [DisplayLanguage.English] =
+                "A profile already exists for this character. If it isn't yours, please let us know on Discord.",
+            [DisplayLanguage.French] =
+                "Un profil existe déjà pour ce personnage. S'il n'est pas à toi, signale-le sur Discord.",
+            [DisplayLanguage.Japanese] =
+                "このキャラクターのプロフィールは既に存在します。あなたのものでない場合は、Discordでお知らせください。",
         },
     };
 

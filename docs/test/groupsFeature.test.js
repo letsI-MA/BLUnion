@@ -15,6 +15,18 @@ describe("groups feature (multi-member group listings)", () => {
 
   beforeAll(async () => {
     window = await loadPage();
+
+    // Test-Helfer im Seiten-Realm (indirektes eval -> globale Funktion, siehe runInPage-Doc):
+    // setzt "Mein Eintrag" (= Gruppen-Ersteller, siehe groupsGetCreator) inkl. Token in
+    // localStorage, bzw. entfernt das Token bei token === null.
+    window.eval(`
+      function testSetupCreator(name, world, token) {
+        document.getElementById('gfImportInput').value = encodeCompact(name, new Set());
+        document.getElementById('gfWorld').value = world;
+        if (token) gfSetStoredToken(world, name, token); else gfRemoveStoredToken(world, name);
+        gfUpdateMyEntryPreview();
+      }
+    `);
   });
 
   it("adds a member from a valid code + world", () => {
@@ -22,7 +34,7 @@ describe("groups feature (multi-member group listings)", () => {
       window,
       function () {
         groupsMembers = [];
-        const code = encodeCompact("Alice", new Set([SPELLS[0].id, SPELLS[1].id]));
+        const code = encodeCompact("Alice Test", new Set([SPELLS[0].id, SPELLS[1].id]));
         document.getElementById("groupMemberCodeInput").value = code;
         document.getElementById("groupMemberWorldInput").value = "Gilgamesh";
 
@@ -38,7 +50,7 @@ describe("groups feature (multi-member group listings)", () => {
     );
 
     expect(result.memberCount).toBe(1);
-    expect(result.member.characterName).toBe("Alice");
+    expect(result.member.characterName).toBe("Alice Test");
     expect(result.member.world).toBe("Gilgamesh");
     expect(result.member.learnedCount).toBe(2);
     expect(result.statusClass).toContain("ok");
@@ -172,8 +184,9 @@ describe("groups feature (multi-member group listings)", () => {
       function () {
         return (async () => {
           localStorage.removeItem("blunion_livesync_owngroup");
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
           groupsMembers = [];
-          groupsAddOrUpdateMember("Gilgamesh", "Alice", 1);
+          groupsAddOrUpdateMember("Gilgamesh", "Bob Test", 1);
           groupsTargetSpellIds = new Set([SPELLS[0].id]);
 
           document.getElementById("groupPublishVisible").checked = true;
@@ -206,6 +219,7 @@ describe("groups feature (multi-member group listings)", () => {
           return {
             url: captured.url,
             method: captured.options.method,
+            creatorTokenHeader: captured.options.headers["X-Creator-Token"],
             body: JSON.parse(captured.options.body),
             groupIdFromUrl: decodeURIComponent(captured.url.split("/").pop()),
             storedGroupId: stored ? stored.groupId : null,
@@ -219,7 +233,14 @@ describe("groups feature (multi-member group listings)", () => {
 
     expect(result.method).toBe("PUT");
     expect(result.url).toMatch(/\/group\//); // NICHT /groups/ (das ist nur der Browse-Endpoint)
-    expect(result.body.members).toEqual([{ world: "Gilgamesh", characterName: "Alice" }]);
+    // Ersteller ("Mein Eintrag") automatisch als erstes Mitglied + Creator-Nachweis
+    expect(result.body.members).toEqual([
+      { world: "Gilgamesh", characterName: "Alice Test" },
+      { world: "Gilgamesh", characterName: "Bob Test" },
+    ]);
+    expect(result.body.creatorWorld).toBe("Gilgamesh");
+    expect(result.body.creatorCharacterName).toBe("Alice Test");
+    expect(result.creatorTokenHeader).toBe("creator-token");
     expect(result.body.visibility).toBe("listed");
     expect(result.body.availabilityTags).toContain("evening");
     expect(result.body.note).toBe("Testnotiz");
@@ -244,8 +265,8 @@ describe("groups feature (multi-member group listings)", () => {
             "blunion_livesync_owngroup",
             JSON.stringify({ groupId: "existing-group-id", editToken: "existing-token" }),
           );
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
           groupsMembers = [];
-          groupsAddOrUpdateMember("Gilgamesh", "Alice", 1);
 
           let captured = null;
           window.fetch = async (url, options) => {
@@ -264,11 +285,12 @@ describe("groups feature (multi-member group listings)", () => {
     expect(result.body.editToken).toBe("existing-token");
   });
 
-  it("rejects publishing with 0 members without calling fetch", async () => {
+  it("rejects publishing without an own entry (no creator token) without calling fetch", async () => {
     const result = await runInPage(
       window,
       function () {
         return (async () => {
+          testSetupCreator("Alice Test", "Gilgamesh", null);
           groupsMembers = [];
           let fetchCalled = false;
           window.fetch = async () => {
@@ -293,8 +315,8 @@ describe("groups feature (multi-member group listings)", () => {
       function () {
         return (async () => {
           localStorage.removeItem("blunion_livesync_owngroup");
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
           groupsMembers = [];
-          groupsAddOrUpdateMember("Gilgamesh", "Alice", 1);
 
           window.fetch = async () => ({
             ok: false,
@@ -316,6 +338,218 @@ describe("groups feature (multi-member group listings)", () => {
     expect(result.statusClass).toContain("error");
     expect(result.statusText).toContain("members muss ein Array");
     expect(result.stored).toBeNull();
+  });
+
+  // --- Ersteller-Nachweis (B3) ---
+
+  it("disables publishing and shows the hint without an own entry, and enables it with one", () => {
+    const result = runInPage(
+      window,
+      function () {
+        testSetupCreator("Alice Test", "Gilgamesh", null);
+        const without = {
+          disabled: document.getElementById("btn_groupsPublish").disabled,
+          hintVisible: document.getElementById("groupsCreatorHint").style.display !== "none",
+          hintText: document.getElementById("groupsCreatorHint").textContent,
+        };
+
+        testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+        const withToken = {
+          disabled: document.getElementById("btn_groupsPublish").disabled,
+          hintVisible: document.getElementById("groupsCreatorHint").style.display !== "none",
+          chips: Array.from(document.querySelectorAll("#groupPublishMembersList .group-member")).map(c => c.textContent),
+        };
+
+        return { without, withToken };
+      }.toString(),
+    );
+
+    expect(result.without.disabled).toBe(true);
+    expect(result.without.hintVisible).toBe(true);
+    expect(result.without.hintText.length).toBeGreaterThan(0);
+    expect(result.withToken.disabled).toBe(false);
+    expect(result.withToken.hintVisible).toBe(false);
+    expect(result.withToken.chips[0]).toContain("Alice Test (Gilgamesh)");
+  });
+
+  it("does not duplicate the creator when they were also added via code", async () => {
+    const result = await runInPage(
+      window,
+      function () {
+        return (async () => {
+          localStorage.removeItem("blunion_livesync_owngroup");
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+          groupsMembers = [];
+          groupsAddOrUpdateMember("gilgamesh", "alice test", 3);
+          groupsAddOrUpdateMember("Cerberus", "Bob Test", 1);
+
+          let captured = null;
+          window.fetch = async (url, options) => {
+            captured = options;
+            return { ok: true, status: 201, json: async () => ({ editToken: "t" }) };
+          };
+
+          await groupsPublish();
+          return JSON.parse(captured.body).members;
+        })();
+      }.toString(),
+    );
+
+    expect(result).toEqual([
+      { world: "Gilgamesh", characterName: "Alice Test" },
+      { world: "Cerberus", characterName: "Bob Test" },
+    ]);
+  });
+
+  it("rejects more than 7 additional members (8 including the creator) without calling fetch", async () => {
+    const result = await runInPage(
+      window,
+      function () {
+        return (async () => {
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+          groupsMembers = [];
+          for (let i = 0; i < 8; i++) groupsAddOrUpdateMember("Gilgamesh", `Member ${String.fromCharCode(97 + i)}x`, 1);
+
+          let fetchCalled = false;
+          window.fetch = async () => {
+            fetchCalled = true;
+            return { ok: true, status: 201, json: async () => ({}) };
+          };
+
+          await groupsPublish();
+          return { fetchCalled, statusClass: document.getElementById("groupsPublishStatus").className };
+        })();
+      }.toString(),
+    );
+
+    expect(result.fetchCalled).toBe(false);
+    expect(result.statusClass).toContain("error");
+  });
+
+  it("shows the creator error on 403 and disables publishing when the own profile has expired (404)", async () => {
+    const result = await runInPage(
+      window,
+      function () {
+        return (async () => {
+          localStorage.removeItem("blunion_livesync_owngroup");
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+          groupsMembers = [];
+
+          window.fetch = async (url, options) => {
+            if (options && options.method === "PUT") {
+              return { ok: false, status: 403, json: async () => ({ error: "Ersteller-Nachweis fehlgeschlagen" }) };
+            }
+            return { ok: false, status: 404, json: async () => ({ error: "Kein Profil" }) }; // GET /profile
+          };
+
+          await groupsPublish();
+          await new Promise((resolve) => setTimeout(resolve, 0)); // groupsCheckCreatorProfile läuft asynchron
+
+          return {
+            statusText: document.getElementById("groupsPublishStatus").textContent,
+            tokenAfter: gfGetStoredToken("Gilgamesh", "Alice Test"),
+            publishDisabled: document.getElementById("btn_groupsPublish").disabled,
+            hintVisible: document.getElementById("groupsCreatorHint").style.display !== "none",
+          };
+        })();
+      }.toString(),
+    );
+
+    expect(result.statusText).toBe(runInPage(window, function () { return t().groupsErrCreatorRejected; }.toString()));
+    expect(result.tokenAfter).toBeNull();
+    expect(result.publishDisabled).toBe(true);
+    expect(result.hintVisible).toBe(true);
+  });
+
+  it("lists missing members from a 400 response as plain text (no markup injection)", async () => {
+    const result = await runInPage(
+      window,
+      function () {
+        return (async () => {
+          localStorage.removeItem("blunion_livesync_owngroup");
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+          groupsMembers = [];
+          groupsAddOrUpdateMember("Gilgamesh", "Bob Test", 1);
+
+          window.fetch = async () => ({
+            ok: false,
+            status: 400,
+            json: async () => ({
+              error: "Nicht alle Mitglieder haben ein Live-Sync-Profil",
+              missingMembers: [
+                { world: "Gilgamesh", characterName: "Bob Test" },
+                { world: "Cerberus", characterName: "<img src=x onerror=alert(1)>" },
+              ],
+            }),
+          });
+
+          await groupsPublish();
+          const statusEl = document.getElementById("groupsPublishStatus");
+          return {
+            text: statusEl.textContent,
+            hasImgElement: statusEl.querySelector("img") !== null,
+            stored: localStorage.getItem("blunion_livesync_owngroup"),
+          };
+        })();
+      }.toString(),
+    );
+
+    expect(result.text).toContain("Bob Test (Gilgamesh)");
+    expect(result.text).toContain("<img src=x onerror=alert(1)> (Cerberus)");
+    expect(result.hasImgElement).toBe(false);
+    expect(result.stored).toBeNull();
+  });
+
+  it("removes a stale creator token when opening the publish view and the profile is gone (404)", async () => {
+    const result = await runInPage(
+      window,
+      function () {
+        return (async () => {
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+          let requestedUrl = null;
+          window.fetch = async (url) => {
+            requestedUrl = url;
+            return { ok: false, status: 404, json: async () => ({}) };
+          };
+
+          groupsSetView("publish");
+          await new Promise((resolve) => setTimeout(resolve, 0));
+
+          return {
+            requestedUrl,
+            tokenAfter: gfGetStoredToken("Gilgamesh", "Alice Test"),
+            publishDisabled: document.getElementById("btn_groupsPublish").disabled,
+          };
+        })();
+      }.toString(),
+    );
+
+    expect(result.requestedUrl).toMatch(/\/profile\/Gilgamesh\/Alice%20Test$/);
+    expect(result.tokenAfter).toBeNull();
+    expect(result.publishDisabled).toBe(true);
+  });
+
+  it("keeps the creator token when the profile check succeeds", async () => {
+    const result = await runInPage(
+      window,
+      function () {
+        return (async () => {
+          testSetupCreator("Alice Test", "Gilgamesh", "creator-token");
+          window.fetch = async () => ({ ok: true, status: 200, json: async () => ({}) });
+
+          groupsSetView("publish");
+          await new Promise((resolve) => setTimeout(resolve, 0));
+
+          return {
+            tokenAfter: gfGetStoredToken("Gilgamesh", "Alice Test"),
+            publishDisabled: document.getElementById("btn_groupsPublish").disabled,
+          };
+        })();
+      }.toString(),
+    );
+
+    expect(result.tokenAfter).toBe("creator-token");
+    expect(result.publishDisabled).toBe(false);
   });
 
   // --- Löschen-Flow (DELETE) ---

@@ -243,6 +243,7 @@
   <div class="panel">
     <h2 id="txt_h2_groupfinder">4. Gruppenfinder</h2>
     <div class="hint" id="txt_gf_intro" style="margin-top:0;"></div>
+    <div class="hint" id="txt_gf_moderation_hint" style="margin-top:4px;"></div>
 
     <h3 class="gf-subheader" id="txt_gf_myentry_header"></h3>
 
@@ -374,6 +375,7 @@
       <div class="hint" id="groupTargetSpellCount" style="margin-top:8px;"></div>
       <div class="spell-list" id="groupTargetSpellList" style="max-height:220px; margin-top:6px;"></div>
 
+      <div class="hint" id="groupsCreatorHint" style="margin-top:14px; display:none;"></div>
       <div class="row" style="margin-top:14px;">
         <button id="btn_groupsPublish" onclick="groupsPublish()"></button>
         <button class="secondary" id="btn_groupsDelete" onclick="groupsDeleteOwn()" disabled></button>
@@ -567,6 +569,10 @@ const I18N = {
     sortStars: 'Sortieren: Sterne (schwer zuerst)',
     h2GroupFinder: '4. Gruppenfinder',
     gfIntro: 'Veröffentlicht deinen Status auf demselben Server wie das Dalamud-Plugin (Live-Sync) - andere können dich dann im Gruppenfinder finden, ohne dass ihr Codes austauschen müsst. Nutzt zum Einlesen von Name + Spellstatus denselben BLU:-Code wie oben unter "2.".',
+    gfModerationHint: 'Charakternamen werden nicht verifiziert. Missbrauch kannst du im Discord melden:',
+    discordLinkLabel: 'Discord',
+    gfErrNameTaken: 'Für diesen Charakter existiert bereits ein Profil. Wenn das nicht deins ist, melde dich im Discord:',
+    errInvalidCharName: (name) => `Ungültiger Charaktername "${name}" - erwartet werden Vor- und Nachname in lateinischen Buchstaben (je 2-15 Zeichen, auch ' und -), insgesamt max. 21 Zeichen.`,
     gfMyEntryHeader: 'Mein Eintrag',
     gfLabelWorld: 'World',
     gfWorldPlaceholder: 'z.B. Gilgamesh',
@@ -617,6 +623,10 @@ const I18N = {
     groupsOkDeleted: 'Gruppe gelöscht.',
     groupsErrMemberCount: 'Bitte 1-8 Mitglieder hinzufügen.',
     groupsErrTargetSpellCount: (max) => `Höchstens ${max} Ziel-Spells erlaubt.`,
+    groupsCreatorRequiredHint: 'Veröffentliche zuerst oben unter "Mein Eintrag" deinen eigenen Eintrag - Gruppen können nur mit eigenem Profil erstellt werden, und du bist automatisch Mitglied.',
+    groupsCreatorLabel: (name, world) => `${name} (${world}) - du (Ersteller)`,
+    groupsErrCreatorRejected: 'Gruppe nicht veröffentlicht: Dein eigener Eintrag wurde nicht gefunden oder ist abgelaufen. Veröffentliche ihn oben unter "Mein Eintrag" erneut.',
+    groupsErrMissingMembers: (names) => `Gruppe nicht veröffentlicht - diese Mitglieder haben kein Profil: ${names}. Sie müssen im Plugin Live-Sync aktivieren oder hier ihren Eintrag veröffentlichen.`,
     groupsNoEntries: 'Aktuell keine Gruppen im Gruppenfinder auf diesem Data Center.'
   },
   en: {
@@ -664,6 +674,10 @@ const I18N = {
     sortStars: 'Sort: Stars (hardest first)',
     h2GroupFinder: '4. Group Finder',
     gfIntro: 'Publishes your status to the same server as the Dalamud plugin (Live-Sync) - others can then find you in the group finder without exchanging codes. Uses the same BLU: code as under "2." above to read name + spell status.',
+    gfModerationHint: 'Character names are not verified. You can report abuse on Discord:',
+    discordLinkLabel: 'Discord',
+    gfErrNameTaken: 'A profile already exists for this character. If it isn\'t yours, please let us know on Discord:',
+    errInvalidCharName: (name) => `Invalid character name "${name}" - expected first and last name in Latin letters (2-15 characters each, ' and - allowed), at most 21 characters in total.`,
     gfMyEntryHeader: 'My entry',
     gfLabelWorld: 'World',
     gfWorldPlaceholder: 'e.g. Gilgamesh',
@@ -714,6 +728,10 @@ const I18N = {
     groupsOkDeleted: 'Group deleted.',
     groupsErrMemberCount: 'Please add 1-8 members.',
     groupsErrTargetSpellCount: (max) => `At most ${max} target spells allowed.`,
+    groupsCreatorRequiredHint: 'Publish your own entry under "My entry" above first - groups can only be created with your own profile, and you are automatically a member.',
+    groupsCreatorLabel: (name, world) => `${name} (${world}) - you (creator)`,
+    groupsErrCreatorRejected: 'Group not published: your own entry was not found or has expired. Publish it again under "My entry" above.',
+    groupsErrMissingMembers: (names) => `Group not published - these members have no profile: ${names}. They need to enable Live Sync in the plugin or publish their entry here.`,
     groupsNoEntries: 'Currently no groups in the group finder on this data center.'
   },
   fr: {
@@ -761,6 +779,10 @@ const I18N = {
     sortStars: 'Trier : étoiles (difficile d\'abord)',
     h2GroupFinder: '4. Recherche de groupe',
     gfIntro: 'Publie ton statut sur le même serveur que le plugin Dalamud (synchro en direct) - les autres peuvent alors te trouver dans la recherche de groupe sans échanger de codes. Utilise le même code BLU: que sous « 2. » ci-dessus pour lire nom + statut de sorts.',
+    gfModerationHint: 'Les noms de personnage ne sont pas vérifiés. Tu peux signaler les abus sur Discord :',
+    discordLinkLabel: 'Discord',
+    gfErrNameTaken: 'Un profil existe déjà pour ce personnage. S\'il n\'est pas à toi, signale-le sur Discord :',
+    errInvalidCharName: (name) => `Nom de personnage invalide « ${name} » - prénom et nom attendus en lettres latines (2 à 15 caractères chacun, ' et - autorisés), 21 caractères au maximum.`,
     gfMyEntryHeader: 'Mon entrée',
     gfLabelWorld: 'Monde',
     gfWorldPlaceholder: 'ex. Gilgamesh',
@@ -811,6 +833,10 @@ const I18N = {
     groupsOkDeleted: 'Groupe supprimé.',
     groupsErrMemberCount: 'Veuillez ajouter 1 à 8 membres.',
     groupsErrTargetSpellCount: (max) => `Au maximum ${max} sorts cibles autorisés.`,
+    groupsCreatorRequiredHint: 'Publie d\'abord ta propre entrée ci-dessus sous « Mon entrée » - les groupes ne peuvent être créés qu\'avec ton propre profil, et tu en fais automatiquement partie.',
+    groupsCreatorLabel: (name, world) => `${name} (${world}) - toi (créateur)`,
+    groupsErrCreatorRejected: 'Groupe non publié : ta propre entrée est introuvable ou a expiré. Republie-la ci-dessus sous « Mon entrée ».',
+    groupsErrMissingMembers: (names) => `Groupe non publié - ces membres n'ont pas de profil : ${names}. Ils doivent activer Live Sync dans le plugin ou publier leur entrée ici.`,
     groupsNoEntries: 'Actuellement aucun groupe dans la recherche de groupe sur ce data center.'
   },
   ja: {
@@ -819,7 +845,7 @@ const I18N = {
     subtitle: 'Dalamudプラグインと同じ同期コード（接頭辞 <code class="inline">BLU:</code>）を生成・読み込みします。すべてブラウザ内で完結し、サーバーには何も送信されません。',
     h2Export: '1. 自分のステータスをエクスポート',
     labelCharName: 'キャラクター名',
-    charNamePlaceholder: '例：ユウシュトラ・ルール',
+    charNamePlaceholder: '例：Y\'shtola Rhul',
     filterPlaceholder: '名前または番号（例：58、#058、a）...',
     count: (n, total) => `${n} / ${total} 習得済み`,
     btnGenerate: 'コードを生成',
@@ -858,6 +884,10 @@ const I18N = {
     sortStars: '並び替え：星（難しい順）',
     h2GroupFinder: '4. グループファインダー',
     gfIntro: 'Dalamudプラグイン（ライブ同期）と同じサーバーにあなたの状況を公開します - コードを交換しなくても、他のプレイヤーがグループファインダーであなたを見つけられるようになります。名前とスペル状況の読み込みには上の「2.」と同じBLU:コードを使用します。',
+    gfModerationHint: 'キャラクター名は検証されていません。不正利用はDiscordで報告できます：',
+    discordLinkLabel: 'Discord',
+    gfErrNameTaken: 'このキャラクターのプロフィールは既に存在します。あなたのものでない場合は、Discordでお知らせください：',
+    errInvalidCharName: (name) => `キャラクター名「${name}」は無効です - 名と姓をアルファベットで入力してください（各2〜15文字、' と - も可、合計21文字まで）。FFXIVのキャラクター名は日本語サーバーでもアルファベットです。`,
     gfMyEntryHeader: '自分の登録内容',
     gfLabelWorld: 'ワールド',
     gfWorldPlaceholder: '例：Gilgamesh',
@@ -908,6 +938,10 @@ const I18N = {
     groupsOkDeleted: 'グループを削除しました。',
     groupsErrMemberCount: '1〜8人のメンバーを追加してください。',
     groupsErrTargetSpellCount: (max) => `目標スペルは最大${max}個までです。`,
+    groupsCreatorRequiredHint: 'まず上の「自分の登録内容」で自分のエントリーを公開してください。グループは自分のプロフィールがある場合のみ作成でき、あなたは自動的にメンバーになります。',
+    groupsCreatorLabel: (name, world) => `${name} (${world}) - あなた(作成者)`,
+    groupsErrCreatorRejected: 'グループを公開できませんでした: 自分のエントリーが見つからないか期限切れです。上の「自分の登録内容」で再度公開してください。',
+    groupsErrMissingMembers: (names) => `グループを公開できませんでした - 次のメンバーにプロフィールがありません: ${names}。プラグインでLive Syncを有効にするか、ここで自分のエントリーを公開する必要があります。`,
     groupsNoEntries: '現在このデータセンターのグループファインダーにグループはありません。'
   }
 };
@@ -1418,6 +1452,31 @@ async function importCode() {
 // BLU:-Code voraus (denselben wie oben unter "2."), aus dem Name + Spellstatus decodiert werden.
 const WORKER_BASE_URL = 'https://blunion-livesync.skysurfer101.workers.dev';
 
+// Allgemeine Server-Einladung (identisch zu DISCORD_INVITE_FALLBACK_URL im Worker) - für
+// Missbrauchsmeldungen (Moderationshinweis, "Name bereits belegt").
+const DISCORD_INVITE_URL = 'https://discord.gg/uGW7kBG67';
+
+// Setzt einen Text plus klickbaren Discord-Link per textContent/createElement (kein innerHTML).
+function setTextWithDiscordLink(el, text) {
+  el.textContent = `${text} `;
+  const link = document.createElement('a');
+  link.href = DISCORD_INVITE_URL;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = t().discordLinkLabel;
+  el.appendChild(link);
+}
+
+// Dieselben Regeln wie isValidCharacterName im Worker (worker/src/index.ts) - Vor- und Nachname,
+// je 2-15 Zeichen aus A-Z/a-z/'/-, beginnend mit einem Buchstaben, genau ein Leerzeichen, max. 21
+// Zeichen. Prüft VOR dem Absenden, damit z.B. Katakana-Namen eine verständliche Meldung bekommen
+// statt der (deutschen) Worker-Fehlermeldung.
+const CHARACTER_NAME_PATTERN = /^[A-Za-z][A-Za-z'-]{1,14} [A-Za-z][A-Za-z'-]{1,14}$/;
+
+function isValidCharacterName(name) {
+  return typeof name === 'string' && name.length <= 21 && CHARACTER_NAME_PATTERN.test(name);
+}
+
 // Dieselben internen (englischen) Wire-Values wie Plugin/Worker (siehe worker/src/index.ts
 // ALLOWED_AVAILABILITY_TAGS bzw. Models/AvailabilityTag.cs im Plugin) - NICHT neu erfunden.
 const AVAILABILITY_TAGS = ['morning', 'afternoon', 'evening', 'weekend', 'flexible'];
@@ -1484,6 +1543,10 @@ function gfUpdateMyEntryPreview() {
     publishBtn.textContent = t().btnGfPublish;
     deleteBtn.disabled = true;
   }
+
+  // "Mein Eintrag" ist zugleich der Gruppen-Ersteller (siehe groupsGetCreator) - Chip/Button/Hinweis
+  // im Gruppen-Formular sofort mitziehen.
+  renderGroupsMembers();
 }
 
 async function gfPublishMyEntry() {
@@ -1506,6 +1569,12 @@ async function gfPublishMyEntry() {
   }
 
   const characterName = decoded.name;
+  if (!isValidCharacterName(characterName)) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().errInvalidCharName(characterName);
+    return;
+  }
+
   const existingToken = gfGetStoredToken(world, characterName);
 
   const tags = AVAILABILITY_TAGS.filter(tag => document.getElementById(`gfTag_${tag}`).checked);
@@ -1535,7 +1604,13 @@ async function gfPublishMyEntry() {
 
     if (!response.ok) {
       statusEl.className = 'status-msg error';
-      statusEl.textContent = t().gfErrPublishFailed((json && json.error) || `HTTP ${response.status}`);
+      // 409 "name_taken": Profil existiert, dieser Browser hat kein Token dafür. "token_mismatch"
+      // (veraltetes Token) bleibt bei der allgemeinen Fehlermeldung.
+      if (response.status === 409 && json && json.reason === 'name_taken') {
+        setTextWithDiscordLink(statusEl, t().gfErrNameTaken);
+      } else {
+        statusEl.textContent = t().gfErrPublishFailed((json && json.error) || `HTTP ${response.status}`);
+      }
       return;
     }
 
@@ -1691,6 +1766,7 @@ function applyGroupFinderTexts() {
   const s = t();
   document.getElementById('txt_h2_groupfinder').textContent = s.h2GroupFinder;
   document.getElementById('txt_gf_intro').textContent = s.gfIntro;
+  setTextWithDiscordLink(document.getElementById('txt_gf_moderation_hint'), s.gfModerationHint);
   document.getElementById('txt_gf_myentry_header').textContent = s.gfMyEntryHeader;
   document.getElementById('txt_gf_label_code').textContent = s.labelCode;
   document.getElementById('txt_gf_label_world').textContent = s.gfLabelWorld;
@@ -1741,14 +1817,53 @@ function groupUrl(groupId) {
   return `${WORKER_BASE_URL}/group/${encodeURIComponent(groupId)}`;
 }
 
-// Eigener Storage-Key (NICHT gfTokenStorageKey's world+characterName-Schema, siehe
-// Aufgabenstellung) - eine Gruppen-Listung gehört keinem einzelnen Charakter, sondern wird als
-// "die eine Gruppe, die dieser Browser gerade verwaltet" behandelt (genau wie
-// Configuration.GroupFinderOwnGroupIds im Plugin GENAU EINE Gruppe pro lokalem Charakter merkt -
-// die Website hat mangels stabiler "wer bin ich"-Identität nur einen einzigen Slot statt einen
-// pro Charakter). {groupId, editToken} zusammen gespeichert, damit ein PUT nach einem Seiten-
-// Reload weiterhin als Update (nicht als Neuanlage) erkannt wird.
+// Eigener Storage-Key (NICHT gfTokenStorageKey's world+characterName-Schema) - die Website merkt
+// sich genau EINE Gruppe ("die Gruppe, die dieser Browser gerade verwaltet"), analog zu
+// Configuration.GroupFinderOwnGroupIds im Plugin (dort eine pro lokalem Charakter).
+// {groupId, editToken} zusammen gespeichert, damit ein PUT nach einem Seiten-Reload weiterhin als
+// Update (nicht als Neuanlage) erkannt wird.
+//
+// Ersteller: Der Worker verlangt bei jedem PUT /group den Nachweis eines eigenen Profils
+// (creatorWorld/creatorCharacterName + Header X-Creator-Token, siehe verifyGroupCreator in
+// worker/src/index.ts). Auf der Website ist das "Mein Eintrag" oben: Name aus dem eigenen Code,
+// World aus dem World-Feld, Token aus localStorage (nur vorhanden, wenn dieser Browser den Eintrag
+// veröffentlicht hat). Ohne das ist Gruppen-Erstellen deaktiviert (siehe groupsGetCreator).
 const GROUPS_OWN_GROUP_STORAGE_KEY = 'blunion_livesync_owngroup';
+
+// null, wenn kein eigener Eintrag bekannt ist (kein gültiger Code, keine World oder kein Token in
+// localStorage) - dann kann keine Gruppe erstellt werden.
+function groupsGetCreator() {
+  const decoded = gfTryDecodeMyCode();
+  const world = document.getElementById('gfWorld').value.trim();
+  if (!decoded || !world) return null;
+
+  const token = gfGetStoredToken(world, decoded.name);
+  return token ? { world, characterName: decoded.name, token } : null;
+}
+
+function groupsIsCreator(creator, world, characterName) {
+  return !!creator
+    && creator.world.toLowerCase() === world.toLowerCase()
+    && creator.characterName.toLowerCase() === characterName.toLowerCase();
+}
+
+// Prüft, ob das Profil des Erstellers noch existiert (Website-Profile laufen nach GF_TTL_HOURS ab) -
+// bei 404 ist das lokale Token wertlos und wird entfernt, damit Button/Hinweis stimmen. Andere
+// Fehler (Netzwerk, 429) ändern nichts; der Worker prüft beim PUT ohnehin selbst.
+async function groupsCheckCreatorProfile() {
+  const creator = groupsGetCreator();
+  if (!creator) return;
+
+  try {
+    const response = await fetch(gfProfileUrl(creator.world, creator.characterName));
+    if (response.status === 404) {
+      gfRemoveStoredToken(creator.world, creator.characterName);
+      gfUpdateMyEntryPreview();
+    }
+  } catch {
+    // ignorieren, siehe oben
+  }
+}
 
 function getStoredOwnGroup() {
   try {
@@ -1801,7 +1916,19 @@ function renderGroupsMembers() {
 
   emptyHint.style.display = groupsMembers.length === 0 ? '' : 'none';
 
+  // Ersteller immer als erstes Mitglied, nicht entfernbar (siehe groupsGetCreator).
+  const creator = groupsGetCreator();
+  if (creator) {
+    const creatorChip = document.createElement('div');
+    creatorChip.className = 'group-member';
+    const creatorLabel = document.createElement('span');
+    creatorLabel.textContent = t().groupsCreatorLabel(creator.characterName, creator.world);
+    creatorChip.appendChild(creatorLabel);
+    listEl.appendChild(creatorChip);
+  }
+
   groupsMembers.forEach(m => {
+    if (groupsIsCreator(creator, m.world, m.characterName)) return; // schon als Ersteller-Chip da
     const chip = document.createElement('div');
     chip.className = 'group-member';
 
@@ -1861,6 +1988,12 @@ function groupsAddMemberFromCode() {
     return;
   }
 
+  if (!isValidCharacterName(decoded.name)) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().errInvalidCharName(decoded.name);
+    return;
+  }
+
   groupsAddOrUpdateMember(world, decoded.name, decoded.learned.size);
   document.getElementById('groupMemberCodeInput').value = '';
 
@@ -1876,12 +2009,20 @@ function groupsSetView(view) {
   document.getElementById('groupsBrowseView').style.display = isPublish ? 'none' : '';
   document.getElementById('btn_groupsViewPublish').classList.toggle('active-view', isPublish);
   document.getElementById('btn_groupsViewBrowse').classList.toggle('active-view', !isPublish);
+
+  if (isPublish) groupsCheckCreatorProfile();
 }
 
 function groupsUpdatePublishButtonState() {
   const own = getStoredOwnGroup();
   document.getElementById('btn_groupsDelete').disabled = !own;
   document.getElementById('btn_groupsPublish').textContent = own ? t().btnGroupsUpdate : t().btnGroupsPublish;
+
+  const hasCreator = !!groupsGetCreator();
+  document.getElementById('btn_groupsPublish').disabled = !hasCreator;
+  const hintEl = document.getElementById('groupsCreatorHint');
+  hintEl.textContent = t().groupsCreatorRequiredHint;
+  hintEl.style.display = hasCreator ? 'none' : '';
 }
 
 function groupsUpdateNoteCounter() {
@@ -1961,7 +2102,22 @@ async function groupsPublish() {
   statusEl.className = 'status-msg';
   statusEl.textContent = '';
 
-  if (groupsMembers.length < GROUP_MEMBER_COUNT_MIN || groupsMembers.length > GROUP_MEMBER_COUNT_MAX) {
+  const creator = groupsGetCreator();
+  if (!creator) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = t().groupsCreatorRequiredHint;
+    return;
+  }
+
+  // Ersteller vorne, ohne Duplikat, falls er zusätzlich per Code hinzugefügt wurde.
+  const members = [
+    { world: creator.world, characterName: creator.characterName },
+    ...groupsMembers
+      .filter(m => !groupsIsCreator(creator, m.world, m.characterName))
+      .map(m => ({ world: m.world, characterName: m.characterName })),
+  ];
+
+  if (members.length < GROUP_MEMBER_COUNT_MIN || members.length > GROUP_MEMBER_COUNT_MAX) {
     statusEl.className = 'status-msg error';
     statusEl.textContent = t().groupsErrMemberCount;
     return;
@@ -1982,7 +2138,9 @@ async function groupsPublish() {
   const visibility = document.getElementById('groupPublishVisible').checked ? 'listed' : 'unlisted';
 
   const body = {
-    members: groupsMembers.map(m => ({ world: m.world, characterName: m.characterName })),
+    members,
+    creatorWorld: creator.world,
+    creatorCharacterName: creator.characterName,
     visibility,
     availabilityTags: tags,
     note,
@@ -1995,14 +2153,25 @@ async function groupsPublish() {
   try {
     const response = await fetch(groupUrl(groupId), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Creator-Token': creator.token },
       body: JSON.stringify(body),
     });
     const json = await response.json().catch(() => null);
 
     if (!response.ok) {
       statusEl.className = 'status-msg error';
-      statusEl.textContent = t().gfErrPublishFailed((json && json.error) || `HTTP ${response.status}`);
+      // textContent statt innerHTML - Mitgliedernamen stammen aus eingefügten Codes.
+      if (response.status === 403) {
+        statusEl.textContent = t().groupsErrCreatorRejected;
+        groupsCheckCreatorProfile(); // abgelaufenes Profil -> Button/Hinweis aktualisieren
+      } else if (response.status === 400 && json && Array.isArray(json.missingMembers) && json.missingMembers.length > 0) {
+        const names = json.missingMembers
+          .map(m => `${String(m.characterName)} (${String(m.world)})`)
+          .join(', ');
+        statusEl.textContent = t().groupsErrMissingMembers(names);
+      } else {
+        statusEl.textContent = t().gfErrPublishFailed((json && json.error) || `HTTP ${response.status}`);
+      }
       return;
     }
 

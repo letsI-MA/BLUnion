@@ -12,6 +12,7 @@ import {
   profileUrl,
   putGroup,
   putProfile,
+  uniqueGroupId,
   uniqueName,
   validBitmaskBase64,
 } from "./helpers";
@@ -33,7 +34,7 @@ describe("unknown routes", () => {
   });
 
   it("returns 405 for an unsupported method on /profile/:world/:characterName", async () => {
-    const response = await callWorker(new Request(profileUrl(KNOWN_WORLD, "Someone"), { method: "PATCH" }));
+    const response = await callWorker(new Request(profileUrl(KNOWN_WORLD, "Some One"), { method: "PATCH" }));
 
     expect(response.status).toBe(405);
   });
@@ -416,7 +417,7 @@ describe("handleBrowse (GET /profiles/browse)", () => {
 
 describe("handleGroupPut (PUT /group/:groupId)", () => {
   it("creates a new group listing and returns 201 with a plaintext editToken", async () => {
-    const groupId = uniqueName("group-neu-");
+    const groupId = uniqueGroupId();
     const memberName = uniqueName("Mitglied");
     const response = await putGroup(groupId, { members: [{ world: KNOWN_WORLD, characterName: memberName }] });
     const json = await response.json<Record<string, unknown>>();
@@ -428,20 +429,20 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("rejects an empty members array with 400", async () => {
-    const response = await putGroup(uniqueName("group-leer-"), { members: [] });
+    const response = await putGroup(uniqueGroupId(), { members: [] });
 
     expect(response.status).toBe(400);
   });
 
   it("rejects more than 8 members with 400", async () => {
     const members = Array.from({ length: 9 }, (_, i) => ({ world: KNOWN_WORLD, characterName: `M${i}` }));
-    const response = await putGroup(uniqueName("group-zuviele-"), { members });
+    const response = await putGroup(uniqueGroupId(), { members });
 
     expect(response.status).toBe(400);
   });
 
   it("rejects an unknown world inside members[] with 400", async () => {
-    const response = await putGroup(uniqueName("group-badworld-"), {
+    const response = await putGroup(uniqueGroupId(), {
       members: [{ world: "NichtExistierendeWelt", characterName: "Jemand" }],
     });
 
@@ -449,7 +450,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("update with the correct editToken succeeds", async () => {
-    const groupId = uniqueName("group-update-");
+    const groupId = uniqueGroupId();
     const created = await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
     });
@@ -464,7 +465,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("update with a wrong editToken is rejected with 409", async () => {
-    const groupId = uniqueName("group-wrongtoken-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, { members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }] });
 
     const response = await putGroup(groupId, {
@@ -476,7 +477,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("derives dataCenter from the FIRST member's world", async () => {
-    const groupId = uniqueName("group-dc-");
+    const groupId = uniqueGroupId();
     const response = await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "listed",
@@ -490,7 +491,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("accepts valid targetSpellIds and echoes them back", async () => {
-    const groupId = uniqueName("group-targets-");
+    const groupId = uniqueGroupId();
     const response = await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       targetSpellIds: KNOWN_SPELL_IDS_SAMPLE,
@@ -502,7 +503,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("rejects a targetSpellIds entry that is not a known spell ID with 400", async () => {
-    const response = await putGroup(uniqueName("group-badtarget-"), {
+    const response = await putGroup(uniqueGroupId(), {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       targetSpellIds: [999999999],
     });
@@ -516,7 +517,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
     // 31 wiederholte, aber jeweils gültige IDs reichen also, um ausschließlich die Längengrenze zu
     // testen, ohne von echten Spell-ID-Duplikat-Regeln überlagert zu werden).
     const tooMany = Array.from({ length: 31 }, () => KNOWN_SPELL_IDS_SAMPLE[0]);
-    const response = await putGroup(uniqueName("group-toomanytargets-"), {
+    const response = await putGroup(uniqueGroupId(), {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       targetSpellIds: tooMany,
     });
@@ -525,7 +526,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
   });
 
   it("defaults targetSpellIds to an empty array when omitted", async () => {
-    const response = await putGroup(uniqueName("group-notargets-"), {
+    const response = await putGroup(uniqueGroupId(), {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
     });
     const json = await response.json<{ targetSpellIds: number[] }>();
@@ -536,7 +537,7 @@ describe("handleGroupPut (PUT /group/:groupId)", () => {
 
 describe("handleGroupDelete (DELETE /group/:groupId)", () => {
   it("without an X-Edit-Token header is rejected with 403", async () => {
-    const groupId = uniqueName("group-notoken-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, { members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }] });
 
     const response = await deleteGroup(groupId);
@@ -545,7 +546,7 @@ describe("handleGroupDelete (DELETE /group/:groupId)", () => {
   });
 
   it("with a wrong X-Edit-Token is rejected with 403", async () => {
-    const groupId = uniqueName("group-wrongdeltoken-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, { members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }] });
 
     const response = await deleteGroup(groupId, "falscher-token");
@@ -554,13 +555,13 @@ describe("handleGroupDelete (DELETE /group/:groupId)", () => {
   });
 
   it("for a group that does not exist returns 404", async () => {
-    const response = await deleteGroup(uniqueName("group-existiertnicht-"), "irgendein-token");
+    const response = await deleteGroup(uniqueGroupId(), "irgendein-token");
 
     expect(response.status).toBe(404);
   });
 
   it("with the correct token deletes the group WITHOUT touching referenced member profiles", async () => {
-    const groupId = uniqueName("group-wirdgeloescht-");
+    const groupId = uniqueGroupId();
     const memberName = uniqueName("Mitglied");
     await putProfile(KNOWN_WORLD, memberName, { spellBitmaskBase64: validBitmaskBase64() });
 
@@ -594,8 +595,8 @@ describe("handleGroupsBrowse (GET /groups/browse)", () => {
   });
 
   it("only returns groups with visibility 'listed' on the requested data center", async () => {
-    const listedGroupId = uniqueName("group-listed-");
-    const unlistedGroupId = uniqueName("group-unlisted-");
+    const listedGroupId = uniqueGroupId();
+    const unlistedGroupId = uniqueGroupId();
 
     await putGroup(listedGroupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
@@ -615,7 +616,7 @@ describe("handleGroupsBrowse (GET /groups/browse)", () => {
   });
 
   it("resolves each member's spellBitmaskBase64 from their individual profile", async () => {
-    const groupId = uniqueName("group-bitmask-");
+    const groupId = uniqueGroupId();
     const memberName = uniqueName("MitProfil");
     const bitmask = validBitmaskBase64();
     await putProfile(KNOWN_WORLD, memberName, { spellBitmaskBase64: bitmask });
@@ -633,7 +634,7 @@ describe("handleGroupsBrowse (GET /groups/browse)", () => {
   });
 
   it("lists a member with spellBitmaskBase64: null when their profile no longer exists, instead of dropping the whole group", async () => {
-    const groupId = uniqueName("group-missingmember-");
+    const groupId = uniqueGroupId();
     const memberName = uniqueName("OhneProfil");
     // Bewusst KEIN putProfile() für dieses Mitglied - es referenziert ein nicht existierendes
     // Einzelprofil (siehe handleGroupsBrowse-Doc: "gelöscht/abgelaufen/nie gepusht").
@@ -651,7 +652,7 @@ describe("handleGroupsBrowse (GET /groups/browse)", () => {
   });
 
   it("includes targetSpellIds in each group result", async () => {
-    const groupId = uniqueName("group-targetsbrowse-");
+    const groupId = uniqueGroupId();
     await putGroup(groupId, {
       members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }],
       visibility: "listed",

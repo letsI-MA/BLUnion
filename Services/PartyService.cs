@@ -1,5 +1,6 @@
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
@@ -13,33 +14,41 @@ public sealed class PartyService
 
     private readonly IPartyList partyList;
     private readonly IObjectTable objectTable;
+    private readonly ExcelSheet<World> worldSheet;
 
-    public PartyService(IPartyList partyList, IObjectTable objectTable)
+    public PartyService(IPartyList partyList, IObjectTable objectTable, IDataManager dataManager)
     {
         this.partyList = partyList;
         this.objectTable = objectTable;
+        this.worldSheet = dataManager.GetExcelSheet<World>();
     }
 
-    public IReadOnlyList<PartyMemberInfo> GetPartyMembers()
+    // Einheitliche Mitgliederliste für alle Aufrufer (Chat-Filter, Live-Sync-Party-Polling,
+    // Party-Übersicht, Gruppen-Publish) - die Quelle (normale Party, Cross-World-Party oder nur der
+    // lokale Spieler) ist nach außen nicht sichtbar, siehe MergePartyMembers.
+    public IReadOnlyList<PartyMemberInfo> GetPartyMembers() =>
+        MergePartyMembers(this.ReadPartyListMembers(), this.ReadCrossRealmMembers(), this.ReadLocalPlayer());
+
+    // Reine Auswahl-Logik, ohne Spielzugriff testbar (siehe PartyServiceTests): IPartyList hat
+    // Vorrang; ist sie leer (so verhält sie sich in einer Cross-World-Party), zählt die
+    // Cross-Realm-Gruppe; ohne beides nur der lokale Spieler (Solo) - wie bisher.
+    public static IReadOnlyList<PartyMemberInfo> MergePartyMembers(
+        IReadOnlyList<PartyMemberInfo> partyListMembers,
+        IReadOnlyList<PartyMemberInfo> crossRealmMembers,
+        PartyMemberInfo? localPlayer)
+    {
+        if (partyListMembers.Count > 0)
+            return partyListMembers;
+
+        if (crossRealmMembers.Count > 0)
+            return crossRealmMembers;
+
+        return localPlayer is null ? [] : [localPlayer];
+    }
+
+    private List<PartyMemberInfo> ReadPartyListMembers()
     {
         var result = new List<PartyMemberInfo>();
-
-        if (this.partyList.Length == 0)
-        {
-            var localPlayer = this.objectTable.LocalPlayer;
-            if (localPlayer is not null)
-            {
-                result.Add(new PartyMemberInfo(
-                    localPlayer.Name.TextValue,
-                    GetWorldName(localPlayer.HomeWorld),
-                    localPlayer.EntityId,
-                    localPlayer.ClassJob.RowId == BlueMageClassJobId,
-                    localPlayer.Level));
-            }
-
-            return result;
-        }
-
         foreach (var member in this.partyList)
         {
             result.Add(new PartyMemberInfo(
@@ -53,8 +62,69 @@ public sealed class PartyService
         return result;
     }
 
+    // Nur lesender Zugriff auf InfoProxyCrossRealm (FFXIVClientStructs), keine Game-Aktionen.
+    // Gelesen wird nur die EIGENE Gruppe (LocalPlayerGroupIndex) - in einer Cross-World-Allianz
+    // gehören die anderen Gruppen nicht zur Party (analog zu IPartyList, die in einer normalen
+    // Allianz auch nur die eigene Party enthält).
+    // ClientStructs-API gegen die installierte FFXIVClientStructs.dll per Reflection geprüft
+    // (IsCrossRealmParty/GetGroupMemberCount/GetGroupMember, CrossRealmMember.NameString/HomeWorld/
+    // ClassJobId/Level/EntityId). NICHT im Spiel verifiziert: ob LocalPlayerGroupIndex außerhalb
+    // einer Allianz immer 0 ist und ob EntityId für Spieler in anderen Zonen 0/ungültig ist
+    // (ObjectId wird von keinem Aufrufer für Cross-World-Mitglieder gebraucht).
+    private unsafe List<PartyMemberInfo> ReadCrossRealmMembers()
+    {
+        var result = new List<PartyMemberInfo>();
+        if (!InfoProxyCrossRealm.IsCrossRealmParty())
+            return result;
+
+        var proxy = InfoProxyCrossRealm.Instance();
+        if (proxy is null)
+            return result;
+
+        int groupIndex = proxy->LocalPlayerGroupIndex;
+        var memberCount = InfoProxyCrossRealm.GetGroupMemberCount(groupIndex);
+        for (uint memberIndex = 0; memberIndex < memberCount; memberIndex++)
+        {
+            var member = InfoProxyCrossRealm.GetGroupMember(memberIndex, groupIndex);
+            if (member is null)
+                continue;
+
+            var name = member->NameString;
+            if (string.IsNullOrEmpty(name))
+                continue;
+
+            result.Add(new PartyMemberInfo(
+                name,
+                this.GetWorldName(member->HomeWorld),
+                member->EntityId,
+                member->ClassJobId == BlueMageClassJobId,
+                member->Level));
+        }
+
+        return result;
+    }
+
+    private PartyMemberInfo? ReadLocalPlayer()
+    {
+        var localPlayer = this.objectTable.LocalPlayer;
+        if (localPlayer is null)
+            return null;
+
+        return new PartyMemberInfo(
+            localPlayer.Name.TextValue,
+            GetWorldName(localPlayer.HomeWorld),
+            localPlayer.EntityId,
+            localPlayer.ClassJob.RowId == BlueMageClassJobId,
+            localPlayer.Level);
+    }
+
     private static string GetWorldName(RowRef<World> worldRow) =>
         worldRow.ValueNullable?.Name.ToString() ?? string.Empty;
+
+    private string GetWorldName(short worldId) =>
+        worldId > 0 && this.worldSheet.GetRowOrDefault((uint)worldId) is { } world
+            ? world.Name.ToString()
+            : string.Empty;
 
     public IReadOnlyList<PartyMemberInfo> GetBlueMagePartyMembers()
         => this.GetPartyMembers().Where(m => m.IsBlueMage).ToList();
@@ -67,5 +137,9 @@ public sealed class PartyService
         return localPlayer is null ? null : GetWorldName(localPlayer.HomeWorld);
     }
 
-    public bool IsInParty => this.partyList.Length > 0;
+    // Auch in einer Cross-World-Party wahr (IPartyList ist dort leer) - betrifft u.a. das
+    // automatische Teilen im Party-Chat (TryAutoShareToPartyChat), "/p" funktioniert dort ebenfalls.
+    public bool IsInParty => this.partyList.Length > 0 || IsInCrossRealmParty();
+
+    private static unsafe bool IsInCrossRealmParty() => InfoProxyCrossRealm.IsCrossRealmParty();
 }

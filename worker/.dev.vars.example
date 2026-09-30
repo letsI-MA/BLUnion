@@ -40,3 +40,10 @@ DISCORD_CHANNEL_NAME_NA=
 DISCORD_CHANNEL_NAME_EU=
 DISCORD_CHANNEL_NAME_JP=
 DISCORD_CHANNEL_NAME_OC=
+
+# Moderations-Secret für die /admin/*-Endpunkte (siehe handleAdminRequest in src/index.ts und
+# tools/admin/README.md) - langer Zufallswert, z.B. per
+#   python -c "import secrets; print(secrets.token_urlsafe(48))"
+# In Produktion NIEMALS hier, sondern per "wrangler secret put ADMIN_TOKEN". Leer lassen = alle
+# Admin-Endpunkte antworten mit 404.
+ADMIN_TOKEN=

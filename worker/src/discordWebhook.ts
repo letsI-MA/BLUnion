@@ -25,6 +25,10 @@
  * globale fetch() auf. */
 let discordFetch: typeof fetch = fetch;
 
+/** Bei create UND edit mitgeschickt: die Karten sollen nie jemanden pingen, auch wenn ein
+ * nutzerkontrollierter Wert das Sanitizing in index.ts (sanitizeForDiscord) irgendwie umgeht. */
+const NO_MENTIONS = { parse: [] as string[] };
+
 /** NUR für Tests (siehe discordFetch-Doc oben) - ersetzt/setzt die verwendete fetch-Implementierung
  * zurück. Absichtlich der einzige Test-Hook in diesem Modul, statt fetchImpl durch jede
  * aufrufende Funktion in index.ts hindurchzureichen (das würde handleGroupPut/handleGroupDelete/
@@ -61,7 +65,7 @@ export async function createWebhookMessage(webhookUrl: string, embed: Record<str
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify({ embeds: [embed], allowed_mentions: NO_MENTIONS }),
     },
     "createWebhookMessage",
   );
@@ -89,7 +93,7 @@ export async function editWebhookMessage(
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify({ embeds: [embed], allowed_mentions: NO_MENTIONS }),
     },
     "editWebhookMessage",
   );

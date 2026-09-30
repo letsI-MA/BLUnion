@@ -11,13 +11,13 @@ namespace BLUnion.Services;
 public static class DevTestFixtures
 {
     public static PlayerSpellStatus CreateAlice(SpellDataService spellDataService) =>
-        CreateFixture(spellDataService, "Alice", maxStars: 1);
+        CreateFixture(spellDataService, "Alice Test", maxStars: 1);
 
     public static PlayerSpellStatus CreateBob(SpellDataService spellDataService) =>
-        CreateFixture(spellDataService, "Bob", maxStars: 3);
+        CreateFixture(spellDataService, "Bob Test", maxStars: 3);
 
     public static PlayerSpellStatus CreateCharles(SpellDataService spellDataService) =>
-        CreateFixture(spellDataService, "Charles", maxStars: 4);
+        CreateFixture(spellDataService, "Charles Test", maxStars: 4);
 
     private static PlayerSpellStatus CreateFixture(SpellDataService spellDataService, string characterName, int maxStars)
     {

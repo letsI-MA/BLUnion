@@ -13,17 +13,26 @@ public sealed partial class MainWindow
         this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.DisplayLanguageHeader, this.displayLanguage));
         ImGui.Separator();
 
+        if (ImGui.RadioButton(UiStrings.Get(UiStrings.Key.DisplayLanguageAutomatic, this.displayLanguage), this.configuration.DisplayLanguage is null))
+            this.SetDisplayLanguageSetting(null);
+
         foreach (var language in Enum.GetValues<DisplayLanguage>())
         {
-            if (ImGui.RadioButton(GetNativeLanguageName(language), this.displayLanguage == language))
-                this.displayLanguage = language;
+            if (ImGui.RadioButton(GetNativeLanguageName(language), this.configuration.DisplayLanguage == language))
+                this.SetDisplayLanguageSetting(language);
         }
 
         ImGui.Separator();
         this.DrawHintText(UiStrings.Get(UiStrings.Key.DisplayLanguageHint, this.displayLanguage));
 
         ImGui.Separator();
-        ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatToggle, this.displayLanguage), ref this.autoShareToPartyChat);
+        var autoShareToPartyChat = this.configuration.AutoShareToPartyChat;
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatToggle, this.displayLanguage), ref autoShareToPartyChat))
+        {
+            this.configuration.AutoShareToPartyChat = autoShareToPartyChat;
+            this.configuration.Save();
+        }
+
         this.DrawHintText(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatHint, this.displayLanguage));
 
         ImGui.Separator();
@@ -53,6 +62,20 @@ public sealed partial class MainWindow
         if (ImGui.CollapsingHeader(UiStrings.Get(UiStrings.Key.SettingsAdvancedSyncHeader, this.displayLanguage)))
             this.DrawSyncSection();
     }
+
+    private void SetDisplayLanguageSetting(DisplayLanguage? language)
+    {
+        if (this.configuration.DisplayLanguage == language)
+            return;
+
+        this.configuration.DisplayLanguage = language;
+        this.configuration.Save();
+        this.ApplyDisplayLanguageSetting();
+    }
+
+    // null in der Config = automatisch, d.h. Client-Sprache (siehe clientDisplayLanguage).
+    private void ApplyDisplayLanguageSetting() =>
+        this.displayLanguage = this.configuration.DisplayLanguage ?? this.clientDisplayLanguage;
 
     private static string GetNativeLanguageName(DisplayLanguage language) => language switch
     {

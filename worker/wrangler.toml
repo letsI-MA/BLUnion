@@ -37,6 +37,18 @@ namespace_id = "1"
 limit = 20
 period = 60
 
+# Lese-Pendant zu WRITE_RATE_LIMITER (siehe enforceReadRateLimit in src/index.ts) für
+# GET /profile/..., /profiles/browse und /groups/browse - eigene namespace_id, damit Lese- und
+# Schreibkontingent getrennt gezählt werden. 60/Minute liegt deutlich über dem normalen
+# Client-Polling (Browse alle 15 s), bremst aber Skripte, die KV-Lesekontingent verbrennen.
+[[ratelimits]]
+name = "READ_RATE_LIMITER"
+namespace_id = "2"
+
+[ratelimits.simple]
+limit = 60
+period = 60
+
 # Discord-Slash-Command-Integration Phase 1 (siehe DISCORD_INTEGRATION.md und
 # handleDiscordInteractions/Env.DISCORD_PUBLIC_KEY in src/index.ts) - der eigentliche Wert wird
 # NIE hier eingetragen (siehe Aufgabenstellung "keine Secrets im Code"), sondern für Produktion per
@@ -59,7 +71,13 @@ period = 60
 # geheim), daher normale [vars] statt "wrangler secret put". IDs per Rechtsklick auf Server/Kanal
 # in Discord mit aktiviertem Entwicklermodus ("ID kopieren") ermitteln. Fehlt DISCORD_GUILD_ID oder
 # die Channel-ID einer Region, zeigt das Plugin stattdessen die allgemeine Server-Einladung.
+#
+# REQUIRE_GROUP_CREATOR (siehe verifyGroupCreator in src/index.ts): Feature-Flag statt gestaffelter
+# Deploys. "false" = mitgeschickte Ersteller-Angaben werden geprüft und gespeichert, fehlende aber
+# toleriert (ältere Plugin-/Website-Versionen); "true" = Ersteller-Nachweis bei jedem PUT /group
+# Pflicht. Erst auf "true" stellen, wenn Plugin-Release und Website die Creator-Felder senden.
 [vars]
+REQUIRE_GROUP_CREATOR = "false"
 DISCORD_GUILD_ID = "1538922018332737617"
 DISCORD_CHANNEL_NA = "1547920320810455100"
 DISCORD_CHANNEL_EU = "1547920234487484437"

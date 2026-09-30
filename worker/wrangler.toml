@@ -76,8 +76,14 @@ period = 60
 # Deploys. "false" = mitgeschickte Ersteller-Angaben werden geprüft und gespeichert, fehlende aber
 # toleriert (ältere Plugin-/Website-Versionen); "true" = Ersteller-Nachweis bei jedem PUT /group
 # Pflicht. Erst auf "true" stellen, wenn Plugin-Release und Website die Creator-Felder senden.
+#
+# GROUPS_ENABLED (siehe Env.GROUPS_ENABLED/groupsEnabled in src/index.ts): "false" blendet das
+# Gruppen-Feature aus, ohne Code oder KV-Daten zu löschen - GET /groups/browse liefert [], PUT /group
+# 403, DELETE /group + Admin-Endpunkte bleiben erlaubt, der Cron entfernt die Gruppen-Karten. Die
+# Tests laufen mit "true" (siehe vitest.config.mts) und schalten für die Aus-Fälle gezielt um.
 [vars]
 REQUIRE_GROUP_CREATOR = "false"
+GROUPS_ENABLED = "false"
 DISCORD_GUILD_ID = "1538922018332737617"
 DISCORD_CHANNEL_NA = "1547920320810455100"
 DISCORD_CHANNEL_EU = "1547920234487484437"

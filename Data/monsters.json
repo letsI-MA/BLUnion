@@ -119,7 +119,7 @@
     "NameEn": "Sandstone Golem",
     "NameFr": "Golem de grès",
     "NameJa": "サンドストーン・ゴーレム",
-    "LocationId": 12,
+    "LocationId": 114,
     "BNpcNameId": 280
   },
   {
@@ -146,7 +146,7 @@
     "NameEn": "Treant Sapling",
     "NameFr": "Pousse de tréant",
     "NameJa": "トレント・サップリング",
-    "LocationId": 11,
+    "LocationId": 115,
     "BNpcNameId": 128
   },
   {
@@ -173,7 +173,7 @@
     "NameEn": "Wild Boar",
     "NameFr": "Sanglier sauvage",
     "NameJa": "ワイルドボア",
-    "LocationId": 15,
+    "LocationId": 116,
     "BNpcNameId": 16
   },
   {
@@ -200,7 +200,7 @@
     "NameEn": "Chigoe",
     "NameFr": "Chigoe",
     "NameJa": "チゴー",
-    "LocationId": 7,
+    "LocationId": 117,
     "BNpcNameId": 43
   },
   {
@@ -243,7 +243,7 @@
     "NameEn": "Magitek Vanguard H-2",
     "NameFr": "Avant-garde magitek améliorée",
     "NameJa": "魔導ヴァンガード強化型",
-    "LocationId": 21,
+    "LocationId": 118,
     "BNpcNameId": 8138
   },
   {
@@ -342,7 +342,7 @@
     "NameEn": "Qiqirn Eggdigger",
     "NameFr": "Qiqirn Eggdigger",
     "NameJa": "キキルン・ビーチコンバー",
-    "LocationId": 18,
+    "LocationId": 119,
     "BNpcNameId": 350
   },
   {
@@ -387,7 +387,7 @@
     "NameEn": "Killer Wespe",
     "NameFr": "Frelon tueur",
     "NameJa": "キラー・ヴェスパ",
-    "LocationId": 20,
+    "LocationId": 120,
     "BNpcNameId": 8134
   },
   {
@@ -432,7 +432,7 @@
     "NameEn": "Toxic Toad",
     "NameFr": "Toxic Toad",
     "NameJa": "トキシックトード",
-    "LocationId": 30,
+    "LocationId": 121,
     "BNpcNameId": 216
   },
   {
@@ -441,7 +441,7 @@
     "NameEn": "Laughing Toad",
     "NameFr": "Crapaud rieur",
     "NameJa": "ラフィングトード",
-    "LocationId": 34,
+    "LocationId": 122,
     "BNpcNameId": 217
   },
   {
@@ -495,7 +495,7 @@
     "NameEn": "Trickster Imp",
     "NameFr": "Imp farceur",
     "NameJa": "Trickster Imp",
-    "LocationId": 7,
+    "LocationId": 123,
     "BNpcNameId": 21
   },
   {
@@ -541,7 +541,7 @@
     "NameEn": "Lentic Mudpuppy",
     "NameFr": "Protée lacustre",
     "NameJa": "レンティック・マッドパピー",
-    "LocationId": 24,
+    "LocationId": 124,
     "BNpcNameId": 8139
   },
   {
@@ -694,7 +694,7 @@
     "NameEn": "Conodont",
     "NameFr": "Conodont",
     "NameJa": "コノドント",
-    "LocationId": 47,
+    "LocationId": 125,
     "BNpcNameId": 3496
   },
   {
@@ -730,7 +730,7 @@
     "NameEn": "Paissa",
     "NameFr": "Païssa",
     "NameJa": "パイッサ",
-    "LocationId": 47,
+    "LocationId": 126,
     "BNpcNameId": 3499
   },
   {
@@ -810,7 +810,7 @@
     "NameEn": "Anzu",
     "NameFr": "Anzu",
     "NameJa": "アンズー",
-    "LocationId": 47,
+    "LocationId": 127,
     "BNpcNameId": 3524
   },
   {
@@ -819,7 +819,7 @@
     "NameEn": "Dhalmel",
     "NameFr": "Dhalmel",
     "NameJa": "ダルメル",
-    "LocationId": 47,
+    "LocationId": 128,
     "BNpcNameId": 3505
   },
   {
@@ -900,7 +900,7 @@
     "NameEn": "Abalathian Wamoura",
     "NameFr": "Abalathian Wamoura",
     "NameJa": "アバラシア・ワモーラ",
-    "LocationId": 47,
+    "LocationId": 129,
     "BNpcNameId": 9249
   },
   {
@@ -1214,7 +1214,7 @@
     "NameEn": "Slippery Armadillo",
     "NameFr": "Tatou fuyard",
     "NameJa": "スリッパリー・アルマジロ",
-    "LocationId": 92,
+    "LocationId": 130,
     "BNpcNameId": 10902
   },
   {

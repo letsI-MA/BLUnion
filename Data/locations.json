@@ -65,6 +65,7 @@
     "ZoneNameEn": "Central Shroud",
     "ZoneNameFr": "Forêt centrale",
     "ZoneNameJa": "黒衣森：中央森林",
+    "Coordinates": "27, 15",
     "TerritoryTypeId": 148,
     "MapId": 4,
     "PlaceNameId": 54
@@ -106,6 +107,7 @@
     "ZoneNameEn": "North Shroud",
     "ZoneNameFr": "Forêt du nord",
     "ZoneNameJa": "黒衣森：北部森林",
+    "Coordinates": "19, 29",
     "TerritoryTypeId": 154,
     "MapId": 7,
     "PlaceNameId": 57
@@ -126,6 +128,7 @@
     "ZoneNameEn": "Outer La Noscea",
     "ZoneNameFr": "Noscea extérieure",
     "ZoneNameJa": "外地ラノシア",
+    "Coordinates": "16, 15",
     "TerritoryTypeId": 180,
     "MapId": 30,
     "PlaceNameId": 350
@@ -144,6 +147,7 @@
     "ZoneNameEn": "East Shroud",
     "ZoneNameFr": "Forêt de l'est",
     "ZoneNameJa": "黒衣森：東部森林",
+    "Coordinates": "12, 25",
     "TerritoryTypeId": 152,
     "MapId": 5,
     "PlaceNameId": 55
@@ -178,6 +182,7 @@
     "ZoneNameEn": "Lower La Noscea",
     "ZoneNameFr": "Lower La Noscea",
     "ZoneNameJa": "低地ラノシア",
+    "Coordinates": "27, 16",
     "TerritoryTypeId": 135,
     "MapId": 16,
     "PlaceNameId": 31
@@ -200,6 +205,7 @@
     "ZoneNameEn": "Middle La Noscea",
     "ZoneNameFr": "Noscea centrale",
     "ZoneNameJa": "中央ラノシア",
+    "Coordinates": "23, 21",
     "TerritoryTypeId": 134,
     "MapId": 15,
     "PlaceNameId": 30
@@ -314,6 +320,7 @@
     "ZoneNameEn": "Central Thanalan",
     "ZoneNameFr": "Thanalan central",
     "ZoneNameJa": "中央ザナラーン",
+    "Coordinates": "9, 19",
     "TerritoryTypeId": 141,
     "MapId": 21,
     "PlaceNameId": 43
@@ -360,6 +367,7 @@
     "ZoneNameEn": "Western Thanalan",
     "ZoneNameFr": "Thanalan occidental",
     "ZoneNameJa": "西ザナラーン",
+    "Coordinates": "15, 7",
     "TerritoryTypeId": 140,
     "MapId": 20,
     "PlaceNameId": 42
@@ -402,6 +410,7 @@
     "ZoneNameEn": "Eastern La Noscea",
     "ZoneNameFr": "Noscea orientale",
     "ZoneNameJa": "東ラノシア",
+    "Coordinates": "27, 35",
     "TerritoryTypeId": 137,
     "MapId": 17,
     "PlaceNameId": 32
@@ -509,6 +518,7 @@
     "ZoneNameEn": "The Sea of Clouds",
     "ZoneNameFr": "L'Écume des cieux d'Abalathia",
     "ZoneNameJa": "アバラシア雲海",
+    "Coordinates": "36, 9",
     "TerritoryTypeId": 401,
     "MapId": 215,
     "PlaceNameId": 2100
@@ -551,6 +561,7 @@
     "ZoneNameEn": "Coerthas Western Highlands",
     "ZoneNameFr": "Coerthas Western Highlands",
     "ZoneNameJa": "クルザス西部高地",
+    "Coordinates": "20, 31",
     "TerritoryTypeId": 397,
     "MapId": 211,
     "PlaceNameId": 2200
@@ -607,6 +618,7 @@
     "ZoneNameEn": "Azys Lla",
     "ZoneNameFr": "Azys Lla",
     "ZoneNameJa": "アジス・ラー",
+    "Coordinates": "30, 12",
     "TerritoryTypeId": 402,
     "MapId": 216,
     "PlaceNameId": 2101
@@ -685,6 +697,7 @@
     "ZoneNameEn": "The Dravanian Hinterlands",
     "ZoneNameFr": "Arrière-pays dravanien",
     "ZoneNameJa": "低地ドラヴァニア",
+    "Coordinates": "12, 35",
     "TerritoryTypeId": 399,
     "MapId": 213,
     "PlaceNameId": 2001
@@ -814,6 +827,7 @@
     "ZoneNameEn": "Yanxia",
     "ZoneNameFr": "Yanxia",
     "ZoneNameJa": "ヤンサ",
+    "Coordinates": "28, 6",
     "TerritoryTypeId": 614,
     "MapId": 354,
     "PlaceNameId": 2410
@@ -1271,5 +1285,192 @@
     "MapId": 238,
     "PlaceNameId": 1633,
     "ContentFinderConditionId": 113
+  },
+  {
+    "Id": 114,
+    "ZoneNameDe": "Südliches Thanalan",
+    "ZoneNameEn": "Southern Thanalan",
+    "ZoneNameFr": "Thanalan méridional",
+    "ZoneNameJa": "南ザナラーン",
+    "Coordinates": "22, 12",
+    "TerritoryTypeId": 146,
+    "MapId": 23,
+    "PlaceNameId": 45
+  },
+  {
+    "Id": 115,
+    "ZoneNameDe": "Nordwald",
+    "ZoneNameEn": "North Shroud",
+    "ZoneNameFr": "Forêt du nord",
+    "ZoneNameJa": "黒衣森：北部森林",
+    "Coordinates": "24, 28",
+    "TerritoryTypeId": 154,
+    "MapId": 7,
+    "PlaceNameId": 57
+  },
+  {
+    "Id": 116,
+    "ZoneNameDe": "Ostwald",
+    "ZoneNameEn": "East Shroud",
+    "ZoneNameFr": "Forêt de l'est",
+    "ZoneNameJa": "黒衣森：東部森林",
+    "Coordinates": "18, 24",
+    "TerritoryTypeId": 152,
+    "MapId": 5,
+    "PlaceNameId": 55
+  },
+  {
+    "Id": 117,
+    "ZoneNameDe": "Tiefer Wald",
+    "ZoneNameEn": "Central Shroud",
+    "ZoneNameFr": "Forêt centrale",
+    "ZoneNameJa": "黒衣森：中央森林",
+    "Coordinates": "25, 20",
+    "TerritoryTypeId": 148,
+    "MapId": 4,
+    "PlaceNameId": 54
+  },
+  {
+    "Id": 118,
+    "ZoneNameDe": "Nördliches Thanalan",
+    "ZoneNameEn": "Northern Thanalan",
+    "ZoneNameFr": "Thanalan septentrional",
+    "ZoneNameJa": "北ザナラーン",
+    "Coordinates": "16, 15",
+    "TerritoryTypeId": 147,
+    "MapId": 24,
+    "PlaceNameId": 46
+  },
+  {
+    "Id": 119,
+    "ZoneNameDe": "Lower La Noscea",
+    "ZoneNameEn": "Lower La Noscea",
+    "ZoneNameFr": "Lower La Noscea",
+    "ZoneNameJa": "低地ラノシア",
+    "Coordinates": "19, 35",
+    "TerritoryTypeId": 135,
+    "MapId": 16,
+    "PlaceNameId": 31
+  },
+  {
+    "Id": 120,
+    "ZoneNameDe": "Zentrales La Noscea",
+    "ZoneNameEn": "Middle La Noscea",
+    "ZoneNameFr": "Noscea centrale",
+    "ZoneNameJa": "中央ラノシア",
+    "Coordinates": "15, 15",
+    "TerritoryTypeId": 134,
+    "MapId": 15,
+    "PlaceNameId": 30
+  },
+  {
+    "Id": 121,
+    "ZoneNameDe": "Zentrales Thanalan",
+    "ZoneNameEn": "Central Thanalan",
+    "ZoneNameFr": "Thanalan central",
+    "ZoneNameJa": "中央ザナラーン",
+    "Coordinates": "27, 19",
+    "TerritoryTypeId": 141,
+    "MapId": 21,
+    "PlaceNameId": 43
+  },
+  {
+    "Id": 122,
+    "ZoneNameDe": "Westliches Thanalan",
+    "ZoneNameEn": "Western Thanalan",
+    "ZoneNameFr": "Thanalan occidental",
+    "ZoneNameJa": "西ザナラーン",
+    "Coordinates": "15, 6",
+    "TerritoryTypeId": 140,
+    "MapId": 20,
+    "PlaceNameId": 42
+  },
+  {
+    "Id": 123,
+    "ZoneNameDe": "Tiefer Wald",
+    "ZoneNameEn": "Central Shroud",
+    "ZoneNameFr": "Forêt centrale",
+    "ZoneNameJa": "黒衣森：中央森林",
+    "Coordinates": "27, 24",
+    "TerritoryTypeId": 148,
+    "MapId": 4,
+    "PlaceNameId": 54
+  },
+  {
+    "Id": 124,
+    "ZoneNameDe": "Mor Dhona",
+    "ZoneNameEn": "Mor Dhona",
+    "ZoneNameFr": "Mor Dhona",
+    "ZoneNameJa": "モードゥナ",
+    "Coordinates": "13, 10",
+    "TerritoryTypeId": 156,
+    "MapId": 25,
+    "PlaceNameId": 67
+  },
+  {
+    "Id": 125,
+    "ZoneNameDe": "Abalathisches Wolkenmeer",
+    "ZoneNameEn": "The Sea of Clouds",
+    "ZoneNameFr": "L'Écume des cieux d'Abalathia",
+    "ZoneNameJa": "アバラシア雲海",
+    "Coordinates": "26, 33",
+    "TerritoryTypeId": 401,
+    "MapId": 215,
+    "PlaceNameId": 2100
+  },
+  {
+    "Id": 126,
+    "ZoneNameDe": "Abalathisches Wolkenmeer",
+    "ZoneNameEn": "The Sea of Clouds",
+    "ZoneNameFr": "L'Écume des cieux d'Abalathia",
+    "ZoneNameJa": "アバラシア雲海",
+    "Coordinates": "19, 35",
+    "TerritoryTypeId": 401,
+    "MapId": 215,
+    "PlaceNameId": 2100
+  },
+  {
+    "Id": 127,
+    "ZoneNameDe": "Abalathisches Wolkenmeer",
+    "ZoneNameEn": "The Sea of Clouds",
+    "ZoneNameFr": "L'Écume des cieux d'Abalathia",
+    "ZoneNameJa": "アバラシア雲海",
+    "Coordinates": "21, 6",
+    "TerritoryTypeId": 401,
+    "MapId": 215,
+    "PlaceNameId": 2100
+  },
+  {
+    "Id": 128,
+    "ZoneNameDe": "Abalathisches Wolkenmeer",
+    "ZoneNameEn": "The Sea of Clouds",
+    "ZoneNameFr": "L'Écume des cieux d'Abalathia",
+    "ZoneNameJa": "アバラシア雲海",
+    "Coordinates": "16, 30",
+    "TerritoryTypeId": 401,
+    "MapId": 215,
+    "PlaceNameId": 2100
+  },
+  {
+    "Id": 129,
+    "ZoneNameDe": "Abalathisches Wolkenmeer",
+    "ZoneNameEn": "The Sea of Clouds",
+    "ZoneNameFr": "L'Écume des cieux d'Abalathia",
+    "ZoneNameJa": "アバラシア雲海",
+    "Coordinates": "9, 16",
+    "TerritoryTypeId": 401,
+    "MapId": 215,
+    "PlaceNameId": 2100
+  },
+  {
+    "Id": 130,
+    "ZoneNameDe": "Amh Araeng",
+    "ZoneNameEn": "Amh Araeng",
+    "ZoneNameFr": "Amh Araeng",
+    "ZoneNameJa": "アム・アレーン",
+    "Coordinates": "32, 10",
+    "TerritoryTypeId": 815,
+    "MapId": 493,
+    "PlaceNameId": 2955
   }
 ]

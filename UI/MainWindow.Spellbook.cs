@@ -115,11 +115,11 @@ public sealed partial class MainWindow
                             ImGui.Separator();
                     }
 
+                    if (sources.Count > 0)
+                        this.DrawSourcesHeader();
+
                     foreach (var (monster, location, method) in sources)
-                    {
-                        ImGui.TextUnformatted(UiStrings.Format(
-                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
-                    }
+                        ImGui.TextUnformatted(this.FormatSourceLine(monster, location, method));
 
                     if (partyMissingEntry is not null)
                     {
@@ -217,11 +217,18 @@ public sealed partial class MainWindow
 
         ImGui.Separator();
 
+        if (sources.Count > 0)
+            this.DrawSourcesHeader();
+
+        // Wie FormatSourceLine, aber der Ort ist klickbar (Duty Finder bzw. Teleport, siehe DrawLocationName).
         foreach (var (monster, location, method) in sources)
         {
+            var idSuffix = $"Spellbook{spell.Id}_{monster.Id}";
+            this.DrawLocationName(location, this.FormatLocation(location), idSuffix);
+            ImGui.SameLine(0, ImGui.CalcTextSize(" ").X);
             ImGui.TextUnformatted(UiStrings.Format(
-                UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
-            this.DrawLocationActionButtons(location, this.GetMonsterName(monster), $"Spellbook{spell.Id}_{monster.Id}");
+                UiStrings.Key.SourceLineAfterLocationFormat, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage)));
+            this.DrawMapLinkButtons(location, this.GetMonsterName(monster), idSuffix);
         }
 
         if (!isLearned && partyMissingBySpellId is not null && partyMissingBySpellId.TryGetValue(spell.Id, out var missingEntry))

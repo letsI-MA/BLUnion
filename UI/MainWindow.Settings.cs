@@ -36,6 +36,16 @@ public sealed partial class MainWindow
         this.DrawHintText(UiStrings.Get(UiStrings.Key.AutoShareToPartyChatHint, this.displayLanguage));
 
         ImGui.Separator();
+        var teleportOnLocationClick = this.configuration.TeleportOnLocationClick;
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.TeleportOnLocationClickToggle, this.displayLanguage), ref teleportOnLocationClick))
+        {
+            this.configuration.TeleportOnLocationClick = teleportOnLocationClick;
+            this.configuration.Save();
+        }
+
+        this.DrawHintText(UiStrings.Get(UiStrings.Key.TeleportOnLocationClickHint, this.displayLanguage));
+
+        ImGui.Separator();
 
         var liveSyncEnabled = this.configuration.LiveSyncEnabled;
         if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.LiveSyncEnabledToggle, this.displayLanguage), ref liveSyncEnabled))

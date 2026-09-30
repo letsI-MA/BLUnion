@@ -312,7 +312,9 @@
       über eingefügte Sync-Codes (siehe groupsAddMemberFromCode weiter unten). Eigener Unterbereich
       "Gruppen" INNERHALB des bestehenden Gruppenfinder-Panels (nicht die separate "3.
       Gruppenvergleich" weiter oben, die bleibt unverändert die rein lokale Spell-Vergleichstabelle).
+      Bei GROUPS_ENABLED = false (siehe Script) wird dieser ganze Block ausgeblendet.
     -->
+    <div id="groupsSection">
     <h3 class="gf-subheader" id="txt_groups_header"></h3>
     <div class="hint" id="txt_groups_intro" style="margin-top:0;"></div>
 
@@ -389,6 +391,7 @@
       </div>
       <div class="status-msg" id="groupsBrowseStatus"></div>
       <div class="spell-list" id="groupsBrowseList" style="margin-top:10px; max-height:480px; display:none;"></div>
+    </div>
     </div>
   </div>
 
@@ -1452,6 +1455,13 @@ async function importCode() {
 // BLU:-Code voraus (denselben wie oben unter "2."), aus dem Name + Spellstatus decodiert werden.
 const WORKER_BASE_URL = 'https://blunion-livesync.skysurfer101.workers.dev';
 
+// Schalter für das Gruppen-Feature (Gruppe veröffentlichen + Gruppen durchsuchen) - Gegenstück zu
+// FeatureFlags.GroupsEnabled im Plugin und GROUPS_ENABLED im Worker. false: der Gruppen-Block im
+// Gruppenfinder ist ausgeblendet und es gehen keine Requests an /group bzw. /groups/browse. Der
+// Code bleibt vollständig erhalten; zum Reaktivieren nur hier auf true setzen. Der lokale
+// "3. Gruppenvergleich" ist davon nicht betroffen.
+const GROUPS_ENABLED = false;
+
 // Allgemeine Server-Einladung (identisch zu DISCORD_INVITE_FALLBACK_URL im Worker) - für
 // Missbrauchsmeldungen (Moderationshinweis, "Name bereits belegt").
 const DISCORD_INVITE_URL = 'https://discord.gg/uGW7kBG67';
@@ -1851,6 +1861,8 @@ function groupsIsCreator(creator, world, characterName) {
 // bei 404 ist das lokale Token wertlos und wird entfernt, damit Button/Hinweis stimmen. Andere
 // Fehler (Netzwerk, 429) ändern nichts; der Worker prüft beim PUT ohnehin selbst.
 async function groupsCheckCreatorProfile() {
+  if (!GROUPS_ENABLED) return;
+
   const creator = groupsGetCreator();
   if (!creator) return;
 
@@ -2098,6 +2110,8 @@ function groupsRenderTargetSpellList() {
 }
 
 async function groupsPublish() {
+  if (!GROUPS_ENABLED) return;
+
   const statusEl = document.getElementById('groupsPublishStatus');
   statusEl.className = 'status-msg';
   statusEl.textContent = '';
@@ -2190,6 +2204,8 @@ async function groupsPublish() {
 }
 
 async function groupsDeleteOwn() {
+  if (!GROUPS_ENABLED) return;
+
   const statusEl = document.getElementById('groupsPublishStatus');
   const own = getStoredOwnGroup();
   if (!own) return;
@@ -2226,6 +2242,8 @@ async function groupsDeleteOwn() {
 let lastGroupsBrowseEntries = null;
 
 async function groupsBrowse() {
+  if (!GROUPS_ENABLED) return;
+
   const dataCenter = document.getElementById('gfDataCenter').value;
   const statusEl = document.getElementById('groupsBrowseStatus');
   const listEl = document.getElementById('groupsBrowseList');
@@ -2401,6 +2419,9 @@ document.getElementById('langSwitch').addEventListener('change', (e) => {
   applyStaticTexts();
   refreshSpellNames('exportList');
 });
+
+// Gruppen ausgeschaltet: ganzen Gruppen-Block ausblenden (siehe GROUPS_ENABLED).
+if (!GROUPS_ENABLED) document.getElementById('groupsSection').style.display = 'none';
 
 document.getElementById('langSwitch').value = currentLang;
 buildList('exportList', 'filterExport');

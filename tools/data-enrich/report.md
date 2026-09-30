@@ -7,7 +7,7 @@ wird bei jedem Lauf neu geschrieben.
 |---|---|---|---|---|---|
 | spells.json | 124 | 124 | 0 | 0 | 0 |
 | monsters.json | 168 | 144 | 0 | 11 | 13 |
-| locations.json | 113 | 104 | 0 | 9 | 0 |
+| locations.json | 130 | 121 | 0 | 9 | 0 |
 
 ## spells.json
 

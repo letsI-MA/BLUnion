@@ -17,6 +17,9 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool AutoShareToPartyChat { get; set; } = true;
 
+    // Klick auf einen Open-World-Ortsnamen teleportiert zum Aetheryten (siehe GameUiLinkService.Teleport).
+    public bool TeleportOnLocationClick { get; set; } = true;
+
     public Dictionary<string, string> LiveSyncEditTokens { get; set; } = new();
 
     public Dictionary<string, string> GroupFinderOwnGroupIds { get; set; } = new();

@@ -7,8 +7,8 @@ namespace BLUnion.Services;
 // Ziel für "Auf Karte markieren"/"Link in Chat" - Koordinaten wie auf der Spielkarte (z.B. 9.5, 21).
 public sealed record MapLinkTarget(uint TerritoryTypeId, uint MapId, float X, float Y);
 
-// Welche Knöpfe zu einem Ort gehören (siehe MainWindow.LocationActions.cs):
-// - DutyIds: 0 = kein Duty-Finder-Knopf, 1 = "Im Duty Finder öffnen", >1 = ein Knopf je Variante.
+// Was zu einem Ort gehört (siehe MainWindow.LocationActions.cs):
+// - DutyIds: Duties des Orts (1 = Einzel-Duty, >1 = Varianten), siehe GetNameAction.
 // - MapLink: nur Open World mit Gebiet, Karte und lesbaren Koordinaten.
 // - UnparsableCoordinates: Koordinaten vorhanden, aber nicht lesbar -> kein Knopf, UI loggt eine Warnung.
 public sealed record LocationActionSet(IReadOnlyList<uint> DutyIds, MapLinkTarget? MapLink, bool UnparsableCoordinates)
@@ -16,8 +16,39 @@ public sealed record LocationActionSet(IReadOnlyList<uint> DutyIds, MapLinkTarge
     public bool IsMultiDuty => this.DutyIds.Count > 1;
 }
 
-// Reine Logik hinter den Duty-Finder-/Karten-Knöpfen, bewusst ohne Dalamud-Abhängigkeit (testbar in
-// BLUnion.Tests). Die Knöpfe ÖFFNEN nur Fenster/Karten - Anmelden, Teleportieren o.ä. gibt es nicht.
+public enum LocationNameKind
+{
+    // Normaler Text (kein Ziel, Teleport-Einstellung aus, Duty ohne IDs).
+    PlainText,
+
+    // Einzel-Duty: Klick öffnet den Duty Finder.
+    DutyFinder,
+
+    // Einzel-Duty, nicht freigeschaltet: nicht klickbar, nur Tooltip.
+    DutyFinderLocked,
+
+    // Mehrere Varianten: Klick öffnet ein Menü mit den Varianten.
+    DutyFinderMenu,
+
+    // Open World: Klick teleportiert zum Aetheryten.
+    Teleport,
+
+    // Open World, Aetheryt nicht freigeschaltet: nicht klickbar, nur Tooltip.
+    TeleportLocked,
+}
+
+// Was ein Klick auf einen Orts-/Duty-Namen tut (siehe LocationActions.GetNameAction).
+public sealed record LocationNameAction(LocationNameKind Kind, IReadOnlyList<uint> DutyIds, AetheryteCandidate? Aetheryte)
+{
+    public bool IsClickable => this.Kind is LocationNameKind.DutyFinder or LocationNameKind.DutyFinderMenu or LocationNameKind.Teleport;
+}
+
+// Ein Eintrag im Varianten-Menü einer Mehrfach-Duty. Enabled = false: nicht freigeschaltet (ausgegraut).
+public sealed record DutyVariantMenuItem(uint ContentFinderConditionId, string Label, string FullName, bool Enabled);
+
+// Reine Logik hinter den klickbaren Orts-/Duty-Namen und Karten-Knöpfen, bewusst ohne Dalamud-
+// Abhängigkeit (testbar in BLUnion.Tests). Duty Finder und Karte werden nur GEÖFFNET (keine Anmeldung);
+// der einzige Spiel-Aufruf ist ein Teleport pro Klick auf einen Open-World-Ort (abschaltbar).
 public static class LocationActions
 {
     // Zwei Zahlen mit Punkt als Dezimaltrenner, getrennt durch Komma/Leerzeichen/Schrägstrich, optional
@@ -66,7 +97,45 @@ public static class LocationActions
         return new LocationActionSet(dutyIds, mapLink, false);
     }
 
-    // Beschriftung der Varianten-Knöpfe: der gemeinsame Anfang bis zum letzten Trenner ("(", "-", ":")
+    // Klick-Verhalten des Orts-/Duty-Namens. Duties öffnen den Duty Finder (Einzel-Duty direkt, mehrere
+    // Varianten über ein Menü); Open-World-Orte teleportieren - nur mit eingeschalteter Einstellung und
+    // gefundenem Aetheryten. aetheryteUnlocked: false = nicht freigeschaltet, null = nicht beurteilbar
+    // (dann bleibt der Name klickbar, das Spiel lehnt einen unmöglichen Teleport selbst ab).
+    // singleDutyUnlocked: dasselbe für eine Einzel-Duty (Varianten prüft das Menü einzeln, siehe GetVariantMenu).
+    public static LocationNameAction GetNameAction(
+        Location? location, bool teleportEnabled, AetheryteCandidate? aetheryte, bool? aetheryteUnlocked, bool? singleDutyUnlocked = null)
+    {
+        if (location is null)
+            return new LocationNameAction(LocationNameKind.PlainText, [], null);
+
+        var dutyIds = location.GetContentFinderConditionIds();
+        if (dutyIds.Count > 1)
+            return new LocationNameAction(LocationNameKind.DutyFinderMenu, dutyIds, null);
+
+        if (dutyIds.Count == 1)
+            return new LocationNameAction(singleDutyUnlocked == false ? LocationNameKind.DutyFinderLocked : LocationNameKind.DutyFinder, dutyIds, null);
+
+        if (location.DutyName is not null || !teleportEnabled || aetheryte is null)
+            return new LocationNameAction(LocationNameKind.PlainText, [], null);
+
+        return new LocationNameAction(aetheryteUnlocked == false ? LocationNameKind.TeleportLocked : LocationNameKind.Teleport, [], aetheryte);
+    }
+
+    // Varianten-Menü: Beschriftung = auf den Unterschied gekürzter Name (siehe ShortenVariantNames),
+    // Basis-Variante = normalLabel, fehlender Spieltext = fallbackLabel(Nummer ab 1).
+    public static IReadOnlyList<DutyVariantMenuItem> GetVariantMenu(
+        IReadOnlyList<uint> dutyIds, IReadOnlyList<string?> gameNames, Func<uint, bool?> isUnlocked, string normalLabel,
+        Func<int, string> fallbackLabel)
+    {
+        var fullNames = dutyIds.Select((_, index) => gameNames[index] is { Length: > 0 } name ? name : fallbackLabel(index + 1)).ToList();
+        var labels = ShortenVariantNames(fullNames);
+
+        return dutyIds
+            .Select((cfcId, index) => new DutyVariantMenuItem(cfcId, labels[index] ?? normalLabel, fullNames[index], isUnlocked(cfcId) != false))
+            .ToList();
+    }
+
+    // Beschriftung der Varianten: der gemeinsame Anfang bis zum letzten Trenner ("(", "-", ":")
     // fällt weg, z.B. "Thornmarch (Hard)" / "Thornmarch (Extreme)" -> "Hard" / "Extreme",
     // "The Binding Coil of Bahamut - Turn 1" / "- Turn 2" -> "Turn 1" / "Turn 2". Ist ein Name genau
     // der gemeinsame Anfang (Normal-Variante "The Bowl of Embers"), wird er null -> Aufrufer zeigt

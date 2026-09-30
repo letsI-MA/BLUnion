@@ -17,12 +17,21 @@ It started out as a tool for me and a few friends. By now other people are using
 - Spellbook view with all 124 spells, filterable by learned/missing
 - Loadouts for all 32 Masked Carnivale stages, including how many of the needed spells you already have
 - Shows monster/zone/coordinates for 123 of the 124 spells
+- Clickable locations: a duty name opens the Duty Finder with that duty selected (for grouped entries like "Thornmarch (Hard or Extreme)" you pick the variant first), an open-world zone name teleports you to the matching aetheryte and flags the monster on your map. Map icons open the map with a flag or post the map link into your own chat window
 - Filter by name or spell number (`58`, `#058`, whatever)
 - Option to hide totem-only spells if you're not chasing those right now
 - Group Finder to find other Blue Mages on your data center, solo or as a whole group
 - Sync via a short export/import code, or optionally via Live-Sync so you don't have to swap codes at all
 - Full UI in German, English, French, and Japanese
 - A [browser companion](https://letsi-ma.github.io/BLUnion/) for people who don't want to install the plugin at all
+
+### What it does in the game (and what it doesn't)
+
+BLUnion doesn't automate gameplay. Clicking in the plugin only ever triggers one thing, and only when you click:
+
+- **Duty names** open the Duty Finder window with the duty selected. You still queue yourself.
+- **Open-world zone names** teleport you once to the aetheryte closest to the monster (or the zone's main aetheryte), then set the map flag. It costs gil just like the teleport window, is blocked by the game wherever teleporting isn't allowed (duties, combat, crafting ...), and is never retried. Don't want it? Turn off "Teleport by clicking a location name" in the settings and names become plain text.
+- **Map icons** open the map with a flag, or print the map link into your own chat window. Nothing is sent to anyone.
 
 ## How sync works
 

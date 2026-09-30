@@ -98,11 +98,11 @@ public sealed partial class MainWindow
                     ImGui.TextUnformatted(UiStrings.Format(
                         UiStrings.Key.TooltipMissingFor, this.displayLanguage, string.Join(", ", entry.PlayersMissingIt)));
 
+                    if (sources.Count > 0)
+                        this.DrawSourcesHeader();
+
                     foreach (var (monster, location, method) in sources)
-                    {
-                        ImGui.TextUnformatted(UiStrings.Format(
-                            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
-                    }
+                        ImGui.TextUnformatted(this.FormatSourceLine(monster, location, method));
 
                     ImGui.EndTooltip();
                 }

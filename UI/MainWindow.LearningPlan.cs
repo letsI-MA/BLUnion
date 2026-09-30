@@ -102,19 +102,26 @@ public sealed partial class MainWindow
         {
             var entry = entries[index];
             var kind = UiStrings.Get(entry.IsDuty ? UiStrings.Key.SourceMethodDuty : UiStrings.Key.SourceMethodOpenWorld, this.displayLanguage);
-            var title = UiStrings.Format(
-                UiStrings.Key.LearningPlanLocationEntryFormat,
-                this.displayLanguage,
-                this.gameTextService.GetZoneName(entry.RepresentativeLocation, this.displayLanguage),
-                kind,
-                entry.Benefit);
+            var titleSuffix = UiStrings.Format(UiStrings.Key.LearningPlanLocationEntrySuffixFormat, this.displayLanguage, kind, entry.Benefit);
 
             // Once: nur beim ersten Anzeigen - danach bleibt der vom Nutzer gewählte Zustand erhalten.
-            // AllowItemOverlap: die Duty-Finder-Knöpfe stehen rechts in der Kopfzeile, auch zugeklappt.
-            var headerRightEdgeX = ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X;
+            // Die Kopfzeile hat kein eigenes Label: Ortsname (klickbar, siehe DrawLocationName) und Rest
+            // werden darübergezeichnet. AllowItemOverlap: ein Klick auf den Namen klappt nicht auf/zu.
+            var headerPosition = ImGui.GetCursorScreenPos();
             ImGui.SetNextItemOpen(index < LearningPlanInitiallyOpenEntries, ImGuiCond.Once);
-            var isOpen = ImGui.CollapsingHeader($"{title}##LearningPlanLocation{entry.Key}", ImGuiTreeNodeFlags.AllowItemOverlap);
-            this.DrawDutyFinderButtons(entry.RepresentativeLocation, $"LearningPlan{entry.Key}", headerRightEdgeX);
+            var isOpen = ImGui.CollapsingHeader($"##LearningPlanLocation{entry.Key}", ImGuiTreeNodeFlags.AllowItemOverlap);
+            var afterHeaderPosition = ImGui.GetCursorScreenPos();
+
+            ImGui.SetCursorScreenPos(headerPosition + new System.Numerics.Vector2(ImGui.GetTreeNodeToLabelSpacing(), ImGui.GetStyle().FramePadding.Y));
+            this.DrawLocationName(
+                entry.RepresentativeLocation,
+                this.gameTextService.GetZoneName(entry.RepresentativeLocation, this.displayLanguage),
+                $"LearningPlan{entry.Key}",
+                zoneLevel: true);
+            ImGui.SameLine(0, ImGui.CalcTextSize(" ").X);
+            ImGui.TextUnformatted(titleSuffix);
+            ImGui.SetCursorScreenPos(afterHeaderPosition);
+
             if (!isOpen)
                 continue;
 
@@ -138,7 +145,8 @@ public sealed partial class MainWindow
                     monsterLine += $" ({coordinates})";
 
                 ImGui.TextUnformatted(monsterLine);
-                this.DrawMapLinkButtons(planMonster.Location, this.GetMonsterName(planMonster.Monster), $"LearningPlan{entry.Key}_{planMonster.Monster.Id}");
+                this.DrawMapLinkButtons(
+                    planMonster.Location, this.GetMonsterName(planMonster.Monster), $"LearningPlan{entry.Key}_{planMonster.Monster.Id}", showTeleportIcon: true);
                 foreach (var spell in spells)
                     this.DrawLearningPlanSpellRow(spell, $"{entry.Key}_{planMonster.Monster.Id}");
             }

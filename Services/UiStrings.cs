@@ -47,6 +47,8 @@ public static class UiStrings
         ColumnSources,
         TooltipMissingFor,
         TooltipSourceLine,
+        SourceLineAfterLocationFormat,
+        SourcesHeader,
         UnknownLocation,
         SourceCountSummary,
         SpellFallback,
@@ -210,7 +212,7 @@ public static class UiStrings
         LearningPlanFilterDuties,
         LearningPlanFilterOpenWorld,
         LearningPlanLocationsHeader,
-        LearningPlanLocationEntryFormat,
+        LearningPlanLocationEntrySuffixFormat,
         LearningPlanNoLocations,
         LearningPlanBeneficiariesLabel,
         LearningPlanRequiredLevelHint,
@@ -220,13 +222,18 @@ public static class UiStrings
         LearningPlanTotemSpellCountFormat,
         LearningPlanTotemLevelFormat,
         LearningPlanTotemReady,
-        DutyFinderOpenButton,
+        DutyFinderOpenTooltip,
         DutyFinderOpenVariantTooltip,
         DutyFinderNotUnlockedTooltip,
         DutyFinderVariantNormal,
         DutyFinderVariantFallback,
         MapMarkTooltip,
         MapLinkToChatTooltip,
+        TeleportToTooltip,
+        AetheryteNotUnlockedTooltip,
+        TeleportFailedMessage,
+        TeleportOnLocationClickToggle,
+        TeleportOnLocationClickHint,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -529,10 +536,27 @@ public static class UiStrings
         },
         [Key.TooltipSourceLine] = new()
         {
-            [DisplayLanguage.German] = "Quelle: {0} ({1}) — {2}",
-            [DisplayLanguage.English] = "Source: {0} ({1}) — {2}",
-            [DisplayLanguage.French] = "Source : {0} ({1}) — {2}",
-            [DisplayLanguage.Japanese] = "入手先: {0} ({1}) — {2}",
+            // {0} = Ort, {1} = Monster, {2} = Lernmethode. Muss "{0} " + SourceLineAfterLocationFormat
+            // ergeben (Spellbook-Detail zeichnet den Ort klickbar und den Rest getrennt).
+            [DisplayLanguage.German] = "{0} - {1} ({2})",
+            [DisplayLanguage.English] = "{0} - {1} ({2})",
+            [DisplayLanguage.French] = "{0} - {1} ({2})",
+            [DisplayLanguage.Japanese] = "{0} - {1}({2})",
+        },
+        [Key.SourceLineAfterLocationFormat] = new()
+        {
+            // Rest der Quellzeile hinter dem (klickbaren) Ort: {0} = Monster, {1} = Lernmethode.
+            [DisplayLanguage.German] = "- {0} ({1})",
+            [DisplayLanguage.English] = "- {0} ({1})",
+            [DisplayLanguage.French] = "- {0} ({1})",
+            [DisplayLanguage.Japanese] = "- {0}({1})",
+        },
+        [Key.SourcesHeader] = new()
+        {
+            [DisplayLanguage.German] = "Quellen:",
+            [DisplayLanguage.English] = "Sources:",
+            [DisplayLanguage.French] = "Sources :",
+            [DisplayLanguage.Japanese] = "入手先:",
         },
         [Key.UnknownLocation] = new()
         {
@@ -1765,12 +1789,13 @@ public static class UiStrings
             [DisplayLanguage.French] = "Par lieu (triés par bénéfice) :",
             [DisplayLanguage.Japanese] = "場所別(メリット順):",
         },
-        [Key.LearningPlanLocationEntryFormat] = new()
+        [Key.LearningPlanLocationEntrySuffixFormat] = new()
         {
-            [DisplayLanguage.German] = "{0} ({1}) - Nutzen {2}",
-            [DisplayLanguage.English] = "{0} ({1}) - benefit {2}",
-            [DisplayLanguage.French] = "{0} ({1}) - bénéfice {2}",
-            [DisplayLanguage.Japanese] = "{0}({1})- メリット {2}",
+            // Hinter dem (klickbaren) Ortsnamen: {0} = Duty/Open World, {1} = Nutzen.
+            [DisplayLanguage.German] = "({0}) - Nutzen {1}",
+            [DisplayLanguage.English] = "({0}) - benefit {1}",
+            [DisplayLanguage.French] = "({0}) - bénéfice {1}",
+            [DisplayLanguage.Japanese] = "({0})- メリット {1}",
         },
         [Key.LearningPlanNoLocations] = new()
         {
@@ -1836,7 +1861,7 @@ public static class UiStrings
             [DisplayLanguage.French] = "Condition remplie - à récupérer auprès de {0}.",
             [DisplayLanguage.Japanese] = "条件達成 - {0}から受け取れます。",
         },
-        [Key.DutyFinderOpenButton] = new()
+        [Key.DutyFinderOpenTooltip] = new()
         {
             [DisplayLanguage.German] = "Im Duty Finder öffnen",
             [DisplayLanguage.English] = "Open in Duty Finder",
@@ -1885,6 +1910,50 @@ public static class UiStrings
             [DisplayLanguage.English] = "Link in chat (only in your own chat window, nothing is sent)",
             [DisplayLanguage.French] = "Lien dans le chat (uniquement dans ta fenêtre de chat, rien n'est envoyé)",
             [DisplayLanguage.Japanese] = "チャットにリンク(自分のチャット欄のみ、送信はされません)",
+        },
+        [Key.TeleportToTooltip] = new()
+        {
+            // {0} = Aetheryt-Name aus den Spieldaten
+            [DisplayLanguage.German] = "Teleport nach {0}",
+            [DisplayLanguage.English] = "Teleport to {0}",
+            [DisplayLanguage.French] = "Téléportation vers {0}",
+            [DisplayLanguage.Japanese] = "{0}へテレポ",
+        },
+        [Key.AetheryteNotUnlockedTooltip] = new()
+        {
+            [DisplayLanguage.German] = "Aetheryt nicht freigeschaltet",
+            [DisplayLanguage.English] = "Aetheryte not unlocked",
+            [DisplayLanguage.French] = "Éthérite non débloquée",
+            [DisplayLanguage.Japanese] = "エーテライト未交感",
+        },
+        [Key.TeleportFailedMessage] = new()
+        {
+            [DisplayLanguage.German] = "Teleport gerade nicht möglich.",
+            [DisplayLanguage.English] = "Teleport not possible right now.",
+            [DisplayLanguage.French] = "Téléportation impossible pour le moment.",
+            [DisplayLanguage.Japanese] = "現在テレポできません。",
+        },
+        [Key.TeleportOnLocationClickToggle] = new()
+        {
+            [DisplayLanguage.German] = "Teleport per Klick auf Ortsnamen",
+            [DisplayLanguage.English] = "Teleport by clicking a location name",
+            [DisplayLanguage.French] = "Téléportation en cliquant sur un nom de lieu",
+            [DisplayLanguage.Japanese] = "地名クリックでテレポ",
+        },
+        [Key.TeleportOnLocationClickHint] = new()
+        {
+            [DisplayLanguage.German] =
+                "Ein Klick auf einen Open-World-Ort teleportiert einmal zum passenden Aetheryten (Gil-Kosten wie im " +
+                "Teleport-Fenster) und setzt die Kartenflagge beim Monster. Aus: Ortsnamen sind normaler Text.",
+            [DisplayLanguage.English] =
+                "Clicking an open-world location teleports you once to the matching aetheryte (gil cost as in the " +
+                "teleport window) and sets the map flag at the monster. Off: location names are plain text.",
+            [DisplayLanguage.French] =
+                "Un clic sur un lieu du monde ouvert te téléporte une fois vers l'éthérite correspondante (coût en gils " +
+                "comme dans la fenêtre de téléportation) et place le drapeau sur la carte. Désactivé : noms en texte simple.",
+            [DisplayLanguage.Japanese] =
+                "フィールドの地名をクリックすると、対応するエーテライトへ1回テレポし(費用はテレポ画面と同じ)、" +
+                "モンスターの位置にフラグを立てます。オフ: 地名は通常のテキストになります。",
         },
     };
 

@@ -17,6 +17,9 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: { configPath: "./wrangler.toml" },
+      // Gruppen-Feature ist in wrangler.toml ausgeschaltet - die bestehenden Gruppen-Tests laufen mit
+      // "true"; groupsDisabled.test.ts schaltet für die Aus-Fälle gezielt per env-Mutation um.
+      miniflare: { bindings: { GROUPS_ENABLED: "true" } },
     }),
   ],
 });

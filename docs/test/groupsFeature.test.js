@@ -14,7 +14,8 @@ describe("groups feature (multi-member group listings)", () => {
   let window;
 
   beforeAll(async () => {
-    window = await loadPage();
+    // Gruppen-Logik bleibt testbar, auch wenn der Schalter in index.html aus ist.
+    window = await loadPage({ groupsEnabled: true });
 
     // Test-Helfer im Seiten-Realm (indirektes eval -> globale Funktion, siehe runInPage-Doc):
     // setzt "Mein Eintrag" (= Gruppen-Ersteller, siehe groupsGetCreator) inkl. Token in

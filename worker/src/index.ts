@@ -68,7 +68,20 @@ export interface Env {
    * "wrangler secret put ADMIN_TOKEN" bzw. lokal über .dev.vars. Fehlt es, antworten alle
    * Admin-Endpunkte mit demselben 404 wie ein unbekannter Pfad. */
   ADMIN_TOKEN?: string;
+  /** Feature-Flag für das Gruppen-Feature (siehe groupsEnabled): "false" blendet Gruppen aus, ohne
+   * Code oder KV-Daten zu löschen - GET /groups/browse liefert eine leere Liste, PUT /group 403,
+   * DELETE /group und die Admin-Endpunkte bleiben erlaubt, der Cron entfernt die Gruppen-Karten in
+   * Discord. Jeder andere Wert (oder fehlend) = Gruppen aktiv. */
+  GROUPS_ENABLED?: string;
 }
+
+/** Siehe Env.GROUPS_ENABLED. */
+export function groupsEnabled(env: Env): boolean {
+  return env.GROUPS_ENABLED !== "false";
+}
+
+/** Antwort auf PUT /group bei ausgeschaltetem Gruppen-Feature. */
+export const GROUPS_DISABLED_MESSAGE = "Groups are currently disabled";
 
 /** Muss mit ManualCodeSyncProvider.BitmaskBytes im Plugin übereinstimmen (16 Byte = 128 Bit). */
 const BITMASK_BYTES = 16;
@@ -1171,6 +1184,10 @@ async function handleGroupsBrowse(env: Env, request: Request, ctx: ExecutionCont
   if (rateLimited)
     return rateLimited;
 
+  // Gruppen ausgeschaltet: gleiche Antwortstruktur (Array), nur leer - alte Clients laufen weiter.
+  if (!groupsEnabled(env))
+    return jsonResponse([]);
+
   const canonicalDataCenter = resolveBrowseDataCenter(new URL(request.url).searchParams.get("dataCenter"));
   if (canonicalDataCenter instanceof Response)
     return canonicalDataCenter;
@@ -1844,6 +1861,16 @@ async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInt
   // bestehende Server, die den Command noch nicht neu registriert haben, sehen also weiterhin
   // Gruppen, keinen Fehler.
   const rawType = findDiscordStringOption(browseSubcommand.options, "type");
+
+  // Gruppen ausgeschaltet (siehe Env.GROUPS_ENABLED): ohne Angabe gleich die Spieler zeigen, ein
+  // ausdrückliches "type:groups" bekommt einen kurzen Hinweis statt einer (leeren) Gruppenliste.
+  if (!groupsEnabled(env)) {
+    if (rawType === "groups")
+      return discordMessageResponse('Groups are currently disabled - use "/blunion browse type:players".');
+
+    return handleDiscordBrowse(env, dataCenter, "players");
+  }
+
   const type: "groups" | "players" = rawType === "players" ? "players" : "groups";
 
   return handleDiscordBrowse(env, dataCenter, type);
@@ -1882,11 +1909,15 @@ async function handleDiscordInteractions(env: Env, request: Request): Promise<Re
  * die Karte über dieselbe remove*DiscordCard-Funktion entfernt wie beim expliziten DELETE-Pfad.
  * channelWebhookId ist hier "" (der Index speichert ihn nicht, wird beim Löschen nicht gebraucht). */
 async function cleanupOrphanedDiscordCards(env: Env): Promise<void> {
+  // Gruppen ausgeschaltet: ALLE Gruppen-Karten entfernen (Nachricht + Index-Eintrag). Die group:-
+  // Einträge selbst bleiben unangetastet und laufen per TTL ab.
+  const removeAllGroupCards = !groupsEnabled(env);
+
   for (const region of ALL_REGIONS) {
     const groupEntries = await env.BLUNION_PROFILES.get<DiscordCardIndexEntry[]>(discordCardsIndexKey(region), "json");
     if (groupEntries && groupEntries.length > 0) {
       for (const entry of groupEntries) {
-        const stillExists = await env.BLUNION_PROFILES.get(groupKvKey(entry.groupId));
+        const stillExists = removeAllGroupCards ? null : await env.BLUNION_PROFILES.get(groupKvKey(entry.groupId));
         if (stillExists === null) {
           await removeGroupDiscordCard(env, entry.groupId, { region, channelWebhookId: "", messageId: entry.messageId });
         }
@@ -1977,6 +2008,10 @@ export default {
 
       switch (request.method) {
         case "PUT":
+          // DELETE bleibt auch bei ausgeschalteten Gruppen erlaubt (Aufräumen muss möglich sein).
+          if (!groupsEnabled(env))
+            return errorResponse(403, GROUPS_DISABLED_MESSAGE);
+
           return handleGroupPut(env, request, groupId, ctx);
         case "DELETE":
           return handleGroupDelete(env, request, groupId, ctx);
@@ -1988,7 +2023,8 @@ export default {
     return unknownEndpointResponse();
   },
 
-  /** Cron Trigger (siehe wrangler.toml) - räumt Karten von still per TTL abgelaufenen Einträgen auf. */
+  /** Cron Trigger (siehe wrangler.toml) - räumt Karten von still per TTL abgelaufenen Einträgen auf
+   * (bei GROUPS_ENABLED = "false" zusätzlich alle Gruppen-Karten). */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(cleanupOrphanedDiscordCards(env));
   },

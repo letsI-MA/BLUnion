@@ -12,8 +12,17 @@ const INDEX_HTML_PATH = path.join(__dirname, "..", "index.html");
  * renderGroupTable/...), statt sie nachzubauen. Siehe ../../TEST_REPORT.md §4.1 für die Begründung,
  * warum das (statt reiner Code-Lektüre) für den Web-Companion-Teil verwendet wird.
  */
-export async function loadPage() {
-  const html = fs.readFileSync(INDEX_HTML_PATH, "utf8");
+export async function loadPage({ groupsEnabled } = {}) {
+  let html = fs.readFileSync(INDEX_HTML_PATH, "utf8");
+
+  // Gruppen-Schalter der Seite (const GROUPS_ENABLED, siehe index.html) für diesen Testlauf setzen -
+  // ohne Angabe gilt der Wert aus der Datei.
+  if (groupsEnabled !== undefined) {
+    const declaration = /const GROUPS_ENABLED = (true|false);/;
+    if (!declaration.test(html)) throw new Error("GROUPS_ENABLED-Deklaration in index.html nicht gefunden.");
+    html = html.replace(declaration, `const GROUPS_ENABLED = ${groupsEnabled};`);
+  }
+
   const dom = new JSDOM(html, {
     url: "https://letsi-ma.github.io/BLUnion/",
     runScripts: "dangerously",

@@ -53,6 +53,14 @@ public sealed partial class MainWindow
             : zoneName;
     }
 
+    // Quellzeile "Ort - Monster (Methode)" - überall gleiche Reihenfolge, ohne "Quelle" pro Zeile (eine
+    // Überschrift steht höchstens einmal darüber, siehe DrawSourcesHeader).
+    private string FormatSourceLine(Monster monster, Location? location, SourceMethod method) =>
+        UiStrings.Format(
+            UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.FormatLocation(location), this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage));
+
+    private void DrawSourcesHeader() => this.DrawHintText(UiStrings.Get(UiStrings.Key.SourcesHeader, this.displayLanguage));
+
     private string FormatSourceSummary(IReadOnlyList<(Monster Monster, Location? Location, SourceMethod Method)> sources)
     {
         if (sources.Count == 0)
@@ -60,8 +68,8 @@ public sealed partial class MainWindow
 
         if (sources.Count == 1)
         {
-            var (monster, location, _) = sources[0];
-            return $"{this.GetMonsterName(monster)} ({this.FormatLocation(location)})";
+            var (monster, location, method) = sources[0];
+            return this.FormatSourceLine(monster, location, method);
         }
 
         return UiStrings.Format(UiStrings.Key.SourceCountSummary, this.displayLanguage, sources.Count);

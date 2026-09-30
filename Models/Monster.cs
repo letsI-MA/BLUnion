@@ -23,6 +23,11 @@ public sealed class Monster
     // der Reihenfolge des Namens. Hat Vorrang vor BNpcNameId (siehe GameTextService.GetMonsterName).
     public IReadOnlyList<uint>? BNpcNameIds { get; init; }
 
+    // Bedingung als Zahl für Totem-Einträge (gelernte Spells bzw. Blaumagier-Stufe, je nach
+    // SourceMethod) und Carnivale-Fortschritt (abgeschlossene Stages) - siehe LearningPlanService.
+    // Notes bleiben als Freitext daneben stehen.
+    public int? RequirementValue { get; init; }
+
     public string GetName(DisplayLanguage language) =>
         DisplayLanguageText.Select(language, this.NameDe, this.NameEn, this.NameFr, this.NameJa);
 }

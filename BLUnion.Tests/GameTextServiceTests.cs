@@ -33,6 +33,16 @@ public class GameTextServiceTests
         public string? GetContentFinderConditionName(uint contentFinderConditionId, DisplayLanguage language) =>
             this.Get("cfc", contentFinderConditionId, language);
 
+        public Dictionary<uint, int> RequiredLevels { get; } = [];
+
+        public string? GetENpcName(uint eNpcResidentId, DisplayLanguage language) => this.Get("enpc", eNpcResidentId, language);
+
+        public int? GetContentFinderConditionRequiredLevel(uint contentFinderConditionId)
+        {
+            this.Calls++;
+            return this.RequiredLevels.TryGetValue(contentFinderConditionId, out var level) ? level : null;
+        }
+
         private string? Get(string kind, uint id, DisplayLanguage language)
         {
             this.Calls++;
@@ -305,6 +315,108 @@ public class GameTextServiceTests
             service.GetMonsterName(monster, DisplayLanguage.German);
 
         Assert.Equal(2, source.Calls); // ein Lookup je Teil, danach Cache
+    }
+
+    // ----- NPC-Name (Wayward Gaheel Ja) -----
+
+    [Fact]
+    public void GaheelJaName_ComesFromGameData()
+    {
+        var source = new FakeGameTextSource();
+        source.Texts[("enpc", GameTextService.WaywardGaheelJaENpcResidentId, DisplayLanguage.Japanese)] = "異男のガヒージャ";
+
+        Assert.Equal("異男のガヒージャ", new GameTextService(source).GetWaywardGaheelJaName(DisplayLanguage.Japanese));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void GaheelJaName_FallsBackToEnglish(string? gameText)
+    {
+        var source = new FakeGameTextSource();
+        source.Texts[("enpc", GameTextService.WaywardGaheelJaENpcResidentId, DisplayLanguage.French)] = gameText;
+
+        Assert.Equal("Wayward Gaheel Ja", new GameTextService(source).GetWaywardGaheelJaName(DisplayLanguage.French));
+    }
+
+    // ----- Levelanforderung von Duties -----
+
+    [Fact]
+    public void RequiredLevel_IsReadForDuties_AndCached()
+    {
+        var source = new FakeGameTextSource();
+        source.RequiredLevels[30] = 50;
+        var service = new GameTextService(source);
+
+        Assert.Equal(50, service.GetRequiredLevel(CreateLocation(cfcId: 30)));
+        Assert.Equal(50, service.GetRequiredLevel(CreateLocation(cfcId: 30)));
+        Assert.Equal(1, source.Calls);
+    }
+
+    [Fact]
+    public void RequiredLevel_IsNull_ForOpenWorldAndUnknownOrZero()
+    {
+        var source = new FakeGameTextSource();
+        source.RequiredLevels[31] = 0;
+        var service = new GameTextService(source);
+
+        Assert.Null(service.GetRequiredLevel(CreateLocation(placeNameId: 99)));
+        Assert.Null(service.GetRequiredLevel(CreateLocation(cfcId: 30)));
+        Assert.Null(service.GetRequiredLevel(CreateLocation(cfcId: 31)));
+    }
+
+    private static Location CreateMultiDutyLocation(params uint[] cfcIds) => new()
+    {
+        Id = 58,
+        ZoneNameDe = "Thornmarch (Hard oder Extreme)",
+        ZoneNameEn = "Thornmarch (Hard oder Extreme)",
+        ZoneNameFr = "Thornmarch (Hard oder Extreme)",
+        ZoneNameJa = "Thornmarch (Hard oder Extreme)",
+        DutyName = "Thornmarch (Hard oder Extreme)",
+        ContentFinderConditionIds = cfcIds,
+    };
+
+    [Fact]
+    public void RequiredLevel_WithSeveralVariants_IsTheLowest()
+    {
+        var source = new FakeGameTextSource();
+        source.RequiredLevels[67] = 50;
+        source.RequiredLevels[66] = 48;
+        var service = new GameTextService(source);
+
+        Assert.Equal(48, service.GetRequiredLevel(CreateMultiDutyLocation(67, 66)));
+    }
+
+    [Fact]
+    public void RequiredLevel_WithSeveralVariants_IgnoresUnknownVariants()
+    {
+        var source = new FakeGameTextSource();
+        source.RequiredLevels[67] = 50;
+        var service = new GameTextService(source);
+
+        Assert.Equal(50, service.GetRequiredLevel(CreateMultiDutyLocation(66, 67)));
+        Assert.Null(service.GetRequiredLevel(CreateMultiDutyLocation(1, 2)));
+    }
+
+    [Fact]
+    public void ZoneName_OfMultiDutyEntry_StaysTheCollectiveName()
+    {
+        var source = new FakeGameTextSource();
+        source.Texts[("cfc", 66, DisplayLanguage.German)] = "Thornmarch (schwer)";
+        var service = new GameTextService(source);
+
+        Assert.Equal("Thornmarch (Hard oder Extreme)", service.GetZoneName(CreateMultiDutyLocation(66, 67), DisplayLanguage.German));
+    }
+
+    [Fact]
+    public void DutyName_ComesFromGameData_OrIsNull()
+    {
+        var source = new FakeGameTextSource();
+        source.Texts[("cfc", 66, DisplayLanguage.French)] = "la Marche des épines (brutal)";
+        var service = new GameTextService(source);
+
+        Assert.Equal("La Marche des épines (brutal)", service.GetDutyName(66, DisplayLanguage.French));
+        Assert.Null(service.GetDutyName(67, DisplayLanguage.French));
     }
 
     // ----- SeString-Bereinigung -----

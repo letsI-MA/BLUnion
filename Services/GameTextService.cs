@@ -19,6 +19,12 @@ public interface IGameTextSource
     uint? GetTerritoryPlaceNameId(uint territoryTypeId);
 
     string? GetContentFinderConditionName(uint contentFinderConditionId, DisplayLanguage language);
+
+    // Erforderliche Klassenstufe einer Duty (ContentFinderCondition.ClassJobLevelRequired), null/0 = unbekannt.
+    int? GetContentFinderConditionRequiredLevel(uint contentFinderConditionId);
+
+    // Name eines Event-NPCs (ENpcResident).
+    string? GetENpcName(uint eNpcResidentId, DisplayLanguage language);
 }
 
 // Anzeigetexte für Spells/Monster/Orte in der gewählten Sprache. Fallback-Kette:
@@ -34,10 +40,21 @@ public sealed class GameTextService
         SpellDescription,
         MonsterName,
         ZoneName,
+        NpcName,
+        DutyName,
     }
+
+    // ENpcResident von Wayward Gaheel Ja (Totem-Tausch in Ul'dah). Per Lumina ermittelt
+    // (tools/data-enrich-Spieldaten, Stand 2026.09.15): drei ENpcResident-Zeilen heißen auf Englisch
+    // "Wayward Gaheel Ja" - 1026925 und 1026957 sind in allen vier Sprachen identisch, 1026933 ist eine
+    // andere Variante (FR "Mamool Ja hagard", JA "気の抜けたマムージャ族"). Genommen: die niedrigere.
+    public const uint WaywardGaheelJaENpcResidentId = 1026925;
+
+    private const string WaywardGaheelJaEnglishName = "Wayward Gaheel Ja";
 
     private readonly IGameTextSource source;
     private readonly ConcurrentDictionary<(TextKind Kind, uint Id, DisplayLanguage Language), string?> cache = new();
+    private readonly ConcurrentDictionary<uint, int?> requiredLevelCache = new();
 
     public GameTextService(IGameTextSource source)
     {
@@ -95,6 +112,23 @@ public sealed class GameTextService
                 ?? (location.TerritoryTypeId is { } territoryTypeId ? this.source.GetTerritoryPlaceNameId(territoryTypeId) : null);
             return placeNameId is { } id ? this.source.GetPlaceName(id, language) : null;
         }, location.GetZoneName(language), location.ZoneNameEn)!;
+
+    // Fallback: englischer Name (es gibt keinen JSON-Text für NPCs).
+    public string GetWaywardGaheelJaName(DisplayLanguage language) =>
+        this.Resolve(TextKind.NpcName, WaywardGaheelJaENpcResidentId, language,
+            () => this.source.GetENpcName(WaywardGaheelJaENpcResidentId, language), null, WaywardGaheelJaEnglishName)!;
+
+    // Nur für Duties (ContentFinderConditionId(s) gesetzt), sonst null. Bei mehreren Varianten die
+    // niedrigste bekannte Stufe (ab da ist der Ort lernbar). Sprachunabhängig, einmal pro Duty gecacht.
+    public int? GetRequiredLevel(Location location) =>
+        location.GetContentFinderConditionIds()
+            .Select(cfcId => this.requiredLevelCache.GetOrAdd(cfcId, id => this.source.GetContentFinderConditionRequiredLevel(id) is > 0 and var level ? level : null))
+            .Min();
+
+    // Name einer einzelnen Duty (z.B. einer Variante für den Duty-Finder-Button), null ohne Spieltext.
+    public string? GetDutyName(uint contentFinderConditionId, DisplayLanguage language) =>
+        this.Resolve(TextKind.DutyName, contentFinderConditionId, language,
+            () => this.source.GetContentFinderConditionName(contentFinderConditionId, language), null, null);
 
     private string? Resolve(
         TextKind kind, uint id, DisplayLanguage language, Func<string?> fromGame, string? jsonText, string? englishJsonText,

@@ -3,7 +3,8 @@
 // Liest die Spieldateien per Lumina direkt aus einem sqpack-Ordner und ergänzt Game-IDs:
 //   spells.json    -> ActionId, AozActionId
 //   monsters.json  -> BNpcNameId
-//   locations.json -> TerritoryTypeId, MapId, PlaceNameId, ContentFinderConditionId
+//   locations.json -> TerritoryTypeId, MapId, PlaceNameId, ContentFinderConditionId bzw. bei
+//                     Sammeleinträgen mit mehreren Duty-Varianten ContentFinderConditionIds
 // Bestehende Felder bleiben erhalten, neue Felder werden am Ende des jeweiligen Objekts angehängt.
 // Nichts wird geraten: ohne eindeutigen Treffer bleibt das Feld leer und der Eintrag landet in
 // report.md. Idempotent: Ergebnis hängt nur von Spieldaten + JSON-Inhalt ab (keine Zeitstempel).
@@ -301,11 +302,37 @@ internal static class Program
                     continue;
                 }
 
+                string? variantReason = null;
                 if (!cfcByName.TryGetValue(Normalize(dutyName), out var cfcIds))
+                {
+                    // Sammeleinträge ("Thornmarch (Hard oder Extreme)", "... (Turn 1-2)"): je Variante
+                    // exakt abgleichen - nur wenn JEDE Variante genau einen Treffer hat.
+                    if (TryMatchDutyVariants(dutyName, cfcByName, out var variantIds, out variantReason))
+                    {
+                        var variantText = string.Join(", ", variantIds.Select(cfcId => $"CFC {cfcId} \"{Text(cfcs.GetRow(cfcId).Name)}\""));
+                        if (variantIds.Count > 1)
+                        {
+                            // Bleibt EIN Eintrag mit dem Sammelnamen, nur die Varianten-IDs kommen dazu - keine
+                            // TerritoryType-/Map-/PlaceName-ID, die unterscheiden sich je Variante.
+                            location["ContentFinderConditionIds"] = new JsonArray(variantIds.Select(cfcId => (JsonNode)JsonValue.Create(cfcId)).ToArray());
+                            section.Matched++;
+                            section.Notes.Add($"{label}: Varianten zugeordnet: {variantText}");
+                            continue;
+                        }
+
+                        // Nur eine Variante (z.B. "Akh Afah Amphitheatre (Extreme)") -> wie eine Einzel-Duty.
+                        cfcIds = variantIds;
+                        section.Notes.Add($"{label}: über die Variante zugeordnet: {variantText}");
+                    }
+                }
+
+                if (cfcIds is null)
                 {
                     var similar = string.Join(", ", SimilarNames(cfcByName, dutyName)
                         .SelectMany(pair => pair.Value.Select(cfcId => $"CFC {cfcId} \"{Text(cfcs.GetRow(cfcId).Name)}\"")));
-                    KeepOrClear(location, section, label, "keine ContentFinderCondition mit diesem Namen", similar, allFields);
+                    KeepOrClear(location, section, label,
+                        "keine ContentFinderCondition mit diesem Namen" + (variantReason is null ? "" : $" ({variantReason})"), similar,
+                        [.. allFields, "ContentFinderConditionIds"]);
                     continue;
                 }
 
@@ -367,6 +394,78 @@ internal static class Program
 
             KeepOrClear(location, section, label, "Zone mehrdeutig", candidateText, allFields);
         }
+    }
+
+    // Sammelname = "<Basis> (<Varianten>)", Varianten durch ", " / " oder " / " or " getrennt, z.B.
+    // "Thornmarch (Hard oder Extreme)", "The Bowl of Embers (Normal, Hard oder Extreme)" oder mit
+    // Bereich "The Binding Coil of Bahamut (Turn 1-2)" -> Turn 1, Turn 2. Je Variante werden nur die
+    // Spielschreibweisen "<Basis> (<Variante>)" und "<Basis> - <Variante>" ("Normal" = nur die Basis)
+    // exakt verglichen, jeweils mit/ohne führendes "The". Jede Variante braucht genau einen Treffer,
+    // sonst false (reason = Grund für den Report, null = gar kein Sammelname).
+    private static readonly Regex VariantName = new(@"^(?<base>.+?)\s*\((?<variants>[^()]+)\)\s*$", RegexOptions.Compiled);
+
+    private static readonly Regex VariantRange = new(@"^(?<word>.*?)\s*(?<from>\d+)\s*-\s*(?<to>\d+)$", RegexOptions.Compiled);
+
+    private static bool TryMatchDutyVariants(
+        string dutyName, Dictionary<string, List<uint>> cfcByName, out List<uint> ids, out string? reason)
+    {
+        ids = [];
+        reason = null;
+
+        var match = VariantName.Match(dutyName.Trim());
+        if (!match.Success)
+            return false;
+
+        var baseName = Normalize(match.Groups["base"].Value);
+        var baseNames = baseName.StartsWith("the ", StringComparison.Ordinal) ? new[] { baseName, baseName[4..] } : [baseName, "the " + baseName];
+
+        var variants = new List<string>();
+        foreach (var token in match.Groups["variants"].Value.Split([",", " oder ", " or "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var range = VariantRange.Match(token);
+            if (range.Success && int.Parse(range.Groups["from"].Value, CultureInfo.InvariantCulture) is var from
+                && int.Parse(range.Groups["to"].Value, CultureInfo.InvariantCulture) is var to && from < to && to - from < 10)
+            {
+                var word = range.Groups["word"].Value.Trim();
+                variants.AddRange(Enumerable.Range(from, to - from + 1).Select(number => word.Length > 0 ? $"{word} {number}" : $"{number}"));
+            }
+            else
+            {
+                variants.Add(token);
+            }
+        }
+
+        foreach (var variant in variants)
+        {
+            var normalized = Normalize(variant);
+            var candidates = normalized == "normal"
+                ? baseNames
+                : baseNames.SelectMany(name => new[] { $"{name} ({normalized})", $"{name} - {normalized}" });
+
+            var found = candidates
+                .SelectMany(name => cfcByName.TryGetValue(name, out var cfcIds) ? cfcIds : [])
+                .Distinct()
+                .ToList();
+
+            if (found.Count != 1)
+            {
+                reason = found.Count == 0 ? $"Variante \"{variant}\" ohne Treffer" : $"Variante \"{variant}\" mehrdeutig";
+                ids = [];
+                return false;
+            }
+
+            ids.Add(found[0]);
+        }
+
+        ids = ids.Distinct().ToList();
+        if (ids.Count != variants.Count)
+        {
+            reason = "Varianten ergeben dieselbe Duty";
+            ids = [];
+            return false;
+        }
+
+        return true;
     }
 
     // Nur für die Kandidatenliste im Report (nie für die Zuordnung): die Namen mit den meisten

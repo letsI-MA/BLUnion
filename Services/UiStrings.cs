@@ -49,9 +49,6 @@ public static class UiStrings
         TooltipSourceLine,
         UnknownLocation,
         SourceCountSummary,
-        LearnableAtMonstersHeader,
-        NoMonsterCoversTwoMissing,
-        LearnableAtMonsterCount,
         SpellFallback,
         MonsterFallback,
         SyncIntro,
@@ -208,6 +205,28 @@ public static class UiStrings
         GroupFinderNamesNotVerifiedHint,
         OpenDiscordServerButton,
         LiveSyncPushNameTaken,
+        LearningPlanSummaryFormat,
+        LearningPlanFilterAll,
+        LearningPlanFilterDuties,
+        LearningPlanFilterOpenWorld,
+        LearningPlanLocationsHeader,
+        LearningPlanLocationEntryFormat,
+        LearningPlanNoLocations,
+        LearningPlanBeneficiariesLabel,
+        LearningPlanRequiredLevelHint,
+        LearningPlanCarnivaleHeader,
+        LearningPlanCarnivaleProgressFormat,
+        LearningPlanTotemsHeader,
+        LearningPlanTotemSpellCountFormat,
+        LearningPlanTotemLevelFormat,
+        LearningPlanTotemReady,
+        DutyFinderOpenButton,
+        DutyFinderOpenVariantTooltip,
+        DutyFinderNotUnlockedTooltip,
+        DutyFinderVariantNormal,
+        DutyFinderVariantFallback,
+        MapMarkTooltip,
+        MapLinkToChatTooltip,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -528,27 +547,6 @@ public static class UiStrings
             [DisplayLanguage.English] = "{0} sources",
             [DisplayLanguage.French] = "{0} sources",
             [DisplayLanguage.Japanese] = "入手先 {0} 件",
-        },
-        [Key.LearnableAtMonstersHeader] = new()
-        {
-            [DisplayLanguage.German] = "Monster, an denen sich mehrere der noch fehlenden Spells gleichzeitig lernen lassen:",
-            [DisplayLanguage.English] = "Monsters where you can learn several of your still-missing spells at once:",
-            [DisplayLanguage.French] = "Monstres permettant d'apprendre plusieurs sorts manquants en même temps :",
-            [DisplayLanguage.Japanese] = "まだ未習得のスペルを同時に複数習得できるモンスター:",
-        },
-        [Key.NoMonsterCoversTwoMissing] = new()
-        {
-            [DisplayLanguage.German] = "Aktuell kein Monster, das mindestens 2 gemeinsam fehlende Spells abdeckt.",
-            [DisplayLanguage.English] = "Currently no monster covers at least 2 commonly missing spells.",
-            [DisplayLanguage.French] = "Aucun monstre ne couvre actuellement au moins 2 sorts manquants en commun.",
-            [DisplayLanguage.Japanese] = "現在、共通して未習得のスペルを2つ以上カバーするモンスターはありません。",
-        },
-        [Key.LearnableAtMonsterCount] = new()
-        {
-            [DisplayLanguage.German] = "Bei diesem Monster lernbar: {0} fehlende Spells",
-            [DisplayLanguage.English] = "Learnable at this monster: {0} missing spells",
-            [DisplayLanguage.French] = "Apprenable sur ce monstre : {0} sorts manquants",
-            [DisplayLanguage.Japanese] = "このモンスターで習得可能: 未習得スペル{0}個",
         },
         [Key.SpellFallback] = new()
         {
@@ -1731,6 +1729,162 @@ public static class UiStrings
                 "Un profil existe déjà pour ce personnage. S'il n'est pas à toi, signale-le sur Discord.",
             [DisplayLanguage.Japanese] =
                 "このキャラクターのプロフィールは既に存在します。あなたのものでない場合は、Discordでお知らせください。",
+        },
+        [Key.LearningPlanSummaryFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0} fehlende Spells - Nutzen gesamt: {1} (Spell x Spieler, die ihn brauchen)",
+            [DisplayLanguage.English] = "{0} missing spells - total benefit: {1} (spell x players who need it)",
+            [DisplayLanguage.French] = "{0} sorts manquants - bénéfice total : {1} (sort x joueurs qui en ont besoin)",
+            [DisplayLanguage.Japanese] = "未習得スペル {0} 個 - 合計メリット: {1}(スペル × 必要なプレイヤー数)",
+        },
+        [Key.LearningPlanFilterAll] = new()
+        {
+            [DisplayLanguage.German] = "Alle",
+            [DisplayLanguage.English] = "All",
+            [DisplayLanguage.French] = "Tous",
+            [DisplayLanguage.Japanese] = "すべて",
+        },
+        [Key.LearningPlanFilterDuties] = new()
+        {
+            [DisplayLanguage.German] = "Nur Duties",
+            [DisplayLanguage.English] = "Duties only",
+            [DisplayLanguage.French] = "Missions uniquement",
+            [DisplayLanguage.Japanese] = "コンテンツのみ",
+        },
+        [Key.LearningPlanFilterOpenWorld] = new()
+        {
+            [DisplayLanguage.German] = "Nur Open World",
+            [DisplayLanguage.English] = "Open world only",
+            [DisplayLanguage.French] = "Monde ouvert uniquement",
+            [DisplayLanguage.Japanese] = "フィールドのみ",
+        },
+        [Key.LearningPlanLocationsHeader] = new()
+        {
+            [DisplayLanguage.German] = "Nach Ort (sortiert nach Nutzen):",
+            [DisplayLanguage.English] = "By location (sorted by benefit):",
+            [DisplayLanguage.French] = "Par lieu (triés par bénéfice) :",
+            [DisplayLanguage.Japanese] = "場所別(メリット順):",
+        },
+        [Key.LearningPlanLocationEntryFormat] = new()
+        {
+            [DisplayLanguage.German] = "{0} ({1}) - Nutzen {2}",
+            [DisplayLanguage.English] = "{0} ({1}) - benefit {2}",
+            [DisplayLanguage.French] = "{0} ({1}) - bénéfice {2}",
+            [DisplayLanguage.Japanese] = "{0}({1})- メリット {2}",
+        },
+        [Key.LearningPlanNoLocations] = new()
+        {
+            [DisplayLanguage.German] = "Keine Orte für diesen Filter.",
+            [DisplayLanguage.English] = "No locations for this filter.",
+            [DisplayLanguage.French] = "Aucun lieu pour ce filtre.",
+            [DisplayLanguage.Japanese] = "このフィルターに該当する場所はありません。",
+        },
+        [Key.LearningPlanBeneficiariesLabel] = new()
+        {
+            [DisplayLanguage.German] = "Profitiert:",
+            [DisplayLanguage.English] = "Benefits:",
+            [DisplayLanguage.French] = "En profitent :",
+            [DisplayLanguage.Japanese] = "恩恵を受けるプレイヤー:",
+        },
+        [Key.LearningPlanRequiredLevelHint] = new()
+        {
+            [DisplayLanguage.German] = "Erfordert Stufe {0} - dein Blaumagier ist Stufe {1}.",
+            [DisplayLanguage.English] = "Requires level {0} - your Blue Mage is level {1}.",
+            [DisplayLanguage.French] = "Niveau {0} requis - ton mage bleu est niveau {1}.",
+            [DisplayLanguage.Japanese] = "必要レベル {0} - あなたの青魔道士はレベル {1} です。",
+        },
+        [Key.LearningPlanCarnivaleHeader] = new()
+        {
+            [DisplayLanguage.German] = "Masked Carnivale:",
+            [DisplayLanguage.English] = "Masked Carnivale:",
+            [DisplayLanguage.French] = "La Grande Mascarade :",
+            [DisplayLanguage.Japanese] = "マスクカーニバル:",
+        },
+        [Key.LearningPlanCarnivaleProgressFormat] = new()
+        {
+            [DisplayLanguage.German] = "Belohnung für {0} abgeschlossene Stages",
+            [DisplayLanguage.English] = "Reward for clearing {0} stages",
+            [DisplayLanguage.French] = "Récompense pour {0} étapes terminées",
+            [DisplayLanguage.Japanese] = "{0}ステージクリアの報酬",
+        },
+        [Key.LearningPlanTotemsHeader] = new()
+        {
+            [DisplayLanguage.German] = "Totems:",
+            [DisplayLanguage.English] = "Totems:",
+            [DisplayLanguage.French] = "Totems :",
+            [DisplayLanguage.Japanese] = "トーテム:",
+        },
+        [Key.LearningPlanTotemSpellCountFormat] = new()
+        {
+            [DisplayLanguage.German] = "Bedingung: {0} gelernte Spells (du: {1})",
+            [DisplayLanguage.English] = "Condition: {0} learned spells (you: {1})",
+            [DisplayLanguage.French] = "Condition : {0} sorts appris (toi : {1})",
+            [DisplayLanguage.Japanese] = "条件: 習得スペル {0} 個(あなた: {1})",
+        },
+        [Key.LearningPlanTotemLevelFormat] = new()
+        {
+            [DisplayLanguage.German] = "Bedingung: Blaumagier-Stufe {0} (du: {1})",
+            [DisplayLanguage.English] = "Condition: Blue Mage level {0} (you: {1})",
+            [DisplayLanguage.French] = "Condition : mage bleu niveau {0} (toi : {1})",
+            [DisplayLanguage.Japanese] = "条件: 青魔道士レベル {0}(あなた: {1})",
+        },
+        [Key.LearningPlanTotemReady] = new()
+        {
+            // {0} = NPC-Name aus den Spieldaten (GameTextService.GetWaywardGaheelJaName)
+            [DisplayLanguage.German] = "Bedingung erfüllt - bei {0} abholen.",
+            [DisplayLanguage.English] = "Condition met - collect it from {0}.",
+            [DisplayLanguage.French] = "Condition remplie - à récupérer auprès de {0}.",
+            [DisplayLanguage.Japanese] = "条件達成 - {0}から受け取れます。",
+        },
+        [Key.DutyFinderOpenButton] = new()
+        {
+            [DisplayLanguage.German] = "Im Duty Finder öffnen",
+            [DisplayLanguage.English] = "Open in Duty Finder",
+            [DisplayLanguage.French] = "Ouvrir dans l'outil de mission",
+            [DisplayLanguage.Japanese] = "コンテンツファインダーで開く",
+        },
+        [Key.DutyFinderOpenVariantTooltip] = new()
+        {
+            // {0} = Duty-Name aus den Spieldaten (GameTextService.GetDutyName)
+            [DisplayLanguage.German] = "Im Duty Finder öffnen: {0} (nur Fenster, keine Anmeldung)",
+            [DisplayLanguage.English] = "Open in Duty Finder: {0} (window only, does not register)",
+            [DisplayLanguage.French] = "Ouvrir dans l'outil de mission : {0} (fenêtre uniquement, sans inscription)",
+            [DisplayLanguage.Japanese] = "コンテンツファインダーで開く: {0}(ウィンドウのみ、申請はしません)",
+        },
+        [Key.DutyFinderNotUnlockedTooltip] = new()
+        {
+            [DisplayLanguage.German] = "Noch nicht freigeschaltet",
+            [DisplayLanguage.English] = "Not unlocked yet",
+            [DisplayLanguage.French] = "Pas encore débloqué",
+            [DisplayLanguage.Japanese] = "未開放",
+        },
+        [Key.DutyFinderVariantNormal] = new()
+        {
+            [DisplayLanguage.German] = "Normal",
+            [DisplayLanguage.English] = "Normal",
+            [DisplayLanguage.French] = "Normal",
+            [DisplayLanguage.Japanese] = "ノーマル",
+        },
+        [Key.DutyFinderVariantFallback] = new()
+        {
+            [DisplayLanguage.German] = "Variante {0}",
+            [DisplayLanguage.English] = "Variant {0}",
+            [DisplayLanguage.French] = "Variante {0}",
+            [DisplayLanguage.Japanese] = "バリエーション {0}",
+        },
+        [Key.MapMarkTooltip] = new()
+        {
+            [DisplayLanguage.German] = "Auf Karte markieren",
+            [DisplayLanguage.English] = "Mark on map",
+            [DisplayLanguage.French] = "Marquer sur la carte",
+            [DisplayLanguage.Japanese] = "マップにフラグを立てる",
+        },
+        [Key.MapLinkToChatTooltip] = new()
+        {
+            [DisplayLanguage.German] = "Link in Chat (nur in deinem Chatfenster, wird nicht gesendet)",
+            [DisplayLanguage.English] = "Link in chat (only in your own chat window, nothing is sent)",
+            [DisplayLanguage.French] = "Lien dans le chat (uniquement dans ta fenêtre de chat, rien n'est envoyé)",
+            [DisplayLanguage.Japanese] = "チャットにリンク(自分のチャット欄のみ、送信はされません)",
         },
     };
 

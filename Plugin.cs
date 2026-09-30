@@ -38,7 +38,9 @@ public sealed class Plugin : IDalamudPlugin
         ITextureProvider textureProvider,
         IClientState clientState,
         IChatGui chatGui,
+        IGameGui gameGui,
         ISeStringEvaluator seStringEvaluator,
+        IPlayerState playerState,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
@@ -46,7 +48,7 @@ public sealed class Plugin : IDalamudPlugin
 
         ECommonsMain.Init(pluginInterface, this);
 
-        this.partyService = new PartyService(partyList, objectTable, dataManager);
+        this.partyService = new PartyService(partyList, objectTable, dataManager, playerState);
         this.spellDataService = new SpellDataService(log);
         this.comparisonService = new ComparisonService();
         this.localSpellUnlockService = new LocalSpellUnlockService(log, dataManager, unlockState, objectTable);
@@ -70,10 +72,14 @@ public sealed class Plugin : IDalamudPlugin
         // Namen/Beschreibungen in der Anzeigesprache aus den Spieldaten (siehe GameTextService).
         var gameTextService = new GameTextService(new LuminaGameTextSource(dataManager, seStringEvaluator, log));
 
+        // Duty Finder / Karte / Map-Link im eigenen Chat - öffnet nur Fenster (siehe GameUiLinkService).
+        var gameUiLinkService = new GameUiLinkService(gameGui, chatGui, dataManager, unlockState, clientState, log);
+
         this.mainWindow = new MainWindow(
             this.partyService,
             this.spellDataService,
             gameTextService,
+            gameUiLinkService,
             this.comparisonService,
             this.localSpellUnlockService,
             this.syncProvider,

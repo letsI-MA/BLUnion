@@ -378,7 +378,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 10 spells"
+    "Notes": "Learn 10 spells",
+    "RequirementValue": 10
   },
   {
     "Id": 44,
@@ -404,7 +405,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 20 Spells"
+    "Notes": "Learn 20 Spells",
+    "RequirementValue": 20
   },
   {
     "Id": 47,
@@ -421,7 +423,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 5 Spells"
+    "Notes": "Learn 5 Spells",
+    "RequirementValue": 5
   },
   {
     "Id": 49,
@@ -465,7 +468,8 @@
     "NameEn": "Masked Carnivale",
     "NameFr": "Carnaval masqué",
     "NameJa": "仮面の謝肉祭",
-    "Notes": "Complete 10 Masked Carnivale stages"
+    "Notes": "Complete 10 Masked Carnivale stages",
+    "RequirementValue": 10
   },
   {
     "Id": 54,
@@ -473,7 +477,8 @@
     "NameEn": "Masked Carnivale",
     "NameFr": "Carnaval masqué",
     "NameJa": "仮面の謝肉祭",
-    "Notes": "Clear 20 Masked Carnivale stages"
+    "Notes": "Clear 20 Masked Carnivale stages",
+    "RequirementValue": 20
   },
   {
     "Id": 55,
@@ -481,7 +486,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 10 Spells"
+    "Notes": "Learn 10 Spells",
+    "RequirementValue": 10
   },
   {
     "Id": 56,
@@ -876,7 +882,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 50 Spells"
+    "Notes": "Learn 50 Spells",
+    "RequirementValue": 50
   },
   {
     "Id": 100,
@@ -884,7 +891,8 @@
     "NameEn": "Masked Carnivale",
     "NameFr": "Carnaval masqué",
     "NameJa": "仮面の謝肉祭",
-    "Notes": "Complete 30 Masked Carnivale stages"
+    "Notes": "Complete 30 Masked Carnivale stages",
+    "RequirementValue": 30
   },
   {
     "Id": 101,
@@ -1045,7 +1053,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Reach level 70"
+    "Notes": "Reach level 70",
+    "RequirementValue": 70
   },
   {
     "Id": 119,
@@ -1106,7 +1115,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 100 spells"
+    "Notes": "Learn 100 spells",
+    "RequirementValue": 100
   },
   {
     "Id": 126,
@@ -1213,7 +1223,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Reach Level 80"
+    "Notes": "Reach Level 80",
+    "RequirementValue": 80
   },
   {
     "Id": 138,
@@ -1284,7 +1295,8 @@
     "NameEn": "Totem",
     "NameFr": "Totem",
     "NameJa": "トーテム",
-    "Notes": "Learn 120 Spells"
+    "Notes": "Learn 120 Spells",
+    "RequirementValue": 120
   },
   {
     "Id": 146,
@@ -1464,5 +1476,32 @@
     "NameJa": "ストローパー",
     "LocationId": 8,
     "BNpcNameId": 238
+  },
+  {
+    "Id": 166,
+    "NameDe": "Faust",
+    "NameEn": "Faust",
+    "NameFr": "Faust",
+    "NameJa": "ファウスト",
+    "LocationId": 112,
+    "BNpcNameId": 3745
+  },
+  {
+    "Id": 167,
+    "NameDe": "Sturmpuppe",
+    "NameEn": "Sturm Doll",
+    "NameFr": "Poupée sturm",
+    "NameJa": "シュツルムドール",
+    "LocationId": 112,
+    "BNpcNameId": 3746
+  },
+  {
+    "Id": 168,
+    "NameDe": "Jagdpuppe",
+    "NameEn": "Jagd Doll",
+    "NameFr": "Poupée jagd",
+    "NameJa": "ヤークトドール",
+    "LocationId": 113,
+    "BNpcNameId": 3759
   }
 ]

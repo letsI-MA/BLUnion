@@ -26,6 +26,17 @@ public sealed class Location
 
     public uint? ContentFinderConditionId { get; init; }
 
+    // Sammeleinträge mit mehreren Duty-Varianten ("Thornmarch (Hard oder Extreme)") - je Variante
+    // eine ID. ContentFinderConditionId bleibt dann leer, damit der Anzeigename der Sammelname bleibt
+    // (siehe GameTextService.GetZoneName).
+    public IReadOnlyList<uint>? ContentFinderConditionIds { get; init; }
+
+    // Alle Duties dieses Orts: die Varianten, sonst die Einzel-Duty, sonst keine.
+    public IReadOnlyList<uint> GetContentFinderConditionIds() =>
+        this.ContentFinderConditionIds is { Count: > 0 } ids ? ids
+        : this.ContentFinderConditionId is { } id ? [id]
+        : [];
+
     public string GetZoneName(DisplayLanguage language) =>
         DisplayLanguageText.Select(language, this.ZoneNameDe, this.ZoneNameEn, this.ZoneNameFr, this.ZoneNameJa);
 }

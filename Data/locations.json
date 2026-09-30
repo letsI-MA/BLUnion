@@ -53,7 +53,11 @@
     "ZoneNameEn": "The Binding Coil of Bahamut (Turn 1-2)",
     "ZoneNameFr": "The Binding Coil of Bahamut (Turn 1-2)",
     "ZoneNameJa": "The Binding Coil of Bahamut (Turn 1-2)",
-    "DutyName": "The Binding Coil of Bahamut (Turn 1-2)"
+    "DutyName": "The Binding Coil of Bahamut (Turn 1-2)",
+    "ContentFinderConditionIds": [
+      93,
+      94
+    ]
   },
   {
     "Id": 7,
@@ -444,7 +448,12 @@
     "ZoneNameEn": "The Bowl of Embers (Normal, Hard oder Extreme)",
     "ZoneNameFr": "Le Cratère des tisons",
     "ZoneNameJa": "The Bowl of Embers (Normal, Hard oder Extreme)",
-    "DutyName": "The Bowl of Embers (Normal, Hard oder Extreme)"
+    "DutyName": "The Bowl of Embers (Normal, Hard oder Extreme)",
+    "ContentFinderConditionIds": [
+      56,
+      59,
+      63
+    ]
   },
   {
     "Id": 43,
@@ -452,7 +461,11 @@
     "ZoneNameEn": "The Navel (Hard oder Extreme)",
     "ZoneNameFr": "Le Nombril (brutal)",
     "ZoneNameJa": "The Navel (Hard oder Extreme)",
-    "DutyName": "The Navel (Hard oder Extreme)"
+    "DutyName": "The Navel (Hard oder Extreme)",
+    "ContentFinderConditionIds": [
+      60,
+      64
+    ]
   },
   {
     "Id": 44,
@@ -460,7 +473,11 @@
     "ZoneNameEn": "The Striking Tree (Hard oder Extreme)",
     "ZoneNameFr": "L'Arbre du jugement (brutal)",
     "ZoneNameJa": "The Striking Tree (Hard oder Extreme)",
-    "DutyName": "The Striking Tree (Hard oder Extreme)"
+    "DutyName": "The Striking Tree (Hard oder Extreme)",
+    "ContentFinderConditionIds": [
+      77,
+      78
+    ]
   },
   {
     "Id": 45,
@@ -468,7 +485,11 @@
     "ZoneNameEn": "Akh Afah Amphitheatre (Extreme)",
     "ZoneNameFr": "L'Amphithéâtre d'Akh Afah (extrême)",
     "ZoneNameJa": "Akh Afah Amphitheatre (Extreme)",
-    "DutyName": "Akh Afah Amphitheatre (Extreme)"
+    "DutyName": "Akh Afah Amphitheatre (Extreme)",
+    "TerritoryTypeId": 378,
+    "MapId": 173,
+    "PlaceNameId": 1399,
+    "ContentFinderConditionId": 80
   },
   {
     "Id": 46,
@@ -476,7 +497,11 @@
     "ZoneNameEn": "The Whorleater (Hard oder Extreme)",
     "ZoneNameFr": "Le Briseur de marées",
     "ZoneNameJa": "The Whorleater (Hard oder Extreme)",
-    "DutyName": "The Whorleater (Hard oder Extreme)"
+    "DutyName": "The Whorleater (Hard oder Extreme)",
+    "ContentFinderConditionIds": [
+      72,
+      73
+    ]
   },
   {
     "Id": 47,
@@ -604,7 +629,11 @@
     "ZoneNameEn": "Thornmarch (Hard oder Extreme)",
     "ZoneNameFr": "Thornmarch (Hard oder Extreme)",
     "ZoneNameJa": "Thornmarch (Hard oder Extreme)",
-    "DutyName": "Thornmarch (Hard oder Extreme)"
+    "DutyName": "Thornmarch (Hard oder Extreme)",
+    "ContentFinderConditionIds": [
+      66,
+      67
+    ]
   },
   {
     "Id": 59,
@@ -761,7 +790,11 @@
     "ZoneNameEn": "Thok ast Thok (Hard oder Extreme)",
     "ZoneNameFr": "Thok Ast Thok",
     "ZoneNameJa": "Thok ast Thok (Hard oder Extreme)",
-    "DutyName": "Thok ast Thok (Hard oder Extreme)"
+    "DutyName": "Thok ast Thok (Hard oder Extreme)",
+    "ContentFinderConditionIds": [
+      86,
+      87
+    ]
   },
   {
     "Id": 73,
@@ -1214,5 +1247,29 @@
     "TerritoryTypeId": 148,
     "MapId": 4,
     "PlaceNameId": 54
+  },
+  {
+    "Id": 112,
+    "ZoneNameDe": "Alexander - Faust des Vaters",
+    "ZoneNameEn": "Alexander - The Fist of the Father",
+    "ZoneNameFr": "Alexander - Le Poing du Père",
+    "ZoneNameJa": "機工城アレキサンダー：起動編1",
+    "DutyName": "Alexander - The Fist of the Father",
+    "TerritoryTypeId": 442,
+    "MapId": 237,
+    "PlaceNameId": 1628,
+    "ContentFinderConditionId": 112
+  },
+  {
+    "Id": 113,
+    "ZoneNameDe": "Alexander - Elle des Vaters",
+    "ZoneNameEn": "Alexander - The Cuff of the Father",
+    "ZoneNameFr": "Alexander - Le Poignet du Père",
+    "ZoneNameJa": "機工城アレキサンダー：起動編2",
+    "DutyName": "Alexander - The Cuff of the Father",
+    "TerritoryTypeId": 443,
+    "MapId": 238,
+    "PlaceNameId": 1633,
+    "ContentFinderConditionId": 113
   }
 ]

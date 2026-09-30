@@ -15,12 +15,32 @@ public sealed class PartyService
     private readonly IPartyList partyList;
     private readonly IObjectTable objectTable;
     private readonly ExcelSheet<World> worldSheet;
+    private readonly IPlayerState playerState;
+    private readonly IDataManager dataManager;
 
-    public PartyService(IPartyList partyList, IObjectTable objectTable, IDataManager dataManager)
+    public PartyService(IPartyList partyList, IObjectTable objectTable, IDataManager dataManager, IPlayerState playerState)
     {
         this.partyList = partyList;
         this.objectTable = objectTable;
+        this.dataManager = dataManager;
+        this.playerState = playerState;
         this.worldSheet = dataManager.GetExcelSheet<World>();
+    }
+
+    // Blaumagier-Level des lokalen Charakters - auch wenn gerade ein anderer Job aktiv ist
+    // (IPlayerState.GetClassJobLevel). null, solange die Spielerdaten nicht geladen sind oder der
+    // Blaumagier noch nicht freigeschaltet ist (Level 0).
+    public int? GetLocalBlueMageLevel()
+    {
+        if (!this.playerState.IsLoaded)
+            return null;
+
+        var blueMage = this.dataManager.GetExcelSheet<ClassJob>().GetRowOrDefault(BlueMageClassJobId);
+        if (blueMage is null)
+            return null;
+
+        var level = this.playerState.GetClassJobLevel(blueMage.Value);
+        return level > 0 ? level : null;
     }
 
     // Einheitliche Mitgliederliste für alle Aufrufer (Chat-Filter, Live-Sync-Party-Polling,

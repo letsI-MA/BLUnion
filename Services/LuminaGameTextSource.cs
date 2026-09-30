@@ -37,6 +37,11 @@ public sealed class LuminaGameTextSource : IGameTextSource
         this.Read(() => this.seStringEvaluator.EvaluateObjStr(ObjectKind.BattleNpc, bnpcNameId, ToClientLanguage(language)),
             $"BNpcName {bnpcNameId}");
 
+    // Wie GetBNpcName über den Evaluator (ObjStr), damit Grammatik-Platzhalter wie im Spiel aufgelöst werden.
+    public string? GetENpcName(uint eNpcResidentId, DisplayLanguage language) =>
+        this.Read(() => this.seStringEvaluator.EvaluateObjStr(ObjectKind.EventNpc, eNpcResidentId, ToClientLanguage(language)),
+            $"ENpcResident {eNpcResidentId}");
+
     public string? GetPlaceName(uint placeNameId, DisplayLanguage language) =>
         this.Read(() => this.dataManager.GetExcelSheet<PlaceName>(ToClientLanguage(language))
             .GetRowOrDefault(placeNameId)?.Name, $"PlaceName {placeNameId}");
@@ -58,6 +63,20 @@ public sealed class LuminaGameTextSource : IGameTextSource
     public string? GetContentFinderConditionName(uint contentFinderConditionId, DisplayLanguage language) =>
         this.Read(() => this.dataManager.GetExcelSheet<ContentFinderCondition>(ToClientLanguage(language))
             .GetRowOrDefault(contentFinderConditionId)?.Name, $"ContentFinderCondition {contentFinderConditionId}");
+
+    public int? GetContentFinderConditionRequiredLevel(uint contentFinderConditionId)
+    {
+        try
+        {
+            return this.dataManager.GetExcelSheet<ContentFinderCondition>()
+                .GetRowOrDefault(contentFinderConditionId)?.ClassJobLevelRequired;
+        }
+        catch (Exception ex)
+        {
+            this.log.Debug(ex, $"LuminaGameTextSource: ContentFinderCondition {contentFinderConditionId} nicht lesbar.");
+            return null;
+        }
+    }
 
     private string? Read(Func<ReadOnlySeString?> read, string what)
     {

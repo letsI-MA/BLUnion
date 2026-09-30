@@ -21,7 +21,7 @@ Optionen: `--data <Ordner>` (Standard: der `Data`-Ordner im Repo, wird von hier 
 |---|---|---|
 | spells.json | `ActionId`, `AozActionId` | `AozAction.Action` = `Id`, geprüft gegen `AozActionTransient.Number` = `SpellbookOrder` |
 | monsters.json | `BNpcNameId` bzw. `BNpcNameIds` | englischer Name = `BNpcName.Singular` (case-insensitiv, bei gleichnamigen die niedrigste ID); Sammelnamen mit ` & ` / ` or ` werden geteilt und je Teil abgeglichen |
-| locations.json | `TerritoryTypeId`, `MapId`, `PlaceNameId`, `ContentFinderConditionId` | Duties: `DutyName` = `ContentFinderCondition.Name`; sonst `ZoneNameEn` = `PlaceName.Name` → `TerritoryType` |
+| locations.json | `TerritoryTypeId`, `MapId`, `PlaceNameId`, `ContentFinderConditionId` bzw. `ContentFinderConditionIds` | Duties: `DutyName` = `ContentFinderCondition.Name`; Sammeleinträge („Thornmarch (Hard oder Extreme)“, „… (Turn 1-2)“) je Variante; sonst `ZoneNameEn` = `PlaceName.Name` → `TerritoryType` |
 
 - **Nichts wird geraten.** Kein oder kein eindeutiger Treffer → Feld bleibt leer, Eintrag steht
   mit Grund und Kandidaten in [`report.md`](report.md). Verglichen wird exakt (nur
@@ -31,6 +31,11 @@ Optionen: `--data <Ordner>` (Standard: der `Data`-Ordner im Repo, wird von hier 
   passt. Teile, die für sich kein vollständiger Monstername sind (z.B. „Gambler"), stehen mit
   Kandidaten im Report und werden von Hand eingetragen - z.B. `"BNpcNameIds": [367, 3099]` (in der
   Reihenfolge des Namens). Von Hand gesetzte Werte bleiben bei weiteren Läufen erhalten.
+- Sammeleinträge mit mehreren Duty-Varianten („<Basis> (Hard oder Extreme)“, „(Normal, Hard oder Extreme)“,
+  „(Turn 1-2)“) bleiben EIN Eintrag mit dem Sammelnamen und bekommen `ContentFinderConditionIds` - nur
+  wenn jede Variante genau einen Treffer hat („<Basis> (<Variante>)“ bzw. „<Basis> - <Variante>“, mit/ohne
+  führendes „The“; „Normal“ = nur die Basis). Keine TerritoryType-/PlaceName-ID, die unterscheiden sich je
+  Variante. Ergibt sich nur eine Variante, wird sie wie eine Einzel-Duty zugeordnet.
 - Masked-Carnivale-Stages sind keine eigenen Spieleinträge und bleiben leer.
 - Ist ein Gebiet mehrdeutig, der Ortsname aber eindeutig, wird nur `PlaceNameId` gesetzt (reicht
   für die Namensauflösung).

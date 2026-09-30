@@ -39,4 +39,58 @@ public class DataConsistencyTests
 
         Assert.True(violations.Count == 0, "Quellen mit Duty-Location:\n" + string.Join("\n", violations));
     }
+
+    [Fact]
+    public void EverySpellExceptTheStartingSpell_HasAtLeastOneSource()
+    {
+        var data = LoadRealData();
+
+        var startingSpellIds = data.Sources
+            .Where(source => source.Method == SourceMethod.StartingSpell)
+            .Select(source => source.SpellId)
+            .ToHashSet();
+
+        var withoutSource = data.Spells.Values
+            .Where(spell => !startingSpellIds.Contains(spell.Id))
+            .Where(spell => !data.Sources.Any(source => source.SpellId == spell.Id))
+            .Select(spell => $"#{spell.SpellbookOrder} {spell.NameEn} ({spell.Id})")
+            .ToList();
+
+        Assert.NotEmpty(data.Spells);
+        Assert.True(withoutSource.Count == 0, "Spells ohne Quelle:\n" + string.Join("\n", withoutSource));
+    }
+
+    [Fact]
+    public void ContentFinderConditionIds_OnlyOnDutyLocations_WithSeveralDistinctVariants()
+    {
+        var data = LoadRealData();
+
+        var multiDuty = data.Locations.Values.Where(location => location.ContentFinderConditionIds is not null).ToList();
+        Assert.NotEmpty(multiDuty);
+
+        var violations = multiDuty
+            .Where(location => location.DutyName is null
+                || location.DutyName.StartsWith("Masked Carnivale", StringComparison.OrdinalIgnoreCase)
+                || location.ContentFinderConditionId is not null
+                || location.ContentFinderConditionIds!.Count < 2
+                || location.ContentFinderConditionIds.Distinct().Count() != location.ContentFinderConditionIds.Count)
+            .Select(location => $"Location {location.Id} \"{location.DutyName ?? location.ZoneNameEn}\"")
+            .ToList();
+
+        Assert.True(violations.Count == 0, "Ungültige ContentFinderConditionIds:\n" + string.Join("\n", violations));
+    }
+
+    [Fact]
+    public void AllCoordinates_AreParsable_AndOpenWorldLocationsWithCoordinatesGetAMapLink()
+    {
+        var data = LoadRealData();
+
+        var violations = data.Locations.Values
+            .Where(location => location.Coordinates is not null)
+            .Where(location => location.DutyName is not null || LocationActions.Get(location).MapLink is null)
+            .Select(location => $"Location {location.Id} \"{location.ZoneNameEn}\" ({location.Coordinates})")
+            .ToList();
+
+        Assert.True(violations.Count == 0, "Koordinaten ohne Karten-Link:\n" + string.Join("\n", violations));
+    }
 }

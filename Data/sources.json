@@ -883,5 +883,20 @@
     "SpellId": 11385,
     "MonsterId": 164,
     "Method": "StartingSpell"
+  },
+  {
+    "SpellId": 18299,
+    "MonsterId": 166,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18299,
+    "MonsterId": 167,
+    "Method": "Duty"
+  },
+  {
+    "SpellId": 18299,
+    "MonsterId": 168,
+    "Method": "Duty"
   }
 ]

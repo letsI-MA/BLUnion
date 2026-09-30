@@ -221,6 +221,7 @@ public sealed partial class MainWindow
         {
             ImGui.TextUnformatted(UiStrings.Format(
                 UiStrings.Key.TooltipSourceLine, this.displayLanguage, this.GetMonsterName(monster), method.GetDisplayName(this.displayLanguage), this.FormatLocation(location)));
+            this.DrawLocationActionButtons(location, this.GetMonsterName(monster), $"Spellbook{spell.Id}_{monster.Id}");
         }
 
         if (!isLearned && partyMissingBySpellId is not null && partyMissingBySpellId.TryGetValue(spell.Id, out var missingEntry))

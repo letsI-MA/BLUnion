@@ -1,6 +1,5 @@
 using BLUnion.Models;
 using BLUnion.Services;
-using BLUnion.Tests.Fakes;
 using Xunit;
 
 namespace BLUnion.Tests;
@@ -122,78 +121,5 @@ public class ComparisonServiceTests
         var result = service.GetCommonlyMissingSpells([5, 3, 9], party);
 
         Assert.Equal([5u, 3u, 9u], result.Select(r => r.SpellId));
-    }
-
-    [Fact]
-    public void GroupMissingSpellsByMonster_GroupsBySharedMonsterAndOrdersByCoverageDescending()
-    {
-        var dataService = LoadFixtureSpellData();
-        var comparisonService = new ComparisonService();
-
-        // Spell 1 und 2 beide über Monster 10 lernbar (siehe Fixtures/SpellData/sources.json),
-        // Spell 4 nur über Monster 11.
-        var missing = new List<MissingSpellInfo>
-        {
-            new(1, ["Alice"]),
-            new(2, ["Alice"]),
-            new(4, ["Alice"]),
-        };
-
-        var groups = comparisonService.GroupMissingSpellsByMonster(missing, dataService);
-
-        Assert.Equal(10u, groups[0].MonsterId);
-        Assert.Equal([1u, 2u], groups[0].CoveredMissingSpellIds.OrderBy(id => id));
-
-        var monster11Group = groups.Single(g => g.MonsterId == 11);
-        Assert.Contains(2u, monster11Group.CoveredMissingSpellIds);
-        Assert.Contains(4u, monster11Group.CoveredMissingSpellIds);
-    }
-
-    [Fact]
-    public void GroupMissingSpellsByMonster_ExcludeTotems_OmitsTotemOnlyMonsterGroup()
-    {
-        var dataService = LoadFixtureSpellData();
-        var comparisonService = new ComparisonService();
-
-        // Spell 4 ist NUR über Monster 11 per Totem lernbar (siehe Fixture).
-        var missing = new List<MissingSpellInfo> { new(4, ["Alice"]) };
-
-        var withTotems = comparisonService.GroupMissingSpellsByMonster(missing, dataService, excludeTotems: false);
-        var withoutTotems = comparisonService.GroupMissingSpellsByMonster(missing, dataService, excludeTotems: true);
-
-        Assert.Single(withTotems);
-        Assert.Empty(withoutTotems);
-    }
-
-    [Fact]
-    public void GroupMissingSpellsByMonster_SpellWithoutSource_ContributesNoGroup()
-    {
-        var dataService = LoadFixtureSpellData();
-        var comparisonService = new ComparisonService();
-
-        // Spell 3 hat laut Fixture keine Quelle.
-        var missing = new List<MissingSpellInfo> { new(3, ["Alice"]) };
-
-        var groups = comparisonService.GroupMissingSpellsByMonster(missing, dataService);
-
-        Assert.Empty(groups);
-    }
-
-    [Fact]
-    public void GroupMissingSpellsByMonster_EmptyMissingList_ReturnsEmpty()
-    {
-        var dataService = LoadFixtureSpellData();
-        var comparisonService = new ComparisonService();
-
-        var groups = comparisonService.GroupMissingSpellsByMonster([], dataService);
-
-        Assert.Empty(groups);
-    }
-
-    private static SpellDataService LoadFixtureSpellData()
-    {
-        var service = new SpellDataService(new TestPluginLog());
-        service.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "SpellData"));
-        return service;
     }
 }

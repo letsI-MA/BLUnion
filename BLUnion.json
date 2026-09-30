@@ -3,7 +3,7 @@
   "Name": "BLUnion",
   "Punchline": "Unite. Learn. Mimic.",
   "InternalName": "BLUnion",
-  "AssemblyVersion": "0.8.0.0",
+  "AssemblyVersion": "0.9.0.0",
   "Description": "Compares learned Blue Mage spells across a party, shows where to find missing ones, and helps plan what to learn next together - multilingual (DE/EN/FR/JA), syncs via export/import codes or opt-in Live-Sync (optionally shares your online status with listed Group Finder entries). Clicking a location opens the Duty Finder (never queues) or teleports you once to the nearest aetheryte (one action per click, can be turned off) - no other gameplay automation.",
   "ApplicableVersion": "any",
   "RepoUrl": "https://github.com/letsI-MA/BLUnion",

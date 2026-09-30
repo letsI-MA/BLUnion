@@ -234,6 +234,22 @@ public static class UiStrings
         TeleportFailedMessage,
         TeleportOnLocationClickToggle,
         TeleportOnLocationClickHint,
+        OnboardingWindowTitle,
+        OnboardingIntro,
+        OnboardingLiveSyncDataText,
+        OnboardingManualText,
+        OnboardingEnableLiveSyncButton,
+        OnboardingManualButton,
+        OnboardingChangeLaterHint,
+        SharePresenceToggle,
+        SharePresenceHint,
+        SharePresenceRequiresLiveSyncHint,
+        PresenceOnline,
+        PresenceLastSeenMinutesFormat,
+        PresenceLastSeenHoursFormat,
+        PresenceLastSeenDaysFormat,
+        CopyTellButton,
+        TellCopiedMessage,
     }
 
     private static readonly Dictionary<Key, Dictionary<DisplayLanguage, string>> Strings = new()
@@ -1954,6 +1970,118 @@ public static class UiStrings
             [DisplayLanguage.Japanese] =
                 "フィールドの地名をクリックすると、対応するエーテライトへ1回テレポし(費用はテレポ画面と同じ)、" +
                 "モンスターの位置にフラグを立てます。オフ: 地名は通常のテキストになります。",
+        },
+        [Key.OnboardingWindowTitle] = new()
+        {
+            [DisplayLanguage.German] = "BLUnion - Einrichtung",
+            [DisplayLanguage.English] = "BLUnion - Setup",
+            [DisplayLanguage.French] = "BLUnion - Configuration",
+            [DisplayLanguage.Japanese] = "BLUnion - 初期設定",
+        },
+        [Key.OnboardingIntro] = new()
+        {
+            [DisplayLanguage.German] = "Wie soll BLUnion deinen Spell-Status mit anderen teilen?",
+            [DisplayLanguage.English] = "How should BLUnion share your spell status with others?",
+            [DisplayLanguage.French] = "Comment BLUnion doit-il partager ton statut de sorts avec les autres ?",
+            [DisplayLanguage.Japanese] = "BLUnionで習得スペルの状況をどのように共有しますか?",
+        },
+        [Key.OnboardingLiveSyncDataText] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync speichert auf dem BLUnion-Server: Charaktername, World und gelernte Spells. Öffentlich sichtbar ist das nur, wenn du deinen Eintrag selbst im Group Finder listest.",
+            [DisplayLanguage.English] = "Live Sync stores on the BLUnion server: character name, world, and learned spells. It is only publicly visible if you list your entry in the Group Finder yourself.",
+            [DisplayLanguage.French] = "Live-Sync enregistre sur le serveur BLUnion : nom du personnage, monde et sorts appris. Ce n'est visible publiquement que si tu inscris toi-même ton entrée dans le Group Finder.",
+            [DisplayLanguage.Japanese] = "ライブ同期ではBLUnionサーバーにキャラクター名、ワールド、習得済みスペルを保存します。グループファインダーに自分で掲載した場合のみ公開されます。",
+        },
+        [Key.OnboardingManualText] = new()
+        {
+            [DisplayLanguage.German] = "Nur manuell: Nichts verlässt deinen PC, du tauschst Codes selbst aus (Chat, Discord, ...).",
+            [DisplayLanguage.English] = "Manual only: nothing leaves your PC, you exchange codes yourself (chat, Discord, ...).",
+            [DisplayLanguage.French] = "Manuel uniquement : rien ne quitte ton PC, tu échanges les codes toi-même (chat, Discord, ...).",
+            [DisplayLanguage.Japanese] = "手動のみ: データはPCの外に出ません。コードは自分で交換します(チャット、Discordなど)。",
+        },
+        [Key.OnboardingEnableLiveSyncButton] = new()
+        {
+            [DisplayLanguage.German] = "Live-Sync aktivieren (empfohlen)",
+            [DisplayLanguage.English] = "Enable Live Sync (recommended)",
+            [DisplayLanguage.French] = "Activer Live-Sync (recommandé)",
+            [DisplayLanguage.Japanese] = "ライブ同期を有効にする(推奨)",
+        },
+        [Key.OnboardingManualButton] = new()
+        {
+            [DisplayLanguage.German] = "Nur manuell (Codes)",
+            [DisplayLanguage.English] = "Manual only (codes)",
+            [DisplayLanguage.French] = "Manuel uniquement (codes)",
+            [DisplayLanguage.Japanese] = "手動のみ(コード)",
+        },
+        [Key.OnboardingChangeLaterHint] = new()
+        {
+            [DisplayLanguage.German] = "Alles lässt sich jederzeit in den Settings ändern.",
+            [DisplayLanguage.English] = "You can change all of this at any time in the settings.",
+            [DisplayLanguage.French] = "Tout peut être modifié à tout moment dans les paramètres.",
+            [DisplayLanguage.Japanese] = "すべて設定からいつでも変更できます。",
+        },
+        [Key.SharePresenceToggle] = new()
+        {
+            [DisplayLanguage.German] = "Online-Status teilen",
+            [DisplayLanguage.English] = "Share online status",
+            [DisplayLanguage.French] = "Partager le statut en ligne",
+            [DisplayLanguage.Japanese] = "オンライン状況を共有",
+        },
+        [Key.SharePresenceHint] = new()
+        {
+            [DisplayLanguage.German] = "Andere sehen im Group Finder, ob du gerade online bist bzw. grob wann zuletzt - nur solange dein Eintrag gelistet ist.",
+            [DisplayLanguage.English] = "Others see in the Group Finder whether you are online right now or roughly when you last were - only while your entry is listed.",
+            [DisplayLanguage.French] = "Les autres voient dans le Group Finder si tu es en ligne ou, approximativement, quand tu l'étais pour la dernière fois - uniquement tant que ton entrée est inscrite.",
+            [DisplayLanguage.Japanese] = "グループファインダーで、あなたが現在オンラインか、または最後にオンラインだったおおよその時間が表示されます(掲載中のみ)。",
+        },
+        [Key.SharePresenceRequiresLiveSyncHint] = new()
+        {
+            [DisplayLanguage.German] = "Nur mit Live-Sync verfügbar.",
+            [DisplayLanguage.English] = "Only available with Live Sync.",
+            [DisplayLanguage.French] = "Disponible uniquement avec Live-Sync.",
+            [DisplayLanguage.Japanese] = "ライブ同期が有効な場合のみ利用できます。",
+        },
+        [Key.PresenceOnline] = new()
+        {
+            [DisplayLanguage.German] = "● online",
+            [DisplayLanguage.English] = "● online",
+            [DisplayLanguage.French] = "● en ligne",
+            [DisplayLanguage.Japanese] = "● オンライン",
+        },
+        [Key.PresenceLastSeenMinutesFormat] = new()
+        {
+            [DisplayLanguage.German] = "zuletzt online vor {0} Min.",
+            [DisplayLanguage.English] = "last online {0} min ago",
+            [DisplayLanguage.French] = "en ligne il y a {0} min",
+            [DisplayLanguage.Japanese] = "最終オンライン: {0}分前",
+        },
+        [Key.PresenceLastSeenHoursFormat] = new()
+        {
+            [DisplayLanguage.German] = "zuletzt online vor {0} Std.",
+            [DisplayLanguage.English] = "last online {0} h ago",
+            [DisplayLanguage.French] = "en ligne il y a {0} h",
+            [DisplayLanguage.Japanese] = "最終オンライン: {0}時間前",
+        },
+        [Key.PresenceLastSeenDaysFormat] = new()
+        {
+            [DisplayLanguage.German] = "zuletzt online vor {0} Tag(en)",
+            [DisplayLanguage.English] = "last online {0} day(s) ago",
+            [DisplayLanguage.French] = "en ligne il y a {0} jour(s)",
+            [DisplayLanguage.Japanese] = "最終オンライン: {0}日前",
+        },
+        [Key.CopyTellButton] = new()
+        {
+            [DisplayLanguage.German] = "/tell kopieren",
+            [DisplayLanguage.English] = "Copy /tell",
+            [DisplayLanguage.French] = "Copier /tell",
+            [DisplayLanguage.Japanese] = "/tellをコピー",
+        },
+        [Key.TellCopiedMessage] = new()
+        {
+            [DisplayLanguage.German] = "\"{0}\" in die Zwischenablage kopiert - im Chat einfügen.",
+            [DisplayLanguage.English] = "Copied \"{0}\" to the clipboard - paste it into the chat.",
+            [DisplayLanguage.French] = "\"{0}\" copié dans le presse-papiers - colle-le dans le chat.",
+            [DisplayLanguage.Japanese] = "「{0}」をクリップボードにコピーしました。チャットに貼り付けてください。",
         },
     };
 

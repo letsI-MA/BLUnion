@@ -27,6 +27,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly LiveSyncService liveSyncService;
 
     private readonly MainWindow mainWindow;
+    private readonly OnboardingWindow onboardingWindow;
+    private readonly PresenceService presenceService;
 
     public Plugin(
         IDalamudPluginInterface pluginInterface,
@@ -41,6 +43,7 @@ public sealed class Plugin : IDalamudPlugin
         IGameGui gameGui,
         ISeStringEvaluator seStringEvaluator,
         IPlayerState playerState,
+        IFramework framework,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
@@ -56,6 +59,10 @@ public sealed class Plugin : IDalamudPlugin
 
         this.configuration = this.pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         this.configuration.Initialize(this.pluginInterface);
+
+        // Bestandsnutzer mit Live-Sync gelten als entschieden - sie sehen die Abfrage beim ersten Start nie.
+        if (Onboarding.MarkExistingUserAsDecided(this.configuration))
+            this.configuration.Save();
 
         this.liveSyncService = new LiveSyncService(
             this.partyService,
@@ -92,6 +99,12 @@ public sealed class Plugin : IDalamudPlugin
 
         this.windowSystem.AddWindow(this.mainWindow);
 
+        this.onboardingWindow = new OnboardingWindow(this.configuration, () => this.mainWindow.CurrentDisplayLanguage);
+        this.windowSystem.AddWindow(this.onboardingWindow);
+
+        // Online-Status-Signale des eigenen Charakters (nur mit Zustimmung, siehe PresenceService).
+        this.presenceService = new PresenceService(framework, this.partyService, this.liveSyncService, this.configuration);
+
         this.commandManager.AddHandler(CommandName, new CommandInfo(this.OnCommand)
         {
             HelpMessage = "Opens BLUnion.",
@@ -99,19 +112,31 @@ public sealed class Plugin : IDalamudPlugin
 
         this.pluginInterface.UiBuilder.Draw += this.windowSystem.Draw;
         this.pluginInterface.UiBuilder.Draw += this.mainWindow.TryAutoPublishOwnStatus;
-        this.pluginInterface.UiBuilder.OpenMainUi += () => this.mainWindow.IsOpen = true;
+        this.pluginInterface.UiBuilder.OpenMainUi += this.OpenMainWindow;
     }
 
-    private void OnCommand(string command, string args) => this.mainWindow.IsOpen = true;
+    private void OnCommand(string command, string args) => this.OpenMainWindow();
+
+    // Beim Öffnen die Abfrage beim ersten Start zeigen, solange noch keine Entscheidung getroffen wurde.
+    private void OpenMainWindow()
+    {
+        this.mainWindow.IsOpen = true;
+
+        if (Onboarding.ShouldAsk(this.configuration))
+            this.onboardingWindow.IsOpen = true;
+    }
 
     public void Dispose()
     {
         this.pluginInterface.UiBuilder.Draw -= this.windowSystem.Draw;
         this.pluginInterface.UiBuilder.Draw -= this.mainWindow.TryAutoPublishOwnStatus;
+        this.pluginInterface.UiBuilder.OpenMainUi -= this.OpenMainWindow;
         this.mainWindow.Dispose();
         this.windowSystem.RemoveAllWindows();
         this.commandManager.RemoveHandler(CommandName);
 
+        // Vor LiveSyncService: schickt beim Entladen noch ein letztes offline (kurzer Timeout).
+        this.presenceService.Dispose();
         this.liveSyncService.Dispose();
 
         ECommonsMain.Dispose();

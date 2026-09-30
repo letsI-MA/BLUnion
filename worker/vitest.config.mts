@@ -1,4 +1,5 @@
-import { cloudflareTest } from "@cloudflare/vitest-plugin";
+import path from "node:path";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
 /**
@@ -13,13 +14,20 @@ import { defineConfig } from "vitest/config";
  * wrangler.configPath zeigt bewusst auf die ECHTE wrangler.toml (keine separate Test-Config) -
  * dieselben Bindings, kein zweiter, potenziell abweichender Konfigurationsstand.
  */
-export default defineConfig({
-  plugins: [
-    cloudflareTest({
-      wrangler: { configPath: "./wrangler.toml" },
-      // Gruppen-Feature ist in wrangler.toml ausgeschaltet - die bestehenden Gruppen-Tests laufen mit
-      // "true"; groupsDisabled.test.ts schaltet für die Aus-Fälle gezielt per env-Mutation um.
-      miniflare: { bindings: { GROUPS_ENABLED: "true" } },
-    }),
-  ],
+export default defineConfig(async () => {
+  // D1-Migrationen (migrations/) werden vor jedem Testlauf auf die lokale PRESENCE-Datenbank
+  // angewendet, siehe test/applyMigrations.ts.
+  const migrations = await readD1Migrations(path.join(import.meta.dirname, "migrations"));
+
+  return {
+    plugins: [
+      cloudflareTest({
+        wrangler: { configPath: "./wrangler.toml" },
+        // Gruppen-Feature ist in wrangler.toml ausgeschaltet - die bestehenden Gruppen-Tests laufen mit
+        // "true"; groupsDisabled.test.ts schaltet für die Aus-Fälle gezielt per env-Mutation um.
+        miniflare: { bindings: { GROUPS_ENABLED: "true", TEST_MIGRATIONS: migrations } },
+      }),
+    ],
+    test: { setupFiles: ["./test/applyMigrations.ts"] },
+  };
 });

@@ -126,6 +126,9 @@ public sealed partial class MainWindow : Window, IDisposable
     // clientDisplayLanguage. Siehe ApplyDisplayLanguageSetting.
     private DisplayLanguage displayLanguage;
 
+    // Für andere Fenster (OnboardingWindow), die dieselbe Anzeigesprache nutzen.
+    public DisplayLanguage CurrentDisplayLanguage => this.displayLanguage;
+
     private readonly DisplayLanguage clientDisplayLanguage;
 
     private bool groupFinderTabWasActive;
@@ -452,7 +455,8 @@ public sealed partial class MainWindow : Window, IDisposable
                 {
                     this.liveSyncService.TriggerBrowse();
 
-                    this.liveSyncService.TriggerGroupBrowse();
+                    if (FeatureFlags.GroupsEnabled)
+                        this.liveSyncService.TriggerGroupBrowse();
                     this.lastGroupFinderAutoRefreshAt = now;
                 }
 

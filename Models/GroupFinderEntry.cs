@@ -19,4 +19,10 @@ public sealed record GroupFinderEntry
     // GroupFinderGroupEntry.TargetSpellIds, hier vom einzelnen Spieler selbst ausgewählt statt vom
     // Gruppen-Ersteller.
     public required IReadOnlyList<uint> TargetSpellIds { get; init; }
+
+    // Online-Status - nur gesetzt, wenn der Spieler ihn teilt (sonst beide null). LastSeen ist vom
+    // Worker auf 15 Minuten gerundet.
+    public bool? Online { get; init; }
+
+    public DateTimeOffset? LastSeen { get; init; }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -88,6 +89,10 @@ public sealed class LiveSyncService : IDisposable
 
     private volatile bool browseInFlight;
 
+    // Einstellung "Online-Status teilen" geändert - beim nächsten Tick einmal das Profil pushen (setzt
+    // sharePresence), sobald kein anderer Push läuft.
+    private volatile bool sharePresencePushPending;
+
     private volatile bool groupBrowseInFlight;
 
 #if DEBUG
@@ -147,7 +152,18 @@ public sealed class LiveSyncService : IDisposable
 
         this.TickPushDiff();
         this.TickPartyPoll();
+
+        if (this.sharePresencePushPending && !this.pushInFlight)
+        {
+            this.sharePresencePushPending = false;
+            if (this.HasEditTokenForLocalCharacter())
+                this.PushOwnProfile(markListed: false);
+        }
     }
+
+    // Nach Änderung der Einstellung "Online-Status teilen" (Settings) - ohne Profil passiert nichts,
+    // der nächste reguläre Push nimmt den Wert dann ohnehin mit.
+    public void RequestSharePresenceUpdate() => this.sharePresencePushPending = true;
 
     private void TickPushDiff()
     {
@@ -289,7 +305,8 @@ public sealed class LiveSyncService : IDisposable
             this.pendingAvailabilityTags,
             this.pendingNote,
             this.pendingWantedPlayerCount,
-            this.pendingTargetSpellIds);
+            this.pendingTargetSpellIds,
+            this.configuration.SharePresence);
 
     public void TriggerFetch() => this.TriggerFetch(this.GetOtherBlueMagePartyMembers());
 
@@ -429,6 +446,8 @@ public sealed class LiveSyncService : IDisposable
                             Note = entry.Note ?? string.Empty,
                             WantedPlayerCount = entry.WantedPlayerCount ?? 0,
                             TargetSpellIds = entry.TargetSpellIds ?? new List<uint>(),
+                            Online = entry.Online,
+                            LastSeen = ParseLastSeen(entry.LastSeen),
                         });
                     }
                     catch (Exception exEntry)
@@ -608,7 +627,8 @@ public sealed class LiveSyncService : IDisposable
                         spec.AvailabilityTags,
                         spec.Note,
                         spec.WantedPlayerCount,
-                        spec.TargetSpellIds.ToList());
+                        spec.TargetSpellIds.ToList(),
+                        false);
 
                     using var putResponse = await this.httpClient.PutAsJsonAsync(url, requestBody, JsonOptions).ConfigureAwait(false);
 
@@ -642,6 +662,36 @@ public sealed class LiveSyncService : IDisposable
         }
     }
 #endif
+
+    public bool HasEditToken(string characterName, string world) =>
+        this.configuration.LiveSyncEditTokens.ContainsKey(BuildTokenKey(characterName, world));
+
+    // POST /presence für den eigenen Charakter (siehe PresenceService) - nur mit gespeichertem Token.
+    // Wirft nie und setzt kein PendingResult: ein fehlgeschlagenes Signal wird nicht gemeldet und nicht
+    // wiederholt (das nächste Lebenszeichen korrigiert den Stand).
+    public async Task SendPresenceAsync(PresenceSignal signal, CancellationToken cancellationToken)
+    {
+        var (characterName, world) = (signal.Character.CharacterName, signal.Character.World);
+        if (!this.configuration.LiveSyncEditTokens.TryGetValue(BuildTokenKey(characterName, world), out var token))
+            return;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, BuildPresenceUrl(world, characterName))
+            {
+                Content = JsonContent.Create(new PresenceRequestBody(signal.State == PresenceState.Online ? "online" : "offline"), options: JsonOptions),
+            };
+            request.Headers.Add("X-Edit-Token", token);
+
+            using var response = await this.httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                this.log.Debug($"LiveSyncService: Online-Status ({signal.State}) nicht gesetzt ({DescribeHttpFailure(response.StatusCode, response.ReasonPhrase)}).");
+        }
+        catch (Exception ex)
+        {
+            this.log.Debug(ex, $"LiveSyncService: Online-Status ({signal.State}) nicht gesendet.");
+        }
+    }
 
     public bool HasEditTokenForLocalCharacter()
     {
@@ -1064,6 +1114,12 @@ public sealed class LiveSyncService : IDisposable
 
     private static string BuildGroupUrl(string groupId) => $"{WorkerBaseUrl}/group/{Uri.EscapeDataString(groupId)}";
 
+    private static string BuildPresenceUrl(string world, string characterName) =>
+        $"{WorkerBaseUrl}/presence/{Uri.EscapeDataString(world)}/{Uri.EscapeDataString(characterName)}";
+
+    private static DateTimeOffset? ParseLastSeen(string? value) =>
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed) ? parsed : null;
+
     // Aus PublishGroupAsync herausgelöst (siehe BuildPushRequestBody-Doc für denselben Grund) -
     // bewusst static, da außer editToken (Config-Lookup, braucht PartyService für den tokenKey)
     // alle Werte bereits als Parameter von PublishGroup/PublishGroupAsync durchgereicht werden.
@@ -1097,7 +1153,10 @@ public sealed class LiveSyncService : IDisposable
         List<string>? AvailabilityTags,
         string? Note,
         int? WantedPlayerCount,
-        List<uint>? TargetSpellIds);
+        List<uint>? TargetSpellIds,
+        bool SharePresence);
+
+    private sealed record PresenceRequestBody(string State);
 
     private sealed record PushResponseBody(
         string? EditToken,
@@ -1144,7 +1203,9 @@ public sealed class LiveSyncService : IDisposable
         string? Note,
         int? WantedPlayerCount,
         List<uint>? TargetSpellIds,
-        string? UpdatedAt);
+        string? UpdatedAt,
+        bool? Online,
+        string? LastSeen);
 
     private sealed record GroupBrowseResponseMember(string? World, string? CharacterName, string? SpellBitmaskBase64);
 

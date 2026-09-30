@@ -123,6 +123,8 @@
   .gf-entry-name { font-weight: 600; }
   .gf-entry-meta { color: var(--text-dim); font-size: 0.8rem; margin-top: 3px; line-height: 1.4; }
   .gf-entry .row { margin-top: 8px; }
+  .gf-entry-presence { color: var(--text-dim); font-size: 0.8rem; margin-top: 3px; }
+  .gf-entry-presence.online { color: var(--ok); }
   .group-member {
     display: inline-flex;
     align-items: center;
@@ -602,6 +604,13 @@ const I18N = {
     gfErrBrowseFailed: (m) => `Abrufen fehlgeschlagen: ${m}`,
     gfWantedLabel: (n) => `Gesucht: ${n}`,
     btnGfAddToComparison: 'In Vergleich aufnehmen',
+    gfPresenceOnline: '● online',
+    gfLastSeenMinutes: (n) => `zuletzt online vor ${n} Min.`,
+    gfLastSeenHours: (n) => `zuletzt online vor ${n} Std.`,
+    gfLastSeenDays: (n) => `zuletzt online vor ${n} Tag(en)`,
+    btnCopyTell: '/tell kopieren',
+    tellCopied: (cmd) => `"${cmd}" in die Zwischenablage kopiert - im Chat einfügen.`,
+    tellCopyFailed: (cmd) => `Kopieren nicht möglich - bitte selbst kopieren: ${cmd}`,
     groupsHeader: 'Gruppen',
     groupsIntro: 'Veröffentlicht eine mehrköpfige Gruppen-Listung auf demselben Server wie das Dalamud-Plugin - andere können die ganze Gruppe dann im Gruppenfinder finden. Mitglieder werden über ihre BLU:-Codes hinzugefügt, genau wie beim Gruppenvergleich oben.',
     btnGroupsViewPublish: 'Veröffentlichen',
@@ -707,6 +716,13 @@ const I18N = {
     gfErrBrowseFailed: (m) => `Fetching failed: ${m}`,
     gfWantedLabel: (n) => `Looking for: ${n}`,
     btnGfAddToComparison: 'Add to comparison',
+    gfPresenceOnline: '● online',
+    gfLastSeenMinutes: (n) => `last online ${n} min ago`,
+    gfLastSeenHours: (n) => `last online ${n} h ago`,
+    gfLastSeenDays: (n) => `last online ${n} day(s) ago`,
+    btnCopyTell: 'Copy /tell',
+    tellCopied: (cmd) => `Copied "${cmd}" to the clipboard - paste it into the chat.`,
+    tellCopyFailed: (cmd) => `Could not copy - please copy it yourself: ${cmd}`,
     groupsHeader: 'Groups',
     groupsIntro: 'Publishes a multi-member group listing to the same server as the Dalamud plugin - others can then find the whole group in the group finder. Members are added via their BLU: codes, just like the group comparison above.',
     btnGroupsViewPublish: 'Publish',
@@ -812,6 +828,13 @@ const I18N = {
     gfErrBrowseFailed: (m) => `Échec de la récupération : ${m}`,
     gfWantedLabel: (n) => `Recherché : ${n}`,
     btnGfAddToComparison: 'Ajouter à la comparaison',
+    gfPresenceOnline: '● en ligne',
+    gfLastSeenMinutes: (n) => `en ligne il y a ${n} min`,
+    gfLastSeenHours: (n) => `en ligne il y a ${n} h`,
+    gfLastSeenDays: (n) => `en ligne il y a ${n} jour(s)`,
+    btnCopyTell: 'Copier /tell',
+    tellCopied: (cmd) => `"${cmd}" copié dans le presse-papiers - colle-le dans le chat.`,
+    tellCopyFailed: (cmd) => `Copie impossible - copie-le toi-même : ${cmd}`,
     groupsHeader: 'Groupes',
     groupsIntro: 'Publie une liste de groupe à plusieurs membres sur le même serveur que le plugin Dalamud - les autres peuvent alors trouver tout le groupe dans la recherche de groupe. Les membres sont ajoutés via leurs codes BLU:, comme pour la comparaison de groupe ci-dessus.',
     btnGroupsViewPublish: 'Publier',
@@ -917,6 +940,13 @@ const I18N = {
     gfErrBrowseFailed: (m) => `取得に失敗しました：${m}`,
     gfWantedLabel: (n) => `募集: ${n}`,
     btnGfAddToComparison: '比較に追加',
+    gfPresenceOnline: '● オンライン',
+    gfLastSeenMinutes: (n) => `最終オンライン: ${n}分前`,
+    gfLastSeenHours: (n) => `最終オンライン: ${n}時間前`,
+    gfLastSeenDays: (n) => `最終オンライン: ${n}日前`,
+    btnCopyTell: '/tellをコピー',
+    tellCopied: (cmd) => `「${cmd}」をクリップボードにコピーしました。チャットに貼り付けてください。`,
+    tellCopyFailed: (cmd) => `コピーできませんでした。手動でコピーしてください: ${cmd}`,
     groupsHeader: 'グループ',
     groupsIntro: 'Dalamudプラグインと同じサーバーに複数人のグループ登録を公開します - 他のプレイヤーはグループファインダーでグループ全体を見つけられるようになります。メンバーは上のグループ比較と同様、BLU:コードで追加します。',
     btnGroupsViewPublish: '公開',
@@ -1709,6 +1739,35 @@ async function gfBrowse() {
 // Rein clientseitiges Rendern der zuletzt abgerufenen Rohdaten (siehe lastGfBrowseEntries) -
 // separat von gfBrowse(), damit ein Sprachwechsel (übersetzte Tags/Beschriftungen) neu rendern
 // kann, ohne den Worker ein zweites Mal abzufragen (siehe applyGroupFinderTexts).
+// Online-Status eines Browse-Eintrags - nur bei Spielern, die ihn im Plugin teilen (sonst fehlen
+// online/lastSeen im Worker-Ergebnis). Grob: Minuten / Stunden / Tage. Die Website selbst sendet NIE
+// Presence-Signale, sie zeigt nur an.
+function gfFormatPresence(entry, now = Date.now()) {
+  if (entry.online === true) return { online: true, text: t().gfPresenceOnline };
+  if (!entry.lastSeen) return null;
+
+  const lastSeenMs = Date.parse(entry.lastSeen);
+  if (!Number.isFinite(lastSeenMs)) return null;
+
+  const minutes = Math.max(0, (now - lastSeenMs) / 60000);
+  const text = minutes < 60 ? t().gfLastSeenMinutes(Math.max(1, Math.floor(minutes)))
+    : minutes < 1440 ? t().gfLastSeenHours(Math.floor(minutes / 60))
+    : t().gfLastSeenDays(Math.floor(minutes / 1440));
+  return { online: false, text };
+}
+
+function gfPresenceHtml(entry) {
+  const presence = gfFormatPresence(entry);
+  return presence
+    ? `<div class="gf-entry-presence${presence.online ? ' online' : ''}">${escapeHtml(presence.text)}</div>`
+    : '';
+}
+
+// Nur für die Zwischenablage - gesendet wird nichts.
+function gfBuildTellCommand(entry) {
+  return `/tell ${entry.characterName || ''}@${entry.world || ''} `;
+}
+
 function gfRenderBrowseResults(entries) {
   const listEl = document.getElementById('gfBrowseList');
   listEl.innerHTML = '';
@@ -1746,20 +1805,35 @@ function gfRenderBrowseResults(entries) {
         <span class="gf-entry-name">${escapeHtml(entry.characterName || '')} (${escapeHtml(entry.world || '')})</span>
         <span class="count-badge">${t().count(learned.size, SPELLS.length)}</span>
       </div>
+      ${gfPresenceHtml(entry)}
       <div class="gf-entry-meta">
         ${tagLabels ? tagLabels + '<br>' : ''}${note ? `"${escapeHtml(note)}"<br>` : ''}${t().gfWantedLabel(wantedText)}
       </div>
       <div class="row">
-        <button class="secondary">${t().btnGfAddToComparison}</button>
+        <button class="secondary gf-add">${t().btnGfAddToComparison}</button>
+        <button class="secondary gf-tell">${t().btnCopyTell}</button>
       </div>
     `;
     listEl.appendChild(row);
+
+    row.querySelector('.gf-tell').addEventListener('click', async () => {
+      const command = gfBuildTellCommand(entry);
+      const browseStatusEl = document.getElementById('gfBrowseStatus');
+      try {
+        await navigator.clipboard.writeText(command);
+        browseStatusEl.className = 'status-msg ok';
+        browseStatusEl.textContent = t().tellCopied(command.trimEnd());
+      } catch {
+        browseStatusEl.className = 'status-msg error';
+        browseStatusEl.textContent = t().tellCopyFailed(command.trimEnd());
+      }
+    });
 
     // onclick nachträglich per addEventListener statt als Inline-HTML-Attribut gesetzt, weil
     // Charakternamen Apostrophe/Sonderzeichen enthalten können (z.B. "Y'shtola Rhul") - als
     // Inline-onclick-Wert müsste der Name sonst zusätzlich escaped werden; ein Closure ist hier
     // einfacher und robuster.
-    row.querySelector('button').addEventListener('click', () => {
+    row.querySelector('.gf-add').addEventListener('click', () => {
       // Dieselbe Chip-Hinzufügen-/Dedup-Logik wie beim manuellen Code-Import (siehe importCode()
       // oben) - KEIN zweiter Vergleichspfad, siehe Aufgabenstellung.
       const name = entry.characterName || t().unnamed;

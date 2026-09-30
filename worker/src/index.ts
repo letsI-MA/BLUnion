@@ -73,6 +73,35 @@ export interface Env {
    * DELETE /group und die Admin-Endpunkte bleiben erlaubt, der Cron entfernt die Gruppen-Karten in
    * Discord. Jeder andere Wert (oder fehlend) = Gruppen aktiv. */
   GROUPS_ENABLED?: string;
+  /** D1-Datenbank für den Online-Status (siehe migrations/0001_presence.sql) - D1 statt KV wegen
+   * der KV-Schreiblimits (Lebenszeichen pro Spieler und Stunde). */
+  PRESENCE: D1Database;
+  /** Feature-Flag für den Online-Status (siehe presenceEnabled): "false" = POST /presence 403 und
+   * keine Presence-Felder im Browse. Jeder andere Wert (oder fehlend) = aktiv. */
+  PRESENCE_ENABLED?: string;
+}
+
+/** Siehe Env.PRESENCE_ENABLED. */
+export function presenceEnabled(env: Env): boolean {
+  return env.PRESENCE_ENABLED !== "false";
+}
+
+/** "online" gilt nur, solange das letzte Signal jünger ist - das Plugin schickt stündlich ein
+ * Lebenszeichen, 75 Minuten fangen ein verpasstes offline (Absturz, Verbindungsabbruch) ab. */
+export const PRESENCE_ONLINE_WINDOW_MS = 75 * 60 * 1000;
+
+/** lastSeen wird nur auf 15 Minuten genau ausgegeben (abgerundet), nie sekundengenau. */
+export const PRESENCE_LAST_SEEN_ROUNDING_MS = 15 * 60 * 1000;
+
+/** Presence-Zeilen ohne Signal seit 30 Tagen löscht der Cron (siehe cleanupPresence). */
+export const PRESENCE_RETENTION_MS = 30 * 24 * 3600 * 1000;
+
+export function isPresenceOnline(online: number, lastSeenMs: number, nowMs: number): boolean {
+  return online === 1 && nowMs - lastSeenMs < PRESENCE_ONLINE_WINDOW_MS;
+}
+
+export function roundPresenceLastSeen(lastSeenMs: number): string {
+  return new Date(Math.floor(lastSeenMs / PRESENCE_LAST_SEEN_ROUNDING_MS) * PRESENCE_LAST_SEEN_ROUNDING_MS).toISOString();
 }
 
 /** Siehe Env.GROUPS_ENABLED. */
@@ -103,6 +132,7 @@ const PROFILE_PATH = /^\/profile\/([^/]+)\/([^/]+)\/?$/;
 const BROWSE_PATH = /^\/profiles\/browse\/?$/;
 const GROUP_PATH = /^\/group\/([^/]+)\/?$/;
 const GROUPS_BROWSE_PATH = /^\/groups\/browse\/?$/;
+const PRESENCE_PATH = /^\/presence\/([^/]+)\/([^/]+)\/?$/;
 const DISCORD_INTERACTIONS_PATH = /^\/discord\/interactions\/?$/;
 const ADMIN_PATH_PREFIX = "/admin/";
 const ADMIN_PROFILE_PATH = /^\/admin\/profile\/([^/]+)\/([^/]+)\/?$/;
@@ -287,6 +317,9 @@ interface StoredProfile {
   targetSpellIds?: number[];
   /** Persistente Discord-Kanal-Karte dieses Profils (siehe syncPlayerDiscordCard). */
   discordCard?: DiscordCard;
+  /** Zustimmung zum Online-Status (Default false) - nur dann nimmt POST /presence Signale an und
+   * das Browse gibt online/lastSeen aus. false löscht die Presence-Zeile. */
+  sharePresence?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -300,6 +333,7 @@ interface PutRequestBody {
   wantedPlayerCount?: unknown;
   targetSpellIds?: unknown;
   ttlHours?: unknown;
+  sharePresence?: unknown;
 }
 
 /** Mitglied einer Gruppen-Listung - nur world+characterName, keine Kopie der Bitmaske (die wird
@@ -590,11 +624,16 @@ function stripForResponse(env: Env, stored: StoredProfile) {
     note: stored.note ?? "",
     wantedPlayerCount: stored.wantedPlayerCount ?? 0,
     targetSpellIds: stored.targetSpellIds ?? [],
+    sharePresence: stored.sharePresence ?? false,
     updatedAt: stored.updatedAt,
     discordChannelUrl: discordChannelLink?.url ?? null,
     discordChannelName: discordChannelLink?.channelName ?? null,
   };
 }
+
+/** Browse-Eintrag eines Spielers; online/lastSeen NUR bei Profilen mit sharePresence (siehe
+ * computePlayersBrowse) - ohne Zustimmung fehlen die Felder ganz. */
+type BrowsePlayer = ReturnType<typeof stripForBrowseResponse> & { online?: boolean; lastSeen?: string | null };
 
 /** Wie stripForResponse, aber ohne dataCenter/visibility (redundant für den Browse-Aufrufer). */
 function stripForBrowseResponse(stored: StoredProfile) {
@@ -811,6 +850,14 @@ async function handlePut(
 
   const { visibility, availabilityTags, note, wantedPlayerCount, targetSpellIds } = phase2Fields;
 
+  let sharePresence: boolean;
+  if (body.sharePresence === undefined)
+    sharePresence = existing?.sharePresence ?? false;
+  else if (typeof body.sharePresence === "boolean")
+    sharePresence = body.sharePresence;
+  else
+    return errorResponse(400, "sharePresence muss true oder false sein.");
+
   let editTokenHash: string;
   let createdAt: string;
   let plaintextEditTokenForResponse: string | undefined; // nur beim Neuanlegen gesetzt, siehe unten
@@ -855,11 +902,16 @@ async function handlePut(
     wantedPlayerCount,
     targetSpellIds,
     discordCard: existing?.discordCard, // nur syncPlayerDiscordCard schreibt dieses Feld
+    sharePresence,
     createdAt,
     updatedAt: now,
   };
 
   await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: resolveTtlSeconds(body.ttlHours) });
+
+  // Zustimmung zurückgenommen -> Online-Status sofort entfernen (nur dann ein D1-Write).
+  if (!sharePresence && existing?.sharePresence)
+    await deletePresenceRow(env, record.world, record.characterName);
 
   // Nach dem KV-Put, per waitUntil statt awaited: ein Discord-Ausfall darf die Response nie verzögern.
   ctx.waitUntil(syncPlayerDiscordCard(env, key, record, resolveTtlSeconds(body.ttlHours)));
@@ -881,7 +933,7 @@ async function computePlayersBrowse(env: Env, dataCenter: string | null): Promis
     return canonicalDataCenter;
 
   const normalizedDataCenter = canonicalDataCenter.toLowerCase();
-  const results: ReturnType<typeof stripForBrowseResponse>[] = [];
+  const listed: StoredProfile[] = [];
 
   // list() liefert max. 1000 Keys/Aufruf (KV-Limit) - per cursor weiter paginieren.
   let cursor: string | undefined;
@@ -894,13 +946,134 @@ async function computePlayersBrowse(env: Env, dataCenter: string | null): Promis
         continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
 
       if (stored.visibility === "listed" && stored.dataCenter.toLowerCase() === normalizedDataCenter)
-        results.push(stripForBrowseResponse(stored));
+        listed.push(stored);
     }
 
     cursor = listResult.list_complete ? undefined : listResult.cursor;
   } while (cursor);
 
+  const presence = await loadPresenceForDataCenter(env, normalizedDataCenter, listed);
+  const nowMs = Date.now();
+  const results: BrowsePlayer[] = listed.map((stored) => {
+    const player: BrowsePlayer = stripForBrowseResponse(stored);
+    if (presence && stored.sharePresence === true) {
+      const row = presence.get(presenceMapKey(stored.world, stored.characterName));
+      player.online = row ? isPresenceOnline(row.online, row.last_seen, nowMs) : false;
+      player.lastSeen = row ? roundPresenceLastSeen(row.last_seen) : null;
+    }
+    return player;
+  });
+
   return jsonResponse(results);
+}
+
+interface PresenceRow {
+  world: string;
+  name_lower: string;
+  online: number;
+  last_seen: number;
+}
+
+function presenceMapKey(world: string, characterName: string): string {
+  return `${world.toLowerCase()}:${characterName.toLowerCase()}`;
+}
+
+/** EINE D1-Abfrage für alle Presence-Zeilen des Data Centers - nur wenn das Feature an ist und
+ * mindestens ein gelistetes Profil zugestimmt hat. null = keine Presence-Felder ausgeben (auch bei
+ * einem D1-Fehler: das Browse selbst darf daran nie scheitern). */
+async function loadPresenceForDataCenter(
+  env: Env, normalizedDataCenter: string, listed: StoredProfile[],
+): Promise<Map<string, PresenceRow> | null> {
+  if (!presenceEnabled(env) || !listed.some((stored) => stored.sharePresence === true))
+    return null;
+
+  try {
+    const { results } = await env.PRESENCE
+      .prepare("SELECT world, name_lower, online, last_seen FROM presence WHERE data_center = ?")
+      .bind(normalizedDataCenter)
+      .all<PresenceRow>();
+    return new Map(results.map((row) => [presenceMapKey(row.world, row.name_lower), row]));
+  } catch (err) {
+    console.error("Presence: Abfrage für das Browse fehlgeschlagen", err);
+    return null;
+  }
+}
+
+/** Entfernt die Presence-Zeile eines Profils; wirft nie (Löschen/PUT dürfen daran nicht scheitern). */
+async function deletePresenceRow(env: Env, world: string, characterName: string): Promise<void> {
+  try {
+    await env.PRESENCE
+      .prepare("DELETE FROM presence WHERE world = ? AND name_lower = ?")
+      .bind(world.toLowerCase(), characterName.toLowerCase())
+      .run();
+  } catch (err) {
+    console.error("Presence: Zeile konnte nicht gelöscht werden", err);
+  }
+}
+
+/** POST /presence/:world/:characterName, Body {state: "online" | "offline"}, Header X-Edit-Token.
+ * Token-Prüfung wie bei PUT /profile; das Profil muss sharePresence = true haben. Upsert mit
+ * last_seen = jetzt - Signale kommen ausschließlich vom eigenen Plugin des Spielers. */
+async function handlePresencePost(env: Env, request: Request, world: string, characterName: string): Promise<Response> {
+  const rateLimited = await enforceWriteRateLimit(env, request);
+  if (rateLimited)
+    return rateLimited;
+
+  if (!presenceEnabled(env))
+    return errorResponse(403, "Presence is currently disabled");
+
+  let body: { state?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return errorResponse(400, "Ungültiger oder fehlender JSON-Body.");
+  }
+
+  if (body.state !== "online" && body.state !== "offline")
+    return errorResponse(400, 'state muss "online" oder "offline" sein.');
+
+  const token = request.headers.get("X-Edit-Token");
+  if (!token)
+    return errorResponse(403, 'Header "X-Edit-Token" fehlt.');
+
+  const existing = await env.BLUNION_PROFILES.get<StoredProfile>(kvKey(world, characterName), "json");
+  if (!existing)
+    return errorResponse(404, "Kein Profil für diese World/diesen Charakternamen gefunden.");
+
+  if (await sha256Hex(token) !== existing.editTokenHash)
+    return errorResponse(403, "editToken stimmt nicht mit dem gespeicherten Profil überein.");
+
+  if (existing.sharePresence !== true)
+    return errorResponse(403, "Dieses Profil teilt keinen Online-Status (sharePresence ist aus).");
+
+  await env.PRESENCE
+    .prepare(
+      "INSERT INTO presence (world, name_lower, data_center, online, last_seen) VALUES (?, ?, ?, ?, ?) " +
+        "ON CONFLICT (world, name_lower) DO UPDATE SET data_center = excluded.data_center, " +
+        "online = excluded.online, last_seen = excluded.last_seen")
+    .bind(
+      existing.world.toLowerCase(), existing.characterName.toLowerCase(), existing.dataCenter.toLowerCase(),
+      body.state === "online" ? 1 : 0, Date.now())
+    .run();
+
+  return jsonResponse({ state: body.state });
+}
+
+/** Cron: Presence-Zeilen ohne Signal seit 30 Tagen, ohne Profil oder ohne (noch bestehende)
+ * Zustimmung entfernen. Läuft unabhängig von PRESENCE_ENABLED - Aufräumen soll immer passieren. */
+export async function cleanupPresence(env: Env, nowMs: number = Date.now()): Promise<void> {
+  try {
+    await env.PRESENCE.prepare("DELETE FROM presence WHERE last_seen < ?").bind(nowMs - PRESENCE_RETENTION_MS).run();
+
+    const { results } = await env.PRESENCE.prepare("SELECT world, name_lower FROM presence").all<PresenceRow>();
+    for (const row of results) {
+      const profile = await env.BLUNION_PROFILES.get<StoredProfile>(kvKey(row.world, row.name_lower), "json");
+      if (!profile || profile.sharePresence !== true)
+        await deletePresenceRow(env, row.world, row.name_lower);
+    }
+  } catch (err) {
+    console.error("Presence: Cron-Bereinigung fehlgeschlagen", err);
+  }
 }
 
 /** Reihenfolge: Rate-Limit, dann dataCenter-Prüfung, erst danach Cache/KV - ein unbekanntes
@@ -946,6 +1119,7 @@ async function handleDelete(
  * addPlayerCardIndexEntry ihn angelegt hat - nicht über die Schreibweise der Anfrage-URL. */
 async function deleteProfileRecord(env: Env, key: string, existing: StoredProfile, ctx: ExecutionContext): Promise<void> {
   await env.BLUNION_PROFILES.delete(key);
+  await deletePresenceRow(env, existing.world, existing.characterName);
 
   if (existing.discordCard)
     ctx.waitUntil(removePlayerDiscordCard(env, existing.world, existing.characterName, existing.discordCard));
@@ -1720,7 +1894,7 @@ export function buildGroupsBrowseEmbed(dataCenter: string, groups: DiscordBrowse
  * (statt note, das braucht ein Profil nicht als Ersatz-Kennung). Discord erlaubt keinen leeren
  * "value", daher der Platzhalter. */
 function buildPlayerEmbedField(
-  player: ReturnType<typeof stripForBrowseResponse>,
+  player: BrowsePlayer,
 ): { name: string; value: string; inline: boolean } {
   let lines = formatAvailabilityAndNoteLines(player.note, player.availabilityTags, player.wantedPlayerCount);
 
@@ -1729,8 +1903,10 @@ function buildPlayerEmbedField(
     lines += `${lines.length > 0 ? "\n\n" : ""}Target spells: ${targetSpellLabel}`;
 
   return {
+    // Grüner Punkt nur für Spieler, die ihren Online-Status teilen und gerade online sind.
     name: truncateForDiscord(
-      `${sanitizeForDiscord(player.characterName)} (${sanitizeForDiscord(player.world)})`, DISCORD_EMBED_FIELD_NAME_MAX),
+      `${player.online === true ? "🟢 " : ""}${sanitizeForDiscord(player.characterName)} (${sanitizeForDiscord(player.world)})`,
+      DISCORD_EMBED_FIELD_NAME_MAX),
     value: truncateForDiscord(lines.length > 0 ? lines : "(no further details)", DISCORD_EMBED_FIELD_VALUE_MAX),
     inline: false,
   };
@@ -1738,7 +1914,7 @@ function buildPlayerEmbedField(
 
 /** Pendant zu buildGroupsBrowseEmbed für "/blunion browse type:players". */
 export function buildPlayersBrowseEmbed(
-  dataCenter: string, players: ReturnType<typeof stripForBrowseResponse>[],
+  dataCenter: string, players: BrowsePlayer[],
 ): Record<string, unknown> {
   return buildBrowseEmbed(
     `Blue Mages looking for groups on ${sanitizeForDiscord(dataCenter)}`,
@@ -1797,7 +1973,7 @@ async function handleDiscordBrowse(
       return discordMessageResponse("Something went wrong while loading the players.");
     }
 
-    const players = await browseResponse.json<ReturnType<typeof stripForBrowseResponse>[]>();
+    const players = await browseResponse.json<BrowsePlayer[]>();
     if (players.length === 0)
       return discordMessageResponse(`No publicly listed players found on "${dataCenter}".`);
 
@@ -1969,6 +2145,21 @@ export default {
       return handleDiscordInteractions(env, request);
     }
 
+    const presenceMatch = url.pathname.match(PRESENCE_PATH);
+
+    if (presenceMatch) {
+      const world = decodeURIComponent(presenceMatch[1]!);
+      const characterName = decodeURIComponent(presenceMatch[2]!);
+
+      if (!isValidCharacterName(characterName))
+        return errorResponse(400, INVALID_CHARACTER_NAME_MESSAGE);
+
+      if (request.method !== "POST")
+        return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
+
+      return handlePresencePost(env, request, world, characterName);
+    }
+
     const profileMatch = url.pathname.match(PROFILE_PATH);
 
     if (profileMatch) {
@@ -2027,5 +2218,6 @@ export default {
    * (bei GROUPS_ENABLED = "false" zusätzlich alle Gruppen-Karten). */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(cleanupOrphanedDiscordCards(env));
+    ctx.waitUntil(cleanupPresence(env));
   },
 };

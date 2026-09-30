@@ -56,22 +56,26 @@ public sealed partial class MainWindow
                 // Vorher zwei CollapsingHeader übereinander (Solo-Sichtbarkeit + Gruppen-
                 // Veröffentlichung) - fachlich zwei getrennte Anwendungsfälle, die sich nur durch
                 // Auf-/Zuklappen unterschieden. Jetzt eine klare Moduswahl: es wird immer nur GENAU
-                // einer der beiden Abschnitte gezeichnet.
-                if (ImGui.RadioButton(
-                        UiStrings.Get(UiStrings.Key.GroupPublishModeSolo, this.displayLanguage),
-                        this.groupPublishMode == GroupPublishMode.Solo))
-                    this.groupPublishMode = GroupPublishMode.Solo;
+                // einer der beiden Abschnitte gezeichnet. Gruppen ausgeschaltet (FeatureFlags): kein
+                // Umschalter, immer der Einzel-Eintrag.
+                if (FeatureFlags.GroupsEnabled)
+                {
+                    if (ImGui.RadioButton(
+                            UiStrings.Get(UiStrings.Key.GroupPublishModeSolo, this.displayLanguage),
+                            this.groupPublishMode == GroupPublishMode.Solo))
+                        this.groupPublishMode = GroupPublishMode.Solo;
 
-                ImGui.SameLine();
+                    ImGui.SameLine();
 
-                if (ImGui.RadioButton(
-                        UiStrings.Get(UiStrings.Key.GroupPublishModeGroup, this.displayLanguage),
-                        this.groupPublishMode == GroupPublishMode.Group))
-                    this.groupPublishMode = GroupPublishMode.Group;
+                    if (ImGui.RadioButton(
+                            UiStrings.Get(UiStrings.Key.GroupPublishModeGroup, this.displayLanguage),
+                            this.groupPublishMode == GroupPublishMode.Group))
+                        this.groupPublishMode = GroupPublishMode.Group;
 
-                ImGui.Separator();
+                    ImGui.Separator();
+                }
 
-                if (this.groupPublishMode == GroupPublishMode.Solo)
+                if (!FeatureFlags.GroupsEnabled || this.groupPublishMode == GroupPublishMode.Solo)
                 {
                     this.DrawSectionHeader(UiStrings.Get(UiStrings.Key.GroupFinderMyEntryHeader, this.displayLanguage));
                     ImGui.Separator();
@@ -89,8 +93,12 @@ public sealed partial class MainWindow
 
             if (ImGui.BeginTabItem(UiStrings.Get(UiStrings.Key.GroupFinderBrowseSubTab, this.displayLanguage)))
             {
-                this.DrawGroupBrowseSection();
-                ImGui.Separator();
+                if (FeatureFlags.GroupsEnabled)
+                {
+                    this.DrawGroupBrowseSection();
+                    ImGui.Separator();
+                }
+
                 this.DrawOtherPlayersSection();
                 ImGui.EndTabItem();
             }
@@ -231,7 +239,8 @@ public sealed partial class MainWindow
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.GroupFinderRefreshButton, this.displayLanguage)))
         {
             this.liveSyncService.TriggerBrowse();
-            this.liveSyncService.TriggerGroupBrowse();
+            if (FeatureFlags.GroupsEnabled)
+                this.liveSyncService.TriggerGroupBrowse();
 
             this.lastGroupFinderAutoRefreshAt = DateTimeOffset.UtcNow;
         }
@@ -293,6 +302,16 @@ public sealed partial class MainWindow
                 nameText += UiStrings.Get(UiStrings.Key.YouSuffix, this.displayLanguage);
 
             ImGui.TextWrapped(nameText);
+
+            // Online-Status nur bei Spielern, die ihn teilen (siehe PresenceFormatter.FormatStatus).
+            if (PresenceFormatter.FormatStatus(entry.Online, entry.LastSeen, DateTimeOffset.UtcNow, this.displayLanguage) is { } presenceText)
+            {
+                if (entry.Online == true)
+                    ImGui.TextColored(SuccessMessageColor, presenceText);
+                else
+                    this.DrawHintText(presenceText);
+            }
+
             ImGui.TextUnformatted(UiStrings.Format(
                 UiStrings.Key.GroupFinderProgressFormat, this.displayLanguage, entry.LearnedSpellIds.Count, totalSpellCount));
 
@@ -315,7 +334,7 @@ public sealed partial class MainWindow
 
             if (!isOwnEntry)
             {
-                AlignCursorToCardBottom();
+                AlignCursorToCardBottom(buttonRowCount: 2);
                 if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.GroupFinderAddToComparisonButton, this.displayLanguage)}##GroupFinderAdd{entry.CharacterName}"))
                 {
                     var status = new PlayerSpellStatus
@@ -328,6 +347,14 @@ public sealed partial class MainWindow
 
                     this.syncProvider.PublishLocalStatus(status);
                     this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.GroupFinderAddedToComparisonMessage, this.displayLanguage, entry.CharacterName));
+                }
+
+                // Nur in die Zwischenablage - gesendet wird nichts.
+                if (ImGui.Button($"{UiStrings.Get(UiStrings.Key.CopyTellButton, this.displayLanguage)}##GroupFinderTell{entry.CharacterName}"))
+                {
+                    var tellCommand = PresenceFormatter.BuildTellCommand(entry.CharacterName, entry.World);
+                    ImGui.SetClipboardText(tellCommand);
+                    this.SetSuccessMessage(UiStrings.Format(UiStrings.Key.TellCopiedMessage, this.displayLanguage, tellCommand.TrimEnd()));
                 }
             }
         }, entry => this.ComputePlayerBrowseCardHeight(entry, localPlayerName));
@@ -343,15 +370,19 @@ public sealed partial class MainWindow
     // Tags-Zeile + Gesucht-Zeile = 4 Text-Zeilen. Optional oben drauf: +1 Text-Zeile, wenn die
     // Notiz nicht leer ist. Der "Zur Vergleich hinzufügen"-Button ist die einzige Action hier
     // (siehe DrawOtherPlayersSection) und wird NUR für fremde Einträge gezeichnet, nie für den
-    // eigenen (isOwnEntry) - entsprechend wird auch nur dort eine Button-Zeile reserviert.
+    // eigenen (isOwnEntry) - entsprechend wird auch nur dort eine Button-Zeile reserviert. Dazu
+    // kommen bei fremden Einträgen der "/tell kopieren"-Button (zweite Button-Zeile) und eine
+    // Text-Zeile für den Online-Status, falls der Spieler ihn teilt.
     private float ComputePlayerBrowseCardHeight(GroupFinderEntry entry, string? localPlayerName)
     {
         var baseTextLines = 4;
         if (!string.IsNullOrEmpty(entry.Note))
             baseTextLines++;
+        if (entry.Online == true || entry.LastSeen is not null)
+            baseTextLines++;
 
         var isOwnEntry = string.Equals(entry.CharacterName, localPlayerName, StringComparison.Ordinal);
-        var buttonRowCount = isOwnEntry ? 0 : 1;
+        var buttonRowCount = isOwnEntry ? 0 : 2;
 
         var textHeight = baseTextLines * ImGui.GetTextLineHeightWithSpacing();
         var buttonsHeight = buttonRowCount * ImGui.GetFrameHeightWithSpacing();

@@ -10,6 +10,13 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool LiveSyncEnabled { get; set; }
 
+    // Abfrage beim ersten Start beantwortet (siehe Services/Onboarding.cs) - Bestandsnutzer mit Live-Sync
+    // werden beim Laden automatisch als entschieden markiert.
+    public bool OnboardingCompleted { get; set; }
+
+    // "Online-Status teilen" (nur zusammen mit Live-Sync, siehe PresenceService) - setzt sharePresence am Profil.
+    public bool SharePresence { get; set; }
+
     public bool AutoImportSyncCodesFromPartyChat { get; set; } = true;
 
     // null = automatisch anhand der Client-Sprache (siehe MainWindow-Konstruktor).

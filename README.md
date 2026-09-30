@@ -20,7 +20,7 @@ It started out as a tool for me and a few friends. By now other people are using
 - Clickable locations: a duty name opens the Duty Finder with that duty selected (for grouped entries like "Thornmarch (Hard or Extreme)" you pick the variant first), an open-world zone name teleports you to the matching aetheryte and flags the monster on your map. Map icons open the map with a flag or post the map link into your own chat window
 - Filter by name or spell number (`58`, `#058`, whatever)
 - Option to hide totem-only spells if you're not chasing those right now
-- Group Finder to find other Blue Mages on your data center, solo or as a whole group
+- Group Finder to find other Blue Mages on your data center
 - Sync via a short export/import code, or optionally via Live-Sync so you don't have to swap codes at all
 - Full UI in German, English, French, and Japanese
 - A [browser companion](https://letsi-ma.github.io/BLUnion/) for people who don't want to install the plugin at all
@@ -45,7 +45,9 @@ If you don't have (or don't want) the Dalamud plugin, the [companion site](https
 
 ## Group Finder
 
-Built on top of Live-Sync. You can put yourself (or your current party) into a public list for your data center, with a short note, when you usually play (morning, evening, weekend, ...), how many people you're looking for, and which spells you want to farm. Others can browse that list, filter it by the spells they need, and see right away what they would bring to a group and what they would still be missing. One click adds a player or a whole group to your comparison.
+Built on top of Live-Sync. You can put yourself into a public list for your data center, with a short note, when you usually play (morning, evening, weekend, ...), how many people you're looking for, and which spells you want to farm. Others can browse that list, filter it by the spells they need, and see right away what they would bring to a group and what they would still be missing. One click adds a player to your comparison.
+
+For now the Group Finder only has entries for single players - group listings are switched off.
 
 Nothing is public unless you actually publish an entry, and you can delete it at any time.
 
@@ -59,6 +61,9 @@ Only relevant if you use Live-Sync or the Group Finder - otherwise nothing leave
 - Which spells you've learned (as a compact bitmask)
 - If you publish a Group Finder entry: your note, availability, wanted player count, and target spells
 - A hashed edit token, so only you can change or delete your profile
+- Only if you turn on "Share online status" (off by default) and list your entry in the Group Finder: whether you're online and when you were last seen, rounded to 15 minutes. The signal comes only from your own plugin (login, logout, and once an hour while you play). This data is deleted together with your profile, when you switch the option off, or after 30 days without a signal
+
+When you first open the plugin it asks whether you want Live-Sync or manual codes only; you can change that (and the online status) any time in the settings.
 
 Profiles expire on their own after 90 days without an update, and "Delete my profile" in the settings removes yours right away. Names are not verified against the game; misuse (e.g. a profile under your name that isn't yours) can be reported on the [Discord](https://discord.gg/uGW7kBG67). The backend is a Cloudflare Worker, the code is in [`worker/`](worker/).
 
@@ -84,7 +89,7 @@ Game data lives separately from your own settings, on purpose.
 
 There's a community Discord at https://discord.gg/uGW7kBG67.
 
-Every public Group Finder entry also gets its own card in one of four region channels (North America, Europe, Japan, Oceania). The cards are created, updated, and removed automatically along with the entry itself. There's also a `/blunion browse` slash command if you just want to check the list from Discord. For now Discord is read-only - you can't create or join groups from there yet. See [DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md) for setup/registration/testing.
+Every public Group Finder entry also gets its own card in one of four region channels (North America, Europe, Japan, Oceania). The cards are created, updated, and removed automatically along with the entry itself. There's also a `/blunion browse` slash command if you just want to check the list from Discord. For now Discord is read-only - you can't create entries from there. See [DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md) for setup/registration/testing.
 
 ## Known gaps
 

@@ -62,6 +62,7 @@ Update neu gesetzt) - kein Cron-Job nötig.
 | `GET` | `/profile/:world/:characterName` | keine | Profil abrufen (öffentlich lesbar, siehe Aufgabenstellung) |
 | `DELETE` | `/profile/:world/:characterName` | Header `X-Edit-Token` | Profil löschen |
 | `GET` | `/profiles/browse?dataCenter=<DC>` | keine | Gruppenfinder: alle `listed`-Profile auf diesem Data Center |
+| `POST` | `/presence/:world/:characterName` | Header `X-Edit-Token` | Online-Status `{ state: "online" \| "offline" }` setzen - nur mit `sharePresence: true` am Profil, sonst `403` |
 | `POST` | `/discord/interactions` | Ed25519-Signatur (Discord-Header, siehe [DISCORD_INTEGRATION.md](../DISCORD_INTEGRATION.md)) | Discord-Slash-Command `/blunion browse` (Phase 1, rein lesend) |
 
 `:world` und `:characterName` müssen URI-komponenten-kodiert werden (Charakternamen enthalten
@@ -80,6 +81,22 @@ Aufrufer hat es selbst übergeben) und nie `editTokenHash`. Iteriert aktuell üb
 `profile:`-Keys und filtert in-memory (siehe Kommentar bei `handleBrowse` in `src/index.ts`) -
 bei sehr vielen Profilen (>1000) sollte das durch einen echten Data-Center-Index ersetzt werden;
 für die bei Phase 2 zu erwartende Nutzerzahl ist das bewusst noch keine verfrühte Optimierung.
+
+## Online-Status (Presence)
+
+Nur für Profile mit `sharePresence: true` (per `PUT /profile` setzbar, Default `false`). Die Daten
+liegen in der D1-Datenbank `PRESENCE` (Tabelle `presence`, siehe `migrations/0001_presence.sql`) statt
+in KV - wegen der KV-Schreiblimits. Signale kommen ausschließlich vom Plugin des Spielers (Login,
+Logout, stündliches Lebenszeichen), die Website sendet keine.
+
+- `GET /profiles/browse` gibt für gelistete Profile mit Zustimmung zusätzlich `online` (Signal
+  "online" und jünger als 75 Minuten) und `lastSeen` (auf 15 Minuten abgerundet, `null` ohne Signal)
+  aus - geholt mit EINER D1-Abfrage pro Data Center. Profile ohne Zustimmung haben diese Felder nicht.
+- `sharePresence: false`, `DELETE /profile` und `DELETE /admin/profile` löschen die Zeile.
+- Der tägliche Cron entfernt Zeilen ohne (zustimmendes) Profil und Zeilen ohne Signal seit 30 Tagen.
+- `/blunion browse type:players` markiert Online-Spieler mit 🟢.
+- `PRESENCE_ENABLED = "false"` (wrangler.toml): `POST /presence` antwortet `403`, das Browse enthält
+  keine Presence-Felder.
 
 ## Gruppen-Listungen (Phase 2)
 
@@ -251,7 +268,17 @@ npx wrangler kv namespace create BLUNION_PROFILES
 ```
 
 Der letzte Befehl gibt eine `id` aus - die in `wrangler.toml` unter `[[kv_namespaces]]` anstelle
-von `REPLACE_WITH_KV_NAMESPACE_ID` eintragen. Danach:
+von `REPLACE_WITH_KV_NAMESPACE_ID` eintragen.
+
+Für den Online-Status zusätzlich die D1-Datenbank anlegen und die Migration ausführen:
+
+```bash
+npx wrangler d1 create blunion-presence
+# ausgegebene database_id in wrangler.toml unter [[d1_databases]] (binding = "PRESENCE") eintragen
+npx wrangler d1 migrations apply blunion-presence --remote
+```
+
+Danach:
 
 ```bash
 npm run deploy

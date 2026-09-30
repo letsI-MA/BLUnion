@@ -56,6 +56,21 @@ public sealed partial class MainWindow
 
         this.DrawHintText(UiStrings.Get(UiStrings.Key.LiveSyncEnabledHint, this.displayLanguage));
 
+        // Online-Status nur zusammen mit Live-Sync; eine Änderung setzt sharePresence am Profil.
+        var sharePresence = this.configuration.SharePresence;
+        ImGui.BeginDisabled(!this.configuration.LiveSyncEnabled);
+        if (ImGui.Checkbox(UiStrings.Get(UiStrings.Key.SharePresenceToggle, this.displayLanguage), ref sharePresence))
+        {
+            this.configuration.SharePresence = sharePresence;
+            this.configuration.Save();
+            this.liveSyncService.RequestSharePresenceUpdate();
+        }
+
+        ImGui.EndDisabled();
+        this.DrawHintText(UiStrings.Get(
+            this.configuration.LiveSyncEnabled ? UiStrings.Key.SharePresenceHint : UiStrings.Key.SharePresenceRequiresLiveSyncHint,
+            this.displayLanguage));
+
         var hasLiveSyncProfile = this.liveSyncService.HasEditTokenForLocalCharacter();
         ImGui.BeginDisabled(!hasLiveSyncProfile);
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.LiveSyncDeleteProfileButton, this.displayLanguage)))

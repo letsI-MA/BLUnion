@@ -1,0 +1,24 @@
+<!--
+  Einmaliges Anreicherungs-Werkzeug für Data/*.json (siehe README.md) - bewusst Microsoft.NET.Sdk
+  statt Dalamud.NET.Sdk: kein Plugin, liest die Spieldateien direkt per Lumina aus einem sqpack-
+  Ordner. Nicht Teil des Plugin-Builds (BLUnion.csproj schließt tools\** aus).
+  Lumina-Versionen möglichst nah an der lokal installierten Dalamud-Version (Lumina 7.7.0 /
+  Lumina.Excel 7.5.1 - letztere gibt es nicht auf NuGet, daher 7.5.0). Program.cs prüft zu Beginn
+  per Stichproben, ob die Sheet-Spalten plausibel sind (siehe RunSanityChecks).
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DataEnrich</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lumina" Version="7.7.0" />
+    <PackageReference Include="Lumina.Excel" Version="7.5.0" />
+  </ItemGroup>
+
+</Project>

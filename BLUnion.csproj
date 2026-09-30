@@ -49,6 +49,8 @@
   -->
   <ItemGroup>
     <Compile Remove="BLUnion.Tests\**\*.cs" />
+    <!-- Eigenständige Werkzeuge (z.B. tools/data-enrich, eigene .csproj) - nicht Teil des Plugins. -->
+    <Compile Remove="tools\**\*.cs" />
   </ItemGroup>
 
   <!--

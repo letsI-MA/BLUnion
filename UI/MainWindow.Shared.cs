@@ -44,15 +44,13 @@ public sealed partial class MainWindow
         if (location is null)
             return UiStrings.Get(UiStrings.Key.UnknownLocation, this.displayLanguage);
 
-        var zoneName = location.GetZoneName(this.displayLanguage);
+        // Bei Duties liefert GameTextService den (übersetzten) Duty-Namen - vorher stand hier fest der
+        // englische DutyName aus dem JSON.
+        var zoneName = this.gameTextService.GetZoneName(location, this.displayLanguage);
 
-        if (location.Coordinates is not null)
-            return $"{zoneName} ({location.Coordinates})";
-
-        if (location.DutyName is not null)
-            return location.DutyName;
-
-        return zoneName;
+        return location.Coordinates is not null
+            ? $"{zoneName} ({location.Coordinates})"
+            : zoneName;
     }
 
     private string FormatSourceSummary(IReadOnlyList<(Monster Monster, Location? Location, SourceMethod Method)> sources)
@@ -273,7 +271,9 @@ public sealed partial class MainWindow
         this.pendingActiveSubTabId = "TabSpellbook";
     }
 
-    private string GetSpellName(Spell spell) => spell.GetName(this.displayLanguage);
+    private string GetSpellName(Spell spell) => this.gameTextService.GetSpellName(spell, this.displayLanguage);
 
-    private string GetMonsterName(Monster monster) => monster.GetName(this.displayLanguage);
+    private string? GetSpellDescription(Spell spell) => this.gameTextService.GetSpellDescription(spell, this.displayLanguage);
+
+    private string GetMonsterName(Monster monster) => this.gameTextService.GetMonsterName(monster, this.displayLanguage);
 }

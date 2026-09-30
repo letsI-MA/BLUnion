@@ -67,7 +67,7 @@ Either way, `/blunion` opens the window.
 
 ## Where the data comes from
 
-Spell names, icons, and their order come straight from the game files via [Lumina](https://github.com/NotAdam/Lumina). Monster and source-location info was put together with help from [FFXIV Collect](https://ffxivcollect.com/)'s public API, with some gaps filled in from [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary). A handful of monster/zone names aren't translated into all four languages yet - those fall back to English until I get around to it.
+Spell names, icons, and their order come straight from the game files via [Lumina](https://github.com/NotAdam/Lumina). Monster and source-location info was put together with help from [FFXIV Collect](https://ffxivcollect.com/)'s public API, with some gaps filled in from [Icy Veins](https://www.icy-veins.com/ffxiv/blue-mage-pve-dps-spell-summary). Spell names and descriptions, monster names, and zone/duty names are read from the game files in your chosen display language at runtime, using game IDs that [`tools/data-enrich`](tools/data-enrich/) adds to the data files. Where there's no game match, the hand-maintained translations are used instead (English as the last resort).
 
 Game data lives separately from your own settings, on purpose.
 
@@ -80,8 +80,8 @@ Every public Group Finder entry also gets its own card in one of four region cha
 ## Known gaps
 
 - 1 of 124 spells doesn't have full source info yet
-- Some monster/location names are still English-only placeholders
-- Spell descriptions in the Spellbook are German-only for now
+- A few monsters (mostly NPCs like "Goblin Fisher & Gambler") and grouped duty entries (e.g. "Thornmarch (Hard or Extreme)", the individual Masked Carnivale stages) have no game-data match, so their names still come from the hand-maintained data - see [`tools/data-enrich/report.md`](tools/data-enrich/report.md)
+- Map coordinates for open-world sources are hand-maintained and only exist for a few locations - they can't be read from the game files
 - New Group Finder entries can take up to about a minute to show up for others (that's how the storage behind it works, not a bug)
 
 ## License

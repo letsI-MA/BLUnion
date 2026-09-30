@@ -38,6 +38,7 @@ public sealed class Plugin : IDalamudPlugin
         ITextureProvider textureProvider,
         IClientState clientState,
         IChatGui chatGui,
+        ISeStringEvaluator seStringEvaluator,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
@@ -66,9 +67,13 @@ public sealed class Plugin : IDalamudPlugin
         log.Information($"Lade Spell-/Monster-/Source-/Location-Daten aus \"{dataDir}\".");
         this.spellDataService.Load(dataDir);
 
+        // Namen/Beschreibungen in der Anzeigesprache aus den Spieldaten (siehe GameTextService).
+        var gameTextService = new GameTextService(new LuminaGameTextSource(dataManager, seStringEvaluator, log));
+
         this.mainWindow = new MainWindow(
             this.partyService,
             this.spellDataService,
+            gameTextService,
             this.comparisonService,
             this.localSpellUnlockService,
             this.syncProvider,

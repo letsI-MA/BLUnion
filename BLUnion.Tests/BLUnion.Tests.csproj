@@ -26,6 +26,10 @@
   <ItemGroup>
     <Reference Update="Dalamud" Private="true" />
     <Reference Update="Serilog" Private="true" />
+    <!-- Lumina (+ dessen Abhängigkeit ObjectPool) für GameTextServiceTests (SeStrings per
+         Lumina.Text.SeStringBuilder bauen) - gleiche Begründung wie Dalamud/Serilog oben. -->
+    <Reference Update="Lumina" Private="true" />
+    <Reference Update="Microsoft.Extensions.ObjectPool" Private="true" />
   </ItemGroup>
 
   <ItemGroup>

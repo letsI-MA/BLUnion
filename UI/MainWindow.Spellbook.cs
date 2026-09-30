@@ -96,16 +96,17 @@ public sealed partial class MainWindow
                 ImGui.TableSetColumnIndex(2);
                 ImGui.Selectable(this.GetSpellName(spell), false, ImGuiSelectableFlags.SpanAllColumns);
 
-                if (ImGui.IsItemHovered() && (spell.Description is not null || sources.Count > 0 || partyMissingEntry is not null))
+                var description = this.GetSpellDescription(spell);
+                if (ImGui.IsItemHovered() && (description is not null || sources.Count > 0 || partyMissingEntry is not null))
                 {
                     ImGui.BeginTooltip();
 
-                    if (spell.Description is not null)
+                    if (description is not null)
                     {
                         ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35);
-                        ImGui.TextUnformatted(spell.Description);
+                        ImGui.TextUnformatted(description);
 
-                        if (this.displayLanguage != DisplayLanguage.German)
+                        if (this.IsGermanDescriptionFallback(spell, description))
                             this.DrawHintText(UiStrings.Get(UiStrings.Key.SpellbookDescriptionGermanOnlyHint, this.displayLanguage));
 
                         ImGui.PopTextWrapPos();
@@ -125,7 +126,7 @@ public sealed partial class MainWindow
                         // Reiner Hinweistext ohne Button, bewusst anders als im Master-Detail-Panel
                         // (siehe DrawSpellbookDetailContent): ImGui-Tooltips nehmen keine Eingaben
                         // entgegen, ein Button wäre hier nicht klickbar.
-                        if (spell.Description is not null || sources.Count > 0)
+                        if (description is not null || sources.Count > 0)
                             ImGui.Separator();
 
                         ImGui.TextWrapped(UiStrings.Format(
@@ -201,13 +202,14 @@ public sealed partial class MainWindow
         else
             ImGui.TextColored(NotLearnedColor, "–");
 
-        if (spell.Description is not null)
+        var description = this.GetSpellDescription(spell);
+        if (description is not null)
         {
             ImGui.Separator();
             ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35);
-            ImGui.TextUnformatted(spell.Description);
+            ImGui.TextUnformatted(description);
 
-            if (this.displayLanguage != DisplayLanguage.German)
+            if (this.IsGermanDescriptionFallback(spell, description))
                 this.DrawHintText(UiStrings.Get(UiStrings.Key.SpellbookDescriptionGermanOnlyHint, this.displayLanguage));
 
             ImGui.PopTextWrapPos();
@@ -247,4 +249,9 @@ public sealed partial class MainWindow
             .GetCommonlyMissingSpells(this.spellDataService.Spells.Keys, partyStatus)
             .ToDictionary(m => m.SpellId);
     }
+
+    // Der Hinweis "Beschreibung nur auf Deutsch" gilt nur noch, wenn tatsächlich der deutsche
+    // JSON-Fallback angezeigt wird (kein Spieltext für diesen Spell, siehe GameTextService).
+    private bool IsGermanDescriptionFallback(Spell spell, string description) =>
+        this.displayLanguage != DisplayLanguage.German && description == spell.Description;
 }

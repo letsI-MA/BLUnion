@@ -41,13 +41,18 @@
   },
   {
     "SpellId": 11388,
+    "MonsterId": 165,
+    "Method": "OpenWorld"
+  },
+  {
+    "SpellId": 11388,
     "MonsterId": 9,
     "Method": "OpenWorld"
   },
   {
     "SpellId": 11388,
     "MonsterId": 10,
-    "Method": "OpenWorld"
+    "Method": "DungeonTrash"
   },
   {
     "SpellId": 11388,
@@ -197,7 +202,7 @@
   {
     "SpellId": 11404,
     "MonsterId": 40,
-    "Method": "OpenWorld"
+    "Method": "Duty"
   },
   {
     "SpellId": 11405,
@@ -297,7 +302,7 @@
   {
     "SpellId": 11419,
     "MonsterId": 59,
-    "Method": "Levequest"
+    "Method": "Duty"
   },
   {
     "SpellId": 11419,
@@ -312,7 +317,7 @@
   {
     "SpellId": 11420,
     "MonsterId": 59,
-    "Method": "Levequest"
+    "Method": "Duty"
   },
   {
     "SpellId": 11420,
@@ -597,7 +602,7 @@
   {
     "SpellId": 23267,
     "MonsterId": 114,
-    "Method": "OpenWorld"
+    "Method": "Duty"
   },
   {
     "SpellId": 23269,

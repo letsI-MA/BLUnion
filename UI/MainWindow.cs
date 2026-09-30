@@ -30,6 +30,8 @@ public sealed partial class MainWindow : Window, IDisposable
 {
     private readonly PartyService partyService;
     private readonly SpellDataService spellDataService;
+
+    private readonly GameTextService gameTextService;
     private readonly ComparisonService comparisonService;
     private readonly LocalSpellUnlockService localSpellUnlockService;
     private readonly ManualCodeSyncProvider syncProvider;
@@ -259,6 +261,7 @@ public sealed partial class MainWindow : Window, IDisposable
     public MainWindow(
         PartyService partyService,
         SpellDataService spellDataService,
+        GameTextService gameTextService,
         ComparisonService comparisonService,
         LocalSpellUnlockService localSpellUnlockService,
         ManualCodeSyncProvider syncProvider,
@@ -272,6 +275,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         this.partyService = partyService;
         this.spellDataService = spellDataService;
+        this.gameTextService = gameTextService;
         this.comparisonService = comparisonService;
         this.localSpellUnlockService = localSpellUnlockService;
         this.syncProvider = syncProvider;

@@ -5,7 +5,11 @@
     "ZoneNameEn": "The Dragon's Neck",
     "ZoneNameFr": "The Dragon's Neck",
     "ZoneNameJa": "アマジナ杯闘技会決勝戦",
-    "DutyName": "The Dragon's Neck"
+    "DutyName": "The Dragon's Neck",
+    "TerritoryTypeId": 142,
+    "MapId": 195,
+    "PlaceNameId": 49,
+    "ContentFinderConditionId": 81
   },
   {
     "Id": 2,
@@ -29,7 +33,11 @@
     "ZoneNameEn": "Pharos Sirius",
     "ZoneNameFr": "Le Phare de Sirius",
     "ZoneNameJa": "シリウス大灯台",
-    "DutyName": "Pharos Sirius"
+    "DutyName": "Pharos Sirius",
+    "TerritoryTypeId": 160,
+    "MapId": 108,
+    "PlaceNameId": 230,
+    "ContentFinderConditionId": 17
   },
   {
     "Id": 5,
@@ -52,21 +60,33 @@
     "ZoneNameDe": "Tiefer Wald",
     "ZoneNameEn": "Central Shroud",
     "ZoneNameFr": "Forêt centrale",
-    "ZoneNameJa": "黒衣森：中央森林"
+    "ZoneNameJa": "黒衣森：中央森林",
+    "TerritoryTypeId": 148,
+    "MapId": 4,
+    "PlaceNameId": 54
   },
   {
     "Id": 8,
     "ZoneNameDe": "South Shroud",
     "ZoneNameEn": "South Shroud",
     "ZoneNameFr": "South Shroud",
-    "ZoneNameJa": "黒衣森：南部森林"
+    "ZoneNameJa": "黒衣森：南部森林",
+    "Coordinates": "20, 28",
+    "TerritoryTypeId": 153,
+    "MapId": 6,
+    "PlaceNameId": 56
   },
   {
     "Id": 9,
     "ZoneNameDe": "Goldklamm",
     "ZoneNameEn": "The Aurum Vale",
     "ZoneNameFr": "Le Val d'Aurum",
-    "ZoneNameJa": "オーラムヴェイル"
+    "ZoneNameJa": "オーラムヴェイル",
+    "DutyName": "The Aurum Vale",
+    "PlaceNameId": 65,
+    "TerritoryTypeId": 1331,
+    "MapId": 38,
+    "ContentFinderConditionId": 5
   },
   {
     "Id": 10,
@@ -81,21 +101,30 @@
     "ZoneNameDe": "Nordwald",
     "ZoneNameEn": "North Shroud",
     "ZoneNameFr": "Forêt du nord",
-    "ZoneNameJa": "黒衣森：北部森林"
+    "ZoneNameJa": "黒衣森：北部森林",
+    "TerritoryTypeId": 154,
+    "MapId": 7,
+    "PlaceNameId": 57
   },
   {
     "Id": 12,
     "ZoneNameDe": "Südliches Thanalan",
     "ZoneNameEn": "Southern Thanalan",
     "ZoneNameFr": "Thanalan méridional",
-    "ZoneNameJa": "南ザナラーン"
+    "ZoneNameJa": "南ザナラーン",
+    "TerritoryTypeId": 146,
+    "MapId": 23,
+    "PlaceNameId": 45
   },
   {
     "Id": 13,
     "ZoneNameDe": "Äußeres La Noscea",
     "ZoneNameEn": "Outer La Noscea",
     "ZoneNameFr": "Noscea extérieure",
-    "ZoneNameJa": "外地ラノシア"
+    "ZoneNameJa": "外地ラノシア",
+    "TerritoryTypeId": 180,
+    "MapId": 30,
+    "PlaceNameId": 350
   },
   {
     "Id": 14,
@@ -110,7 +139,10 @@
     "ZoneNameDe": "Ostwald",
     "ZoneNameEn": "East Shroud",
     "ZoneNameFr": "Forêt de l'est",
-    "ZoneNameJa": "黒衣森：東部森林"
+    "ZoneNameJa": "黒衣森：東部森林",
+    "TerritoryTypeId": 152,
+    "MapId": 5,
+    "PlaceNameId": 55
   },
   {
     "Id": 16,
@@ -118,7 +150,11 @@
     "ZoneNameEn": "The Tam-Tara Deepcroft (Hard)",
     "ZoneNameFr": "L'Hypogée de Tam-Tara (brutal)",
     "ZoneNameJa": "タムタラの墓所 (Hard)",
-    "DutyName": "The Tam-Tara Deepcroft (Hard)"
+    "DutyName": "The Tam-Tara Deepcroft (Hard)",
+    "TerritoryTypeId": 373,
+    "MapId": 165,
+    "PlaceNameId": 58,
+    "ContentFinderConditionId": 24
   },
   {
     "Id": 17,
@@ -126,14 +162,21 @@
     "ZoneNameEn": "Alexander: The Burden of the Son",
     "ZoneNameFr": "Alexander: The Burden of the Son",
     "ZoneNameJa": "Alexander: The Burden of the Son",
-    "DutyName": "Alexander: The Burden of the Son"
+    "DutyName": "Alexander - The Burden of the Son",
+    "TerritoryTypeId": 523,
+    "MapId": 290,
+    "PlaceNameId": 1731,
+    "ContentFinderConditionId": 139
   },
   {
     "Id": 18,
     "ZoneNameDe": "Lower La Noscea",
     "ZoneNameEn": "Lower La Noscea",
     "ZoneNameFr": "Lower La Noscea",
-    "ZoneNameJa": "低地ラノシア"
+    "ZoneNameJa": "低地ラノシア",
+    "TerritoryTypeId": 135,
+    "MapId": 16,
+    "PlaceNameId": 31
   },
   {
     "Id": 19,
@@ -141,21 +184,31 @@
     "ZoneNameEn": "Haukke Manor",
     "ZoneNameFr": "Le Manoir des Haukke",
     "ZoneNameJa": "ハウケタ御用邸",
-    "DutyName": "Haukke Manor"
+    "DutyName": "Haukke Manor",
+    "TerritoryTypeId": 1040,
+    "MapId": 48,
+    "PlaceNameId": 59,
+    "ContentFinderConditionId": 6
   },
   {
     "Id": 20,
     "ZoneNameDe": "Zentrales La Noscea",
     "ZoneNameEn": "Middle La Noscea",
     "ZoneNameFr": "Noscea centrale",
-    "ZoneNameJa": "中央ラノシア"
+    "ZoneNameJa": "中央ラノシア",
+    "TerritoryTypeId": 134,
+    "MapId": 15,
+    "PlaceNameId": 30
   },
   {
     "Id": 21,
     "ZoneNameDe": "Nördliches Thanalan",
     "ZoneNameEn": "Northern Thanalan",
     "ZoneNameFr": "Thanalan septentrional",
-    "ZoneNameJa": "北ザナラーン"
+    "ZoneNameJa": "北ザナラーン",
+    "TerritoryTypeId": 147,
+    "MapId": 24,
+    "PlaceNameId": 46
   },
   {
     "Id": 22,
@@ -163,7 +216,11 @@
     "ZoneNameEn": "Brayflox's Longstop (Hard)",
     "ZoneNameFr": "Bivouac de Brayflox (brutal)",
     "ZoneNameJa": "ブレイフロクスの野営地 (Hard)",
-    "DutyName": "Brayflox's Longstop (Hard)"
+    "DutyName": "Brayflox's Longstop (Hard)",
+    "TerritoryTypeId": 362,
+    "MapId": 146,
+    "PlaceNameId": 36,
+    "ContentFinderConditionId": 20
   },
   {
     "Id": 23,
@@ -171,14 +228,21 @@
     "ZoneNameEn": "Castrum Meridianum",
     "ZoneNameFr": "Castrum Meridianum",
     "ZoneNameJa": "カストルム・メリディアヌム",
-    "DutyName": "Castrum Meridianum"
+    "DutyName": "Castrum Meridianum",
+    "TerritoryTypeId": 1043,
+    "MapId": 47,
+    "PlaceNameId": 260,
+    "ContentFinderConditionId": 15
   },
   {
     "Id": 24,
     "ZoneNameDe": "Mor Dhona",
     "ZoneNameEn": "Mor Dhona",
     "ZoneNameFr": "Mor Dhona",
-    "ZoneNameJa": "モードゥナ"
+    "ZoneNameJa": "モードゥナ",
+    "TerritoryTypeId": 156,
+    "MapId": 25,
+    "PlaceNameId": 67
   },
   {
     "Id": 25,
@@ -186,7 +250,11 @@
     "ZoneNameEn": "Amdapor Keep",
     "ZoneNameFr": "Le Château d'Amdapor",
     "ZoneNameJa": "古城アムダプール",
-    "DutyName": "Amdapor Keep"
+    "DutyName": "Amdapor Keep",
+    "TerritoryTypeId": 167,
+    "MapId": 49,
+    "PlaceNameId": 128,
+    "ContentFinderConditionId": 14
   },
   {
     "Id": 26,
@@ -194,7 +262,11 @@
     "ZoneNameEn": "The Labyrinth of the Ancients",
     "ZoneNameFr": "The Labyrinth of the Ancients",
     "ZoneNameJa": "クリスタルタワー：古代の民の迷宮",
-    "DutyName": "The Labyrinth of the Ancients"
+    "DutyName": "The Labyrinth of the Ancients",
+    "TerritoryTypeId": 174,
+    "MapId": 71,
+    "PlaceNameId": 478,
+    "ContentFinderConditionId": 92
   },
   {
     "Id": 27,
@@ -202,7 +274,11 @@
     "ZoneNameEn": "The Wanderer's Palace",
     "ZoneNameFr": "The Wanderer's Palace",
     "ZoneNameJa": "ワンダラーパレス",
-    "DutyName": "The Wanderer's Palace"
+    "DutyName": "The Wanderer's Palace",
+    "TerritoryTypeId": 159,
+    "MapId": 32,
+    "PlaceNameId": 37,
+    "ContentFinderConditionId": 10
   },
   {
     "Id": 28,
@@ -210,7 +286,11 @@
     "ZoneNameEn": "The Keeper of the Lake",
     "ZoneNameFr": "Le Gardien du lac",
     "ZoneNameJa": "黙約の塔",
-    "DutyName": "The Keeper of the Lake"
+    "DutyName": "The Keeper of the Lake",
+    "TerritoryTypeId": 1063,
+    "MapId": 201,
+    "PlaceNameId": 418,
+    "ContentFinderConditionId": 32
   },
   {
     "Id": 29,
@@ -218,14 +298,21 @@
     "ZoneNameEn": "Alphascape v3.0",
     "ZoneNameFr": "Alphastice v3.0",
     "ZoneNameJa": "次元の狭間オメガ：アルファ編3",
-    "DutyName": "Alphascape v3.0"
+    "DutyName": "Alphascape v3.0",
+    "TerritoryTypeId": 800,
+    "MapId": 486,
+    "PlaceNameId": 2727,
+    "ContentFinderConditionId": 589
   },
   {
     "Id": 30,
     "ZoneNameDe": "Zentrales Thanalan",
     "ZoneNameEn": "Central Thanalan",
     "ZoneNameFr": "Thanalan central",
-    "ZoneNameJa": "中央ザナラーン"
+    "ZoneNameJa": "中央ザナラーン",
+    "TerritoryTypeId": 141,
+    "MapId": 21,
+    "PlaceNameId": 43
   },
   {
     "Id": 31,
@@ -233,7 +320,11 @@
     "ZoneNameEn": "Battle in the Big Keep",
     "ZoneNameFr": "Revanche au vieux château",
     "ZoneNameJa": "真ギルガメッシュ討滅戦",
-    "DutyName": "Battle in the Big Keep"
+    "DutyName": "Battle in the Big Keep",
+    "TerritoryTypeId": 396,
+    "MapId": 210,
+    "PlaceNameId": 128,
+    "ContentFinderConditionId": 85
   },
   {
     "Id": 32,
@@ -241,7 +332,11 @@
     "ZoneNameEn": "Sigmascape v3.0",
     "ZoneNameFr": "Sigmastice v3.0",
     "ZoneNameJa": "被検世界「シグマ」V3.0",
-    "DutyName": "Sigmascape v3.0"
+    "DutyName": "Sigmascape v3.0",
+    "TerritoryTypeId": 750,
+    "MapId": 448,
+    "PlaceNameId": 2719,
+    "ContentFinderConditionId": 288
   },
   {
     "Id": 33,
@@ -249,14 +344,21 @@
     "ZoneNameEn": "The Sunken Temple of Qarn",
     "ZoneNameFr": "The Sunken Temple of Qarn",
     "ZoneNameJa": "カルン埋没寺院",
-    "DutyName": "The Sunken Temple of Qarn"
+    "DutyName": "The Sunken Temple of Qarn",
+    "TerritoryTypeId": 1267,
+    "MapId": 42,
+    "PlaceNameId": 50,
+    "ContentFinderConditionId": 9
   },
   {
     "Id": 34,
     "ZoneNameDe": "Westliches Thanalan",
     "ZoneNameEn": "Western Thanalan",
     "ZoneNameFr": "Thanalan occidental",
-    "ZoneNameJa": "西ザナラーン"
+    "ZoneNameJa": "西ザナラーン",
+    "TerritoryTypeId": 140,
+    "MapId": 20,
+    "PlaceNameId": 42
   },
   {
     "Id": 35,
@@ -264,7 +366,11 @@
     "ZoneNameEn": "Sastasha (Hard)",
     "ZoneNameFr": "Sastasha (brutal)",
     "ZoneNameJa": "サスタシャ浸食洞 (Hard)",
-    "DutyName": "Sastasha (Hard)"
+    "DutyName": "Sastasha (Hard)",
+    "TerritoryTypeId": 387,
+    "MapId": 169,
+    "PlaceNameId": 35,
+    "ContentFinderConditionId": 28
   },
   {
     "Id": 36,
@@ -272,7 +378,11 @@
     "ZoneNameEn": "Cutter's Cry",
     "ZoneNameFr": "Gouffre hurlant",
     "ZoneNameJa": "カッターズクライ",
-    "DutyName": "Cutter's Cry"
+    "DutyName": "Cutter's Cry",
+    "TerritoryTypeId": 1303,
+    "MapId": 52,
+    "PlaceNameId": 47,
+    "ContentFinderConditionId": 12
   },
   {
     "Id": 37,
@@ -287,7 +397,10 @@
     "ZoneNameDe": "Östliches La Noscea",
     "ZoneNameEn": "Eastern La Noscea",
     "ZoneNameFr": "Noscea orientale",
-    "ZoneNameJa": "東ラノシア"
+    "ZoneNameJa": "東ラノシア",
+    "TerritoryTypeId": 137,
+    "MapId": 17,
+    "PlaceNameId": 32
   },
   {
     "Id": 39,
@@ -295,7 +408,11 @@
     "ZoneNameEn": "The Stone Vigil (Hard)",
     "ZoneNameFr": "Le Vigile de Pierre (brutal)",
     "ZoneNameJa": "ストーンヴィジル (Hard)",
-    "DutyName": "The Stone Vigil (Hard)"
+    "DutyName": "The Stone Vigil (Hard)",
+    "TerritoryTypeId": 365,
+    "MapId": 157,
+    "PlaceNameId": 401,
+    "ContentFinderConditionId": 25
   },
   {
     "Id": 40,
@@ -303,7 +420,11 @@
     "ZoneNameEn": "The Wanderer's Palace (Hard)",
     "ZoneNameFr": "Le Palais du Vagabond (brutal)",
     "ZoneNameJa": "ワンダラーパレス (Hard)",
-    "DutyName": "The Wanderer's Palace (Hard)"
+    "DutyName": "The Wanderer's Palace (Hard)",
+    "TerritoryTypeId": 188,
+    "MapId": 188,
+    "PlaceNameId": 37,
+    "ContentFinderConditionId": 30
   },
   {
     "Id": 41,
@@ -311,7 +432,11 @@
     "ZoneNameEn": "The Howling Eye (Extreme)",
     "ZoneNameFr": "Hurlœil (extrême)",
     "ZoneNameJa": "極ガルーダ討滅戦",
-    "DutyName": "The Howling Eye (Extreme)"
+    "DutyName": "The Howling Eye (Extreme)",
+    "TerritoryTypeId": 297,
+    "MapId": 402,
+    "PlaceNameId": 361,
+    "ContentFinderConditionId": 65
   },
   {
     "Id": 42,
@@ -358,7 +483,10 @@
     "ZoneNameDe": "Abalathisches Wolkenmeer",
     "ZoneNameEn": "The Sea of Clouds",
     "ZoneNameFr": "L'Écume des cieux d'Abalathia",
-    "ZoneNameJa": "アバラシア雲海"
+    "ZoneNameJa": "アバラシア雲海",
+    "TerritoryTypeId": 401,
+    "MapId": 215,
+    "PlaceNameId": 2100
   },
   {
     "Id": 48,
@@ -366,7 +494,11 @@
     "ZoneNameEn": "The Dusk Vigil",
     "ZoneNameFr": "Le Vigile du Crépuscule",
     "ZoneNameJa": "廃砦捜索 ダスクヴィジル",
-    "DutyName": "The Dusk Vigil"
+    "DutyName": "The Dusk Vigil",
+    "TerritoryTypeId": 1366,
+    "MapId": 243,
+    "PlaceNameId": 2214,
+    "ContentFinderConditionId": 36
   },
   {
     "Id": 49,
@@ -382,14 +514,21 @@
     "ZoneNameEn": "Alexander: The Arm of the Father",
     "ZoneNameFr": "Alexander: The Arm of the Father",
     "ZoneNameJa": "Alexander: The Arm of the Father",
-    "DutyName": "Alexander: The Arm of the Father"
+    "DutyName": "Alexander - The Arm of the Father",
+    "TerritoryTypeId": 444,
+    "MapId": 239,
+    "PlaceNameId": 1638,
+    "ContentFinderConditionId": 114
   },
   {
     "Id": 51,
     "ZoneNameDe": "Coerthas Western Highlands",
     "ZoneNameEn": "Coerthas Western Highlands",
     "ZoneNameFr": "Coerthas Western Highlands",
-    "ZoneNameJa": "クルザス西部高地"
+    "ZoneNameJa": "クルザス西部高地",
+    "TerritoryTypeId": 397,
+    "MapId": 211,
+    "PlaceNameId": 2200
   },
   {
     "Id": 52,
@@ -397,14 +536,21 @@
     "ZoneNameEn": "Snowcloak",
     "ZoneNameFr": "Manteneige",
     "ZoneNameJa": "スノークローク大氷壁",
-    "DutyName": "Snowcloak"
+    "DutyName": "Snowcloak",
+    "TerritoryTypeId": 1062,
+    "MapId": 174,
+    "PlaceNameId": 404,
+    "ContentFinderConditionId": 27
   },
   {
     "Id": 53,
     "ZoneNameDe": "Foundation",
     "ZoneNameEn": "Foundation",
     "ZoneNameFr": "Foundation",
-    "ZoneNameJa": "イシュガルド：下層"
+    "ZoneNameJa": "イシュガルド：下層",
+    "TerritoryTypeId": 418,
+    "MapId": 218,
+    "PlaceNameId": 2300
   },
   {
     "Id": 54,
@@ -412,7 +558,11 @@
     "ZoneNameEn": "Haukke Manor (Hard)",
     "ZoneNameFr": "Manoir des Haukke (brutal)",
     "ZoneNameJa": "ハウケタ御用邸 (Hard)",
-    "DutyName": "Haukke Manor (Hard)"
+    "DutyName": "Haukke Manor (Hard)",
+    "TerritoryTypeId": 350,
+    "MapId": 137,
+    "PlaceNameId": 59,
+    "ContentFinderConditionId": 19
   },
   {
     "Id": 55,
@@ -420,14 +570,21 @@
     "ZoneNameEn": "The Great Gubal Library",
     "ZoneNameFr": "The Great Gubal Library",
     "ZoneNameJa": "グブラ幻想図書館",
-    "DutyName": "The Great Gubal Library"
+    "DutyName": "The Great Gubal Library",
+    "TerritoryTypeId": 1109,
+    "MapId": 241,
+    "PlaceNameId": 2038,
+    "ContentFinderConditionId": 31
   },
   {
     "Id": 56,
     "ZoneNameDe": "Azys Lla",
     "ZoneNameEn": "Azys Lla",
     "ZoneNameFr": "Azys Lla",
-    "ZoneNameJa": "アジス・ラー"
+    "ZoneNameJa": "アジス・ラー",
+    "TerritoryTypeId": 402,
+    "MapId": 216,
+    "PlaceNameId": 2101
   },
   {
     "Id": 57,
@@ -435,7 +592,11 @@
     "ZoneNameEn": "The Lost City of Amdapor",
     "ZoneNameFr": "Les Vestiges de la cité d'Amdapor",
     "ZoneNameJa": "古アムダプール市街",
-    "DutyName": "The Lost City of Amdapor"
+    "DutyName": "The Lost City of Amdapor",
+    "TerritoryTypeId": 363,
+    "MapId": 151,
+    "PlaceNameId": 125,
+    "ContentFinderConditionId": 22
   },
   {
     "Id": 58,
@@ -451,7 +612,11 @@
     "ZoneNameEn": "Alexander: The Breath of the Creator",
     "ZoneNameFr": "Alexander: The Breath of the Creator",
     "ZoneNameJa": "Alexander: The Breath of the Creator",
-    "DutyName": "Alexander: The Breath of the Creator"
+    "DutyName": "Alexander - The Breath of the Creator",
+    "TerritoryTypeId": 581,
+    "MapId": 328,
+    "PlaceNameId": 1841,
+    "ContentFinderConditionId": 187
   },
   {
     "Id": 60,
@@ -459,7 +624,11 @@
     "ZoneNameEn": "The Great Gubal Library (Hard)",
     "ZoneNameFr": "La Grande bibliothèque de Gubal (brutal)",
     "ZoneNameJa": "グブラ幻想図書館 (Hard)",
-    "DutyName": "The Great Gubal Library (Hard)"
+    "DutyName": "The Great Gubal Library (Hard)",
+    "TerritoryTypeId": 578,
+    "MapId": 311,
+    "PlaceNameId": 2038,
+    "ContentFinderConditionId": 196
   },
   {
     "Id": 61,
@@ -475,14 +644,21 @@
     "ZoneNameEn": "Saint Mocianne's Arboretum",
     "ZoneNameFr": "L'Arboretum Sainte-Mocianne",
     "ZoneNameJa": "聖モシャーヌ植物園",
-    "DutyName": "Saint Mocianne's Arboretum"
+    "DutyName": "Saint Mocianne's Arboretum",
+    "TerritoryTypeId": 511,
+    "MapId": 268,
+    "PlaceNameId": 2034,
+    "ContentFinderConditionId": 41
   },
   {
     "Id": 63,
     "ZoneNameDe": "Dravanisches Hinterland",
     "ZoneNameEn": "The Dravanian Hinterlands",
     "ZoneNameFr": "Arrière-pays dravanien",
-    "ZoneNameJa": "低地ドラヴァニア"
+    "ZoneNameJa": "低地ドラヴァニア",
+    "TerritoryTypeId": 399,
+    "MapId": 213,
+    "PlaceNameId": 2001
   },
   {
     "Id": 64,
@@ -490,7 +666,11 @@
     "ZoneNameEn": "The Vault",
     "ZoneNameFr": "La Voûte",
     "ZoneNameJa": "イシュガルド教皇庁",
-    "DutyName": "The Vault"
+    "DutyName": "The Vault",
+    "TerritoryTypeId": 1066,
+    "MapId": 248,
+    "PlaceNameId": 2327,
+    "ContentFinderConditionId": 34
   },
   {
     "Id": 65,
@@ -498,7 +678,11 @@
     "ZoneNameEn": "Baelsar's Wall",
     "ZoneNameFr": "La Muraille de Baelsar",
     "ZoneNameJa": "バエサルの長城",
-    "DutyName": "Baelsar's Wall"
+    "DutyName": "Baelsar's Wall",
+    "TerritoryTypeId": 1114,
+    "MapId": 337,
+    "PlaceNameId": 1857,
+    "ContentFinderConditionId": 219
   },
   {
     "Id": 66,
@@ -506,7 +690,11 @@
     "ZoneNameEn": "Alexander: The Burden of the Father",
     "ZoneNameFr": "Alexander: The Burden of the Father",
     "ZoneNameJa": "Alexander: The Burden of the Father",
-    "DutyName": "Alexander: The Burden of the Father"
+    "DutyName": "Alexander - The Burden of the Father",
+    "TerritoryTypeId": 445,
+    "MapId": 240,
+    "PlaceNameId": 1645,
+    "ContentFinderConditionId": 115
   },
   {
     "Id": 67,
@@ -514,7 +702,11 @@
     "ZoneNameEn": "The Sunken Temple of Qarn (Hard)",
     "ZoneNameFr": "Le Temple enseveli de Qarn (brutal)",
     "ZoneNameJa": "カルン埋没寺院 (Hard)",
-    "DutyName": "The Sunken Temple of Qarn (Hard)"
+    "DutyName": "The Sunken Temple of Qarn (Hard)",
+    "TerritoryTypeId": 367,
+    "MapId": 182,
+    "PlaceNameId": 50,
+    "ContentFinderConditionId": 26
   },
   {
     "Id": 68,
@@ -522,7 +714,10 @@
     "ZoneNameEn": "The Churning Mists",
     "ZoneNameFr": "L'Écume des cieux de Dravania",
     "ZoneNameJa": "ドラヴァニア雲海",
-    "Coordinates": "23, 29"
+    "Coordinates": "23, 29",
+    "TerritoryTypeId": 400,
+    "MapId": 214,
+    "PlaceNameId": 2002
   },
   {
     "Id": 69,
@@ -530,7 +725,11 @@
     "ZoneNameEn": "Saint Mocianne's Arboretum (Hard)",
     "ZoneNameFr": "L'Arboretum Sainte-Mocianne (brutal)",
     "ZoneNameJa": "聖モシャーヌ植物園 (Hard)",
-    "DutyName": "Saint Mocianne's Arboretum (Hard)"
+    "DutyName": "Saint Mocianne's Arboretum (Hard)",
+    "TerritoryTypeId": 788,
+    "MapId": 481,
+    "PlaceNameId": 2034,
+    "ContentFinderConditionId": 584
   },
   {
     "Id": 70,
@@ -538,7 +737,11 @@
     "ZoneNameEn": "World of Darkness",
     "ZoneNameFr": "World of Darkness",
     "ZoneNameJa": "World of Darkness",
-    "DutyName": "World of Darkness"
+    "DutyName": "The World of Darkness",
+    "TerritoryTypeId": 151,
+    "MapId": 184,
+    "PlaceNameId": 1431,
+    "ContentFinderConditionId": 111
   },
   {
     "Id": 71,
@@ -546,7 +749,11 @@
     "ZoneNameEn": "Pharos Sirius (Hard)",
     "ZoneNameFr": "Pharos Sirius (Hard)",
     "ZoneNameJa": "シリウス大灯台 (Hard)",
-    "DutyName": "Pharos Sirius (Hard)"
+    "DutyName": "Pharos Sirius (Hard)",
+    "TerritoryTypeId": 510,
+    "MapId": 262,
+    "PlaceNameId": 230,
+    "ContentFinderConditionId": 40
   },
   {
     "Id": 72,
@@ -562,14 +769,21 @@
     "ZoneNameEn": "Containment Bay P1T6",
     "ZoneNameFr": "Unité de contention P1P6",
     "ZoneNameJa": "コンテイメントベイP1T6",
-    "DutyName": "Containment Bay P1T6"
+    "DutyName": "Containment Bay P1T6",
+    "TerritoryTypeId": 576,
+    "MapId": 334,
+    "PlaceNameId": 2265,
+    "ContentFinderConditionId": 183
   },
   {
     "Id": 74,
     "ZoneNameDe": "Yanxia",
     "ZoneNameEn": "Yanxia",
     "ZoneNameFr": "Yanxia",
-    "ZoneNameJa": "ヤンサ"
+    "ZoneNameJa": "ヤンサ",
+    "TerritoryTypeId": 614,
+    "MapId": 354,
+    "PlaceNameId": 2410
   },
   {
     "Id": 75,
@@ -577,14 +791,23 @@
     "ZoneNameEn": "Kugane Castle",
     "ZoneNameFr": "Kugane Castle",
     "ZoneNameJa": "クガネ城",
-    "DutyName": "Kugane Castle"
+    "DutyName": "Kugane Castle",
+    "TerritoryTypeId": 662,
+    "MapId": 360,
+    "PlaceNameId": 2298,
+    "ContentFinderConditionId": 262
   },
   {
     "Id": 76,
     "ZoneNameDe": "The Burn (leave one head alive)",
     "ZoneNameEn": "The Burn",
     "ZoneNameFr": "L'Escarre (laisser une tête en vie)",
-    "ZoneNameJa": "ザ・バーン"
+    "ZoneNameJa": "ザ・バーン",
+    "DutyName": "The Burn",
+    "PlaceNameId": 2851,
+    "TerritoryTypeId": 1173,
+    "MapId": 480,
+    "ContentFinderConditionId": 585
   },
   {
     "Id": 77,
@@ -592,7 +815,11 @@
     "ZoneNameEn": "Emanation",
     "ZoneNameFr": "Émanation",
     "ZoneNameJa": "美神の地下神殿",
-    "DutyName": "Emanation"
+    "DutyName": "Emanation",
+    "TerritoryTypeId": 719,
+    "MapId": 399,
+    "PlaceNameId": 2299,
+    "ContentFinderConditionId": 263
   },
   {
     "Id": 78,
@@ -600,7 +827,11 @@
     "ZoneNameEn": "Sigmascape v1.0",
     "ZoneNameFr": "Sigmastice v1.0",
     "ZoneNameJa": "被検世界「シグマ」V1.0",
-    "DutyName": "Sigmascape v1.0"
+    "DutyName": "Sigmascape v1.0",
+    "TerritoryTypeId": 748,
+    "MapId": 446,
+    "PlaceNameId": 2717,
+    "ContentFinderConditionId": 286
   },
   {
     "Id": 79,
@@ -608,7 +839,11 @@
     "ZoneNameEn": "Hells' Lid",
     "ZoneNameFr": "Le Couvercle des enfers",
     "ZoneNameJa": "獄之蓋",
-    "DutyName": "Hells' Lid"
+    "DutyName": "Hells' Lid",
+    "TerritoryTypeId": 742,
+    "MapId": 439,
+    "PlaceNameId": 2762,
+    "ContentFinderConditionId": 284
   },
   {
     "Id": 80,
@@ -616,7 +851,11 @@
     "ZoneNameEn": "Temple of the Fist",
     "ZoneNameFr": "Le Temple du Poing",
     "ZoneNameJa": "Temple of the Fist",
-    "DutyName": "Temple of the Fist"
+    "DutyName": "The Temple of the Fist",
+    "TerritoryTypeId": 663,
+    "MapId": 362,
+    "PlaceNameId": 2707,
+    "ContentFinderConditionId": 236
   },
   {
     "Id": 81,
@@ -624,7 +863,10 @@
     "ZoneNameEn": "Upper La Noscea",
     "ZoneNameFr": "Haute-Noscea",
     "ZoneNameJa": "高地ラノシア",
-    "Coordinates": "9, 21"
+    "Coordinates": "9, 21",
+    "TerritoryTypeId": 139,
+    "MapId": 19,
+    "PlaceNameId": 34
   },
   {
     "Id": 82,
@@ -632,7 +874,10 @@
     "ZoneNameEn": "The Peaks",
     "ZoneNameFr": "Les Pics",
     "ZoneNameJa": "ギラバニア山岳地帯",
-    "Coordinates": "11, 25"
+    "Coordinates": "11, 25",
+    "TerritoryTypeId": 620,
+    "MapId": 368,
+    "PlaceNameId": 2407
   },
   {
     "Id": 83,
@@ -640,7 +885,11 @@
     "ZoneNameEn": "Deltascape v1.0",
     "ZoneNameFr": "Deltastice V1.0",
     "ZoneNameJa": "被検世界「デルタ」V1.0",
-    "DutyName": "Deltascape v1.0"
+    "DutyName": "Deltascape v1.0",
+    "TerritoryTypeId": 691,
+    "MapId": 390,
+    "PlaceNameId": 2357,
+    "ContentFinderConditionId": 252
   },
   {
     "Id": 84,
@@ -648,7 +897,10 @@
     "ZoneNameEn": "The Lochs",
     "ZoneNameFr": "Les Lacs",
     "ZoneNameJa": "ギラバニア湖畔地帯",
-    "Coordinates": "22, 22"
+    "Coordinates": "22, 22",
+    "TerritoryTypeId": 621,
+    "MapId": 369,
+    "PlaceNameId": 2408
   },
   {
     "Id": 85,
@@ -656,7 +908,11 @@
     "ZoneNameEn": "Drowned City of Skalla",
     "ZoneNameFr": "La Cité engloutie de Skalla",
     "ZoneNameJa": "Drowned City of Skalla",
-    "DutyName": "Drowned City of Skalla"
+    "DutyName": "The Drowned City of Skalla",
+    "TerritoryTypeId": 1172,
+    "MapId": 413,
+    "PlaceNameId": 2367,
+    "ContentFinderConditionId": 279
   },
   {
     "Id": 86,
@@ -664,7 +920,11 @@
     "ZoneNameEn": "The Swallow's Compass",
     "ZoneNameFr": "Le Compas de l'Hirondelle",
     "ZoneNameJa": "ガンエン廟",
-    "DutyName": "The Swallow's Compass"
+    "DutyName": "The Swallow's Compass",
+    "TerritoryTypeId": 768,
+    "MapId": 464,
+    "PlaceNameId": 2801,
+    "ContentFinderConditionId": 536
   },
   {
     "Id": 87,
@@ -672,7 +932,10 @@
     "ZoneNameEn": "The Dravanian Forelands",
     "ZoneNameFr": "Avant-pays dravanien",
     "ZoneNameJa": "高地ドラヴァニア",
-    "Coordinates": "34, 28"
+    "Coordinates": "34, 28",
+    "TerritoryTypeId": 398,
+    "MapId": 212,
+    "PlaceNameId": 2000
   },
   {
     "Id": 88,
@@ -680,7 +943,11 @@
     "ZoneNameEn": "Hells' Kier",
     "ZoneNameFr": "Le Nid des Lamentations",
     "ZoneNameJa": "獄之底",
-    "DutyName": "Hells' Kier"
+    "DutyName": "Hells' Kier",
+    "TerritoryTypeId": 810,
+    "MapId": 503,
+    "PlaceNameId": 2496,
+    "ContentFinderConditionId": 596
   },
   {
     "Id": 89,
@@ -688,7 +955,11 @@
     "ZoneNameEn": "Castrum Fluminis",
     "ZoneNameFr": "Castrum Fluminis",
     "ZoneNameJa": "カストルム・フルーミニス",
-    "DutyName": "Castrum Fluminis"
+    "DutyName": "Castrum Fluminis",
+    "TerritoryTypeId": 778,
+    "MapId": 476,
+    "PlaceNameId": 2450,
+    "ContentFinderConditionId": 537
   },
   {
     "Id": 90,
@@ -696,7 +967,10 @@
     "ZoneNameEn": "Kholusia",
     "ZoneNameFr": "Kholusia",
     "ZoneNameJa": "コルシア島",
-    "Coordinates": "33, 33"
+    "Coordinates": "33, 33",
+    "TerritoryTypeId": 814,
+    "MapId": 492,
+    "PlaceNameId": 2954
   },
   {
     "Id": 91,
@@ -704,7 +978,11 @@
     "ZoneNameEn": "Malikah's Well",
     "ZoneNameFr": "Le Puits de Malikah",
     "ZoneNameJa": "マリカの大井戸",
-    "DutyName": "Malikah's Well"
+    "DutyName": "Malikah's Well",
+    "TerritoryTypeId": 836,
+    "MapId": 540,
+    "PlaceNameId": 3139,
+    "ContentFinderConditionId": 656
   },
   {
     "Id": 92,
@@ -712,7 +990,10 @@
     "ZoneNameEn": "Amh Araeng",
     "ZoneNameFr": "Amh Araeng",
     "ZoneNameJa": "アム・アレーン",
-    "Coordinates": "16, 30"
+    "Coordinates": "16, 30",
+    "TerritoryTypeId": 815,
+    "MapId": 493,
+    "PlaceNameId": 2955
   },
   {
     "Id": 93,
@@ -720,7 +1001,11 @@
     "ZoneNameEn": "The Heroes' Gauntlet",
     "ZoneNameFr": "La Traversée de Norvrandt",
     "ZoneNameJa": "漆黒決戦 ノルヴラント",
-    "DutyName": "The Heroes' Gauntlet"
+    "DutyName": "The Heroes' Gauntlet",
+    "TerritoryTypeId": 916,
+    "MapId": 592,
+    "PlaceNameId": 3511,
+    "ContentFinderConditionId": 737
   },
   {
     "Id": 94,
@@ -728,7 +1013,11 @@
     "ZoneNameEn": "Matoya's Relict",
     "ZoneNameFr": "L'Atelier abandonné de Matoya",
     "ZoneNameJa": "マトーヤのアトリエ",
-    "DutyName": "Matoya's Relict"
+    "DutyName": "Matoya's Relict",
+    "TerritoryTypeId": 933,
+    "MapId": 627,
+    "PlaceNameId": 3590,
+    "ContentFinderConditionId": 746
   },
   {
     "Id": 95,
@@ -736,7 +1025,11 @@
     "ZoneNameEn": "The Grand Cosmos",
     "ZoneNameFr": "Le Cosmos coruscant",
     "ZoneNameJa": "グラン・コスモス",
-    "DutyName": "The Grand Cosmos"
+    "DutyName": "The Grand Cosmos",
+    "TerritoryTypeId": 884,
+    "MapId": 567,
+    "PlaceNameId": 3385,
+    "ContentFinderConditionId": 692
   },
   {
     "Id": 96,
@@ -744,7 +1037,10 @@
     "ZoneNameEn": "Cinder Drift",
     "ZoneNameFr": "Les Nuées de Brandons",
     "ZoneNameJa": "ギムリト防衛ライン",
-    "DutyName": "Cinder Drift"
+    "DutyName": "Cinder Drift",
+    "TerritoryTypeId": 897,
+    "PlaceNameId": 3442,
+    "ContentFinderConditionId": 717
   },
   {
     "Id": 97,
@@ -752,7 +1048,11 @@
     "ZoneNameEn": "The Dancing Plague",
     "ZoneNameFr": "La Valse du Monarque",
     "ZoneNameJa": "妖精王の舞踏場",
-    "DutyName": "The Dancing Plague"
+    "DutyName": "The Dancing Plague",
+    "TerritoryTypeId": 845,
+    "MapId": 556,
+    "PlaceNameId": 3218,
+    "ContentFinderConditionId": 657
   },
   {
     "Id": 98,
@@ -760,7 +1060,11 @@
     "ZoneNameEn": "Eden's Gate: Resurrection",
     "ZoneNameFr": "L'Éveil d'Éden - Résurrection",
     "ZoneNameJa": "希望の園エデン：覚醒編1",
-    "DutyName": "Eden's Gate: Resurrection"
+    "DutyName": "Eden's Gate: Resurrection",
+    "TerritoryTypeId": 849,
+    "MapId": 559,
+    "PlaceNameId": 3214,
+    "ContentFinderConditionId": 653
   },
   {
     "Id": 99,
@@ -768,7 +1072,11 @@
     "ZoneNameEn": "Mt. Gulg",
     "ZoneNameFr": "Mont Gulg",
     "ZoneNameJa": "グルグ火山",
-    "DutyName": "Mt. Gulg"
+    "DutyName": "Mt. Gulg",
+    "TerritoryTypeId": 822,
+    "MapId": 536,
+    "PlaceNameId": 2997,
+    "ContentFinderConditionId": 659
   },
   {
     "Id": 100,
@@ -776,7 +1084,11 @@
     "ZoneNameEn": "Containment Bay P1T6 (Extreme)",
     "ZoneNameFr": "Containment Bay P1T6 (Extreme)",
     "ZoneNameJa": "極女神ソフィア討滅戦",
-    "DutyName": "Containment Bay P1T6 (Extreme)"
+    "DutyName": "Containment Bay P1T6 (Extreme)",
+    "TerritoryTypeId": 577,
+    "MapId": 334,
+    "PlaceNameId": 2265,
+    "ContentFinderConditionId": 184
   },
   {
     "Id": 101,
@@ -784,7 +1096,11 @@
     "ZoneNameEn": "The Crown of the Immaculate",
     "ZoneNameFr": "La Couronne de l'Immaculé",
     "ZoneNameJa": "イマキュレートクラウン",
-    "DutyName": "The Crown of the Immaculate"
+    "DutyName": "The Crown of the Immaculate",
+    "TerritoryTypeId": 846,
+    "MapId": 557,
+    "PlaceNameId": 3219,
+    "ContentFinderConditionId": 666
   },
   {
     "Id": 102,
@@ -792,7 +1108,11 @@
     "ZoneNameEn": "Eden's Promise: Eternity",
     "ZoneNameFr": "La Promesse d'Éden - Éternité",
     "ZoneNameJa": "希望の園エデン：再生編4",
-    "DutyName": "Eden's Promise: Eternity"
+    "DutyName": "Eden's Promise: Eternity",
+    "TerritoryTypeId": 945,
+    "MapId": 632,
+    "PlaceNameId": 3635,
+    "ContentFinderConditionId": 758
   },
   {
     "Id": 103,
@@ -800,7 +1120,11 @@
     "ZoneNameEn": "Dohn Mheg",
     "ZoneNameFr": "Dohn Mheg",
     "ZoneNameJa": "ドォーヌ・メグ",
-    "DutyName": "Dohn Mheg"
+    "DutyName": "Dohn Mheg",
+    "TerritoryTypeId": 821,
+    "MapId": 528,
+    "PlaceNameId": 2979,
+    "ContentFinderConditionId": 649
   },
   {
     "Id": 104,
@@ -808,7 +1132,11 @@
     "ZoneNameEn": "Amaurot",
     "ZoneNameFr": "Amaurote",
     "ZoneNameJa": "アーモロート",
-    "DutyName": "Amaurot"
+    "DutyName": "Amaurot",
+    "TerritoryTypeId": 838,
+    "MapId": 532,
+    "PlaceNameId": 2985,
+    "ContentFinderConditionId": 652
   },
   {
     "Id": 105,
@@ -816,7 +1144,10 @@
     "ZoneNameEn": "Western Thanalan",
     "ZoneNameFr": "Thanalan occidental",
     "ZoneNameJa": "西ザナラーン",
-    "Coordinates": "27, 16"
+    "Coordinates": "27, 16",
+    "TerritoryTypeId": 140,
+    "MapId": 20,
+    "PlaceNameId": 42
   },
   {
     "Id": 106,
@@ -824,7 +1155,11 @@
     "ZoneNameEn": "Copperbell Mines",
     "ZoneNameFr": "Copperbell Mines",
     "ZoneNameJa": "カッパーベル銅山",
-    "DutyName": "Copperbell Mines"
+    "DutyName": "Copperbell Mines",
+    "TerritoryTypeId": 1038,
+    "MapId": 34,
+    "PlaceNameId": 48,
+    "ContentFinderConditionId": 3
   },
   {
     "Id": 107,
@@ -832,7 +1167,11 @@
     "ZoneNameEn": "Halatali",
     "ZoneNameFr": "Halatali",
     "ZoneNameJa": "ハラタリ修練所",
-    "DutyName": "Halatali"
+    "DutyName": "Halatali",
+    "TerritoryTypeId": 1245,
+    "MapId": 46,
+    "PlaceNameId": 49,
+    "ContentFinderConditionId": 7
   },
   {
     "Id": 108,
@@ -841,5 +1180,39 @@
     "ZoneNameFr": "Masked Carnivale: 08",
     "ZoneNameJa": "Masked Carnivale: 08",
     "DutyName": "Masked Carnivale: 08"
+  },
+  {
+    "Id": 109,
+    "ZoneNameDe": "Tiefer Wald",
+    "ZoneNameEn": "Central Shroud",
+    "ZoneNameFr": "Forêt centrale",
+    "ZoneNameJa": "黒衣森：中央森林",
+    "Coordinates": "15, 21",
+    "TerritoryTypeId": 148,
+    "MapId": 4,
+    "PlaceNameId": 54
+  },
+  {
+    "Id": 110,
+    "ZoneNameDe": "Kampf gegen die Dhorme-Chimära",
+    "ZoneNameEn": "A Relic Reborn: The Chimera",
+    "ZoneNameFr": "La chimère dhorme du Coerthas",
+    "ZoneNameJa": "ドルムキマイラ討伐戦",
+    "DutyName": "A Relic Reborn: The Chimera",
+    "TerritoryTypeId": 368,
+    "MapId": 53,
+    "PlaceNameId": 392,
+    "ContentFinderConditionId": 74
+  },
+  {
+    "Id": 111,
+    "ZoneNameDe": "Tiefer Wald",
+    "ZoneNameEn": "Central Shroud",
+    "ZoneNameFr": "Forêt centrale",
+    "ZoneNameJa": "黒衣森：中央森林",
+    "Coordinates": "13, 21",
+    "TerritoryTypeId": 148,
+    "MapId": 4,
+    "PlaceNameId": 54
   }
 ]

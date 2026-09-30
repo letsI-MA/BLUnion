@@ -20,6 +20,11 @@ public sealed class Spell
 
     public string? Description { get; init; }
 
+    // Game-IDs aus tools/data-enrich (optional - fehlen sie, greift der JSON-Text, siehe GameTextService).
+    public uint? ActionId { get; init; }
+
+    public uint? AozActionId { get; init; }
+
     public string GetName(DisplayLanguage language) =>
         DisplayLanguageText.Select(language, this.NameDe, this.NameEn, this.NameFr, this.NameJa);
 }

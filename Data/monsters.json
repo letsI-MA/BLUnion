@@ -5,7 +5,8 @@
     "NameEn": "Typhon",
     "NameFr": "Typhon",
     "NameJa": "テュポーン",
-    "LocationId": 1
+    "LocationId": 1,
+    "BNpcNameId": 3046
   },
   {
     "Id": 2,
@@ -13,7 +14,8 @@
     "NameEn": "Typhon",
     "NameFr": "Typhon",
     "NameJa": "テュポーン",
-    "LocationId": 2
+    "LocationId": 2,
+    "BNpcNameId": 3046
   },
   {
     "Id": 3,
@@ -21,7 +23,8 @@
     "NameEn": "Typhon",
     "NameFr": "Typhon",
     "NameJa": "テュポーン",
-    "LocationId": 3
+    "LocationId": 3,
+    "BNpcNameId": 3046
   },
   {
     "Id": 4,
@@ -29,7 +32,8 @@
     "NameEn": "Ultros",
     "NameFr": "Ultros",
     "NameJa": "オルトロス",
-    "LocationId": 1
+    "LocationId": 1,
+    "BNpcNameId": 3047
   },
   {
     "Id": 5,
@@ -37,7 +41,8 @@
     "NameEn": "Siren",
     "NameFr": "Sirène",
     "NameJa": "セイレーン",
-    "LocationId": 4
+    "LocationId": 4,
+    "BNpcNameId": 1417
   },
   {
     "Id": 6,
@@ -45,7 +50,8 @@
     "NameEn": "Bestial Node",
     "NameFr": "Sphère bestiale",
     "NameJa": "闘獣システム",
-    "LocationId": 5
+    "LocationId": 5,
+    "BNpcNameId": 8109
   },
   {
     "Id": 7,
@@ -61,7 +67,8 @@
     "NameEn": "Stroper",
     "NameFr": "Storoper",
     "NameJa": "ストローパー",
-    "LocationId": 7
+    "LocationId": 111,
+    "BNpcNameId": 238
   },
   {
     "Id": 9,
@@ -69,7 +76,7 @@
     "NameEn": "Haliostroper",
     "NameFr": "Haliostroper",
     "NameJa": "Haliostroper",
-    "LocationId": 8
+    "LocationId": 109
   },
   {
     "Id": 10,
@@ -77,7 +84,8 @@
     "NameEn": "Morbol",
     "NameFr": "Morbol",
     "NameJa": "モルボル",
-    "LocationId": 9
+    "LocationId": 9,
+    "BNpcNameId": 237
   },
   {
     "Id": 11,
@@ -93,7 +101,8 @@
     "NameEn": "Zu",
     "NameFr": "Zu",
     "NameJa": "ズー",
-    "LocationId": 4
+    "LocationId": 4,
+    "BNpcNameId": 2261
   },
   {
     "Id": 13,
@@ -101,7 +110,8 @@
     "NameEn": "Clay Golem",
     "NameFr": "Clay Golem",
     "NameJa": "クレイゴーレム",
-    "LocationId": 11
+    "LocationId": 11,
+    "BNpcNameId": 30
   },
   {
     "Id": 14,
@@ -109,7 +119,8 @@
     "NameEn": "Sandstone Golem",
     "NameFr": "Golem de grès",
     "NameJa": "サンドストーン・ゴーレム",
-    "LocationId": 12
+    "LocationId": 12,
+    "BNpcNameId": 280
   },
   {
     "Id": 15,
@@ -117,7 +128,8 @@
     "NameEn": "Basalt Golem",
     "NameFr": "Golem de basalte",
     "NameJa": "バサルトゴーレム",
-    "LocationId": 13
+    "LocationId": 13,
+    "BNpcNameId": 365
   },
   {
     "Id": 16,
@@ -125,7 +137,8 @@
     "NameEn": "Azulmagia",
     "NameFr": "Azulmagia",
     "NameJa": "アポカリョープス",
-    "LocationId": 14
+    "LocationId": 14,
+    "BNpcNameId": 8129
   },
   {
     "Id": 17,
@@ -133,7 +146,8 @@
     "NameEn": "Treant Sapling",
     "NameFr": "Pousse de tréant",
     "NameJa": "トレント・サップリング",
-    "LocationId": 11
+    "LocationId": 11,
+    "BNpcNameId": 128
   },
   {
     "Id": 18,
@@ -141,7 +155,8 @@
     "NameEn": "Treant Sapling",
     "NameFr": "Treant Sapling",
     "NameJa": "トレント・サップリング",
-    "LocationId": 7
+    "LocationId": 7,
+    "BNpcNameId": 128
   },
   {
     "Id": 19,
@@ -149,7 +164,8 @@
     "NameEn": "Treant Sapling",
     "NameFr": "Treant Sapling",
     "NameJa": "トレント・サップリング",
-    "LocationId": 15
+    "LocationId": 15,
+    "BNpcNameId": 128
   },
   {
     "Id": 20,
@@ -157,7 +173,8 @@
     "NameEn": "Wild Boar",
     "NameFr": "Sanglier sauvage",
     "NameJa": "ワイルドボア",
-    "LocationId": 15
+    "LocationId": 15,
+    "BNpcNameId": 16
   },
   {
     "Id": 21,
@@ -165,7 +182,8 @@
     "NameEn": "Galvanth the Dominator",
     "NameFr": "Galvanth le Tyran",
     "NameJa": "絶対王ガルヴァンス",
-    "LocationId": 16
+    "LocationId": 16,
+    "BNpcNameId": 73
   },
   {
     "Id": 22,
@@ -173,7 +191,8 @@
     "NameEn": "Blaster",
     "NameFr": "Blaster",
     "NameJa": "ブラスター",
-    "LocationId": 17
+    "LocationId": 17,
+    "BNpcNameId": 4699
   },
   {
     "Id": 23,
@@ -181,7 +200,8 @@
     "NameEn": "Chigoe",
     "NameFr": "Chigoe",
     "NameJa": "チゴー",
-    "LocationId": 7
+    "LocationId": 7,
+    "BNpcNameId": 43
   },
   {
     "Id": 24,
@@ -189,7 +209,8 @@
     "NameEn": "Cave Bat",
     "NameFr": "Cave Bat",
     "NameJa": "ケーブバット",
-    "LocationId": 18
+    "LocationId": 18,
+    "BNpcNameId": 364
   },
   {
     "Id": 25,
@@ -197,7 +218,8 @@
     "NameEn": "Attic Bat",
     "NameFr": "Attic Bat",
     "NameJa": "アティックバット",
-    "LocationId": 19
+    "LocationId": 19,
+    "BNpcNameId": 430
   },
   {
     "Id": 26,
@@ -221,7 +243,8 @@
     "NameEn": "Magitek Vanguard H-2",
     "NameFr": "Avant-garde magitek améliorée",
     "NameJa": "魔導ヴァンガード強化型",
-    "LocationId": 21
+    "LocationId": 21,
+    "BNpcNameId": 8138
   },
   {
     "Id": 29,
@@ -229,7 +252,8 @@
     "NameEn": "Magitek Vangob G-III",
     "NameFr": "Magitek Vangob G-III",
     "NameJa": "III号ゴブリガード",
-    "LocationId": 22
+    "LocationId": 22,
+    "BNpcNameId": 2549
   },
   {
     "Id": 30,
@@ -237,7 +261,8 @@
     "NameEn": "Magitek Vanguard",
     "NameFr": "Magitek Vanguard",
     "NameJa": "魔導ヴァンガード",
-    "LocationId": 23
+    "LocationId": 23,
+    "BNpcNameId": 269
   },
   {
     "Id": 31,
@@ -254,7 +279,8 @@
     "NameEn": "Anantaboga",
     "NameFr": "Anantaboga",
     "NameJa": "アナンタボガ",
-    "LocationId": 25
+    "LocationId": 25,
+    "BNpcNameId": 1696
   },
   {
     "Id": 33,
@@ -262,7 +288,8 @@
     "NameEn": "Valefor",
     "NameFr": "Valefor",
     "NameJa": "バルフレー",
-    "LocationId": 26
+    "LocationId": 26,
+    "BNpcNameId": 820
   },
   {
     "Id": 34,
@@ -270,7 +297,8 @@
     "NameEn": "Tonberry King",
     "NameFr": "Tonberry King",
     "NameJa": "トンベリキング",
-    "LocationId": 27
+    "LocationId": 27,
+    "BNpcNameId": 1547
   },
   {
     "Id": 35,
@@ -278,7 +306,8 @@
     "NameEn": "Magitek Gunship",
     "NameFr": "Vaisseau magitek",
     "NameJa": "魔導ガンシップ",
-    "LocationId": 28
+    "LocationId": 28,
+    "BNpcNameId": 3373
   },
   {
     "Id": 36,
@@ -286,7 +315,8 @@
     "NameEn": "Gobmachine G-VI",
     "NameFr": "Gobtank G-VI",
     "NameJa": "VI号ゴブリタンク",
-    "LocationId": 22
+    "LocationId": 22,
+    "BNpcNameId": 2547
   },
   {
     "Id": 37,
@@ -294,7 +324,8 @@
     "NameEn": "Omega",
     "NameFr": "Oméga",
     "NameJa": "オメガ",
-    "LocationId": 29
+    "LocationId": 29,
+    "BNpcNameId": 7635
   },
   {
     "Id": 38,
@@ -302,7 +333,8 @@
     "NameEn": "Qiqirn Shellsweeper",
     "NameFr": "Qiqirn casse-coquille",
     "NameJa": "キキルン・シェルスウィーパー",
-    "LocationId": 30
+    "LocationId": 30,
+    "BNpcNameId": 266
   },
   {
     "Id": 39,
@@ -310,7 +342,8 @@
     "NameEn": "Qiqirn Eggdigger",
     "NameFr": "Qiqirn Eggdigger",
     "NameJa": "キキルン・ビーチコンバー",
-    "LocationId": 18
+    "LocationId": 18,
+    "BNpcNameId": 350
   },
   {
     "Id": 40,
@@ -318,7 +351,8 @@
     "NameEn": "Coincounter",
     "NameFr": "Trésorier",
     "NameJa": "コインカウンター",
-    "LocationId": 9
+    "LocationId": 9,
+    "BNpcNameId": 1533
   },
   {
     "Id": 41,
@@ -326,7 +360,8 @@
     "NameEn": "Enkidu",
     "NameFr": "Enkidu",
     "NameJa": "Enkidu",
-    "LocationId": 31
+    "LocationId": 31,
+    "BNpcNameId": 2666
   },
   {
     "Id": 42,
@@ -334,7 +369,8 @@
     "NameEn": "Guardian",
     "NameFr": "Gardien",
     "NameJa": "ガーディアン",
-    "LocationId": 32
+    "LocationId": 32,
+    "BNpcNameId": 7107
   },
   {
     "Id": 43,
@@ -350,7 +386,8 @@
     "NameEn": "Killer Wespe",
     "NameFr": "Frelon tueur",
     "NameJa": "キラー・ヴェスパ",
-    "LocationId": 20
+    "LocationId": 20,
+    "BNpcNameId": 8134
   },
   {
     "Id": 45,
@@ -358,7 +395,8 @@
     "NameEn": "Temple Bee",
     "NameFr": "Temple Bee",
     "NameJa": "テンプルビー",
-    "LocationId": 33
+    "LocationId": 33,
+    "BNpcNameId": 1575
   },
   {
     "Id": 46,
@@ -374,7 +412,8 @@
     "NameEn": "Giggling Gigantoad",
     "NameFr": "Crapaud rieur géant",
     "NameJa": "ラフィング・ギガントード",
-    "LocationId": 34
+    "LocationId": 34,
+    "BNpcNameId": 8136
   },
   {
     "Id": 48,
@@ -390,7 +429,8 @@
     "NameEn": "Toxic Toad",
     "NameFr": "Toxic Toad",
     "NameJa": "トキシックトード",
-    "LocationId": 30
+    "LocationId": 30,
+    "BNpcNameId": 216
   },
   {
     "Id": 50,
@@ -398,7 +438,8 @@
     "NameEn": "Laughing Toad",
     "NameFr": "Crapaud rieur",
     "NameJa": "ラフィングトード",
-    "LocationId": 34
+    "LocationId": 34,
+    "BNpcNameId": 217
   },
   {
     "Id": 51,
@@ -406,7 +447,8 @@
     "NameEn": "Karlabos",
     "NameFr": "Karlabos",
     "NameJa": "カーラボス",
-    "LocationId": 35
+    "LocationId": 35,
+    "BNpcNameId": 3014
   },
   {
     "Id": 52,
@@ -414,7 +456,8 @@
     "NameEn": "Manor Sentry",
     "NameFr": "Sentinelle du manoir",
     "NameJa": "Manor Sentry",
-    "LocationId": 19
+    "LocationId": 19,
+    "BNpcNameId": 428
   },
   {
     "Id": 53,
@@ -446,7 +489,8 @@
     "NameEn": "Trickster Imp",
     "NameFr": "Imp farceur",
     "NameJa": "Trickster Imp",
-    "LocationId": 7
+    "LocationId": 7,
+    "BNpcNameId": 21
   },
   {
     "Id": 57,
@@ -454,7 +498,8 @@
     "NameEn": "Manor Jester",
     "NameFr": "Manor Jester",
     "NameJa": "御用邸の道化師",
-    "LocationId": 19
+    "LocationId": 19,
+    "BNpcNameId": 426
   },
   {
     "Id": 58,
@@ -462,7 +507,8 @@
     "NameEn": "Chimera",
     "NameFr": "Chimère",
     "NameJa": "キマイラ",
-    "LocationId": 36
+    "LocationId": 36,
+    "BNpcNameId": 1590
   },
   {
     "Id": 59,
@@ -470,8 +516,9 @@
     "NameEn": "Dhorme Chimera",
     "NameFr": "Dhorme Chimera",
     "NameJa": "ドルムキマイラ",
-    "Notes": "Levequest \"A Relic Reborn: The Chimera\" (Levequest)",
-    "LocationId": 24
+    "Notes": "Trial \"A Relic Reborn: The Chimera\"",
+    "LocationId": 110,
+    "BNpcNameId": 2162
   },
   {
     "Id": 60,
@@ -479,7 +526,8 @@
     "NameEn": "Azulmagia",
     "NameFr": "Azulmagia",
     "NameJa": "アポカリョープス",
-    "LocationId": 37
+    "LocationId": 37,
+    "BNpcNameId": 8129
   },
   {
     "Id": 61,
@@ -487,7 +535,8 @@
     "NameEn": "Lentic Mudpuppy",
     "NameFr": "Protée lacustre",
     "NameJa": "レンティック・マッドパピー",
-    "LocationId": 24
+    "LocationId": 24,
+    "BNpcNameId": 8139
   },
   {
     "Id": 62,
@@ -495,7 +544,8 @@
     "NameEn": "Kraken",
     "NameFr": "Kraken",
     "NameJa": "Kraken",
-    "LocationId": 35
+    "LocationId": 35,
+    "BNpcNameId": 2904
   },
   {
     "Id": 63,
@@ -503,7 +553,8 @@
     "NameEn": "Apkallu",
     "NameFr": "Apkallu",
     "NameJa": "アプカル",
-    "LocationId": 38
+    "LocationId": 38,
+    "BNpcNameId": 341
   },
   {
     "Id": 64,
@@ -511,7 +562,8 @@
     "NameEn": "Cuca Fera",
     "NameFr": "Cuca Fera",
     "NameJa": "クカフェラ",
-    "LocationId": 39
+    "LocationId": 39,
+    "BNpcNameId": 2775
   },
   {
     "Id": 65,
@@ -519,7 +571,8 @@
     "NameEn": "Frumious Koheel Ja",
     "NameFr": "Koheel Ja",
     "NameJa": "角折のコヘージャ",
-    "LocationId": 40
+    "LocationId": 40,
+    "BNpcNameId": 3091
   },
   {
     "Id": 66,
@@ -527,7 +580,8 @@
     "NameEn": "Garuda",
     "NameFr": "Garuda",
     "NameJa": "ガルーダ",
-    "LocationId": 41
+    "LocationId": 41,
+    "BNpcNameId": 1644
   },
   {
     "Id": 67,
@@ -535,7 +589,8 @@
     "NameEn": "Ifrit",
     "NameFr": "Ifrit",
     "NameJa": "イフリート",
-    "LocationId": 42
+    "LocationId": 42,
+    "BNpcNameId": 1185
   },
   {
     "Id": 68,
@@ -543,7 +598,8 @@
     "NameEn": "Titan",
     "NameFr": "Titan",
     "NameJa": "タイタン",
-    "LocationId": 43
+    "LocationId": 43,
+    "BNpcNameId": 1801
   },
   {
     "Id": 69,
@@ -551,7 +607,8 @@
     "NameEn": "Ramuh",
     "NameFr": "Ramuh",
     "NameJa": "ラムウ",
-    "LocationId": 44
+    "LocationId": 44,
+    "BNpcNameId": 2832
   },
   {
     "Id": 70,
@@ -559,7 +616,8 @@
     "NameEn": "Shiva",
     "NameFr": "Shiva",
     "NameJa": "シヴァ",
-    "LocationId": 45
+    "LocationId": 45,
+    "BNpcNameId": 2994
   },
   {
     "Id": 71,
@@ -567,7 +625,8 @@
     "NameEn": "Leviathan",
     "NameFr": "Léviathan",
     "NameJa": "リヴァイアサン",
-    "LocationId": 46
+    "LocationId": 46,
+    "BNpcNameId": 2505
   },
   {
     "Id": 72,
@@ -575,7 +634,8 @@
     "NameEn": "Griffin",
     "NameFr": "Griffon",
     "NameJa": "グリフィン",
-    "LocationId": 47
+    "LocationId": 47,
+    "BNpcNameId": 3526
   },
   {
     "Id": 73,
@@ -583,7 +643,8 @@
     "NameEn": "Opinicus",
     "NameFr": "Opinicus",
     "NameJa": "オピニコス",
-    "LocationId": 48
+    "LocationId": 48,
+    "BNpcNameId": 3409
   },
   {
     "Id": 74,
@@ -591,7 +652,8 @@
     "NameEn": "Shikigami of the Undertow",
     "NameFr": "Shikigami of the Undertow",
     "NameJa": "水のシキガミ",
-    "LocationId": 49
+    "LocationId": 49,
+    "BNpcNameId": 9241
   },
   {
     "Id": 75,
@@ -599,7 +661,8 @@
     "NameEn": "Living Liquid",
     "NameFr": "Living Liquid",
     "NameJa": "リビングリキッド",
-    "LocationId": 50
+    "LocationId": 50,
+    "BNpcNameId": 3765
   },
   {
     "Id": 76,
@@ -607,7 +670,8 @@
     "NameEn": "Yeti",
     "NameFr": "Yeti",
     "NameJa": "イエティ",
-    "LocationId": 51
+    "LocationId": 51,
+    "BNpcNameId": 792
   },
   {
     "Id": 77,
@@ -615,7 +679,8 @@
     "NameEn": "Yeti",
     "NameFr": "Yéti",
     "NameJa": "イエティ",
-    "LocationId": 52
+    "LocationId": 52,
+    "BNpcNameId": 792
   },
   {
     "Id": 78,
@@ -623,7 +688,8 @@
     "NameEn": "Conodont",
     "NameFr": "Conodont",
     "NameJa": "コノドント",
-    "LocationId": 47
+    "LocationId": 47,
+    "BNpcNameId": 3496
   },
   {
     "Id": 79,
@@ -632,7 +698,8 @@
     "NameFr": "Arch Demon",
     "NameJa": "アークデーモン",
     "Notes": "(Levequest)",
-    "LocationId": 53
+    "LocationId": 53,
+    "BNpcNameId": 2838
   },
   {
     "Id": 80,
@@ -640,7 +707,8 @@
     "NameEn": "Ash",
     "NameFr": "Astaroth",
     "NameJa": "アッシュ",
-    "LocationId": 54
+    "LocationId": 54,
+    "BNpcNameId": 2341
   },
   {
     "Id": 81,
@@ -656,7 +724,8 @@
     "NameEn": "Paissa",
     "NameFr": "Païssa",
     "NameJa": "パイッサ",
-    "LocationId": 47
+    "LocationId": 47,
+    "BNpcNameId": 3499
   },
   {
     "Id": 83,
@@ -664,7 +733,8 @@
     "NameEn": "Empuse",
     "NameFr": "Emoussa",
     "NameJa": "エンプーサ",
-    "LocationId": 56
+    "LocationId": 56,
+    "BNpcNameId": 3541
   },
   {
     "Id": 84,
@@ -672,7 +742,8 @@
     "NameEn": "Arioch",
     "NameFr": "Arioch",
     "NameJa": "アリオク",
-    "LocationId": 57
+    "LocationId": 57,
+    "BNpcNameId": 2560
   },
   {
     "Id": 85,
@@ -688,7 +759,8 @@
     "NameEn": "Alexandrian Hider",
     "NameFr": "Alexandrian Hider",
     "NameJa": "アレキ・アンブッシャー",
-    "LocationId": 59
+    "LocationId": 59,
+    "BNpcNameId": 5206
   },
   {
     "Id": 87,
@@ -696,7 +768,8 @@
     "NameEn": "Apanda",
     "NameFr": "Apanda",
     "NameJa": "アパンダ",
-    "LocationId": 60
+    "LocationId": 60,
+    "BNpcNameId": 5238
   },
   {
     "Id": 88,
@@ -704,7 +777,8 @@
     "NameEn": "Epilogi",
     "NameFr": "Epilogi",
     "NameJa": "エペロギ",
-    "LocationId": 61
+    "LocationId": 61,
+    "BNpcNameId": 8125
   },
   {
     "Id": 89,
@@ -712,7 +786,8 @@
     "NameEn": "Queen Hawk",
     "NameFr": "Reine des guêpes",
     "NameJa": "Queen Hawk",
-    "LocationId": 62
+    "LocationId": 62,
+    "BNpcNameId": 4656
   },
   {
     "Id": 90,
@@ -720,7 +795,8 @@
     "NameEn": "Poroggo",
     "NameFr": "Poroggo",
     "NameJa": "ポロッゴ",
-    "LocationId": 63
+    "LocationId": 63,
+    "BNpcNameId": 3607
   },
   {
     "Id": 91,
@@ -728,7 +804,8 @@
     "NameEn": "Anzu",
     "NameFr": "Anzu",
     "NameJa": "アンズー",
-    "LocationId": 47
+    "LocationId": 47,
+    "BNpcNameId": 3524
   },
   {
     "Id": 92,
@@ -736,7 +813,8 @@
     "NameEn": "Dhalmel",
     "NameFr": "Dhalmel",
     "NameJa": "ダルメル",
-    "LocationId": 47
+    "LocationId": 47,
+    "BNpcNameId": 3505
   },
   {
     "Id": 93,
@@ -744,7 +822,8 @@
     "NameEn": "White Knight",
     "NameFr": "Cavalier blanc",
     "NameJa": "ホワイト・オートナイト",
-    "LocationId": 64
+    "LocationId": 64,
+    "BNpcNameId": 3845
   },
   {
     "Id": 94,
@@ -752,7 +831,8 @@
     "NameEn": "Black Knight",
     "NameFr": "Cavalier noir",
     "NameJa": "ブラック・オートナイト",
-    "LocationId": 64
+    "LocationId": 64,
+    "BNpcNameId": 3846
   },
   {
     "Id": 95,
@@ -760,7 +840,8 @@
     "NameEn": "Page 64",
     "NameFr": "Page 64",
     "NameJa": "64ページ",
-    "LocationId": 55
+    "LocationId": 55,
+    "BNpcNameId": 3915
   },
   {
     "Id": 96,
@@ -768,7 +849,8 @@
     "NameEn": "Armored Weapon",
     "NameFr": "Arme blindée",
     "NameJa": "アームドウェポン",
-    "LocationId": 65
+    "LocationId": 65,
+    "BNpcNameId": 5562
   },
   {
     "Id": 97,
@@ -776,7 +858,8 @@
     "NameEn": "The Manipulator",
     "NameFr": "The Manipulator",
     "NameJa": "マニピュレーター",
-    "LocationId": 66
+    "LocationId": 66,
+    "BNpcNameId": 3772
   },
   {
     "Id": 98,
@@ -784,7 +867,8 @@
     "NameEn": "Sabotender Guardia",
     "NameFr": "Pampa garde",
     "NameJa": "サボテンダー・ガーディア",
-    "LocationId": 67
+    "LocationId": 67,
+    "BNpcNameId": 3074
   },
   {
     "Id": 99,
@@ -808,7 +892,8 @@
     "NameEn": "Abalathian Wamoura",
     "NameFr": "Abalathian Wamoura",
     "NameJa": "アバラシア・ワモーラ",
-    "LocationId": 47
+    "LocationId": 47,
+    "BNpcNameId": 9249
   },
   {
     "Id": 102,
@@ -816,7 +901,8 @@
     "NameEn": "Cloud Wyvern",
     "NameFr": "Wyverne des nuages",
     "NameJa": "クラウドワイバーン",
-    "LocationId": 68
+    "LocationId": 68,
+    "BNpcNameId": 9248
   },
   {
     "Id": 103,
@@ -824,7 +910,8 @@
     "NameEn": "Decaying Gourmand",
     "NameFr": "Glouton putride",
     "NameJa": "ロッティング・グルマン",
-    "LocationId": 57
+    "LocationId": 57,
+    "BNpcNameId": 2556
   },
   {
     "Id": 104,
@@ -832,7 +919,8 @@
     "NameEn": "Nullchu",
     "NameFr": "Nullchu",
     "NameJa": "ヌルチュー",
-    "LocationId": 69
+    "LocationId": 69,
+    "BNpcNameId": 7659
   },
   {
     "Id": 105,
@@ -840,7 +928,8 @@
     "NameEn": "Cerberus",
     "NameFr": "Cerberus",
     "NameJa": "ケルベロス",
-    "LocationId": 70
+    "LocationId": 70,
+    "BNpcNameId": 3234
   },
   {
     "Id": 106,
@@ -848,7 +937,8 @@
     "NameEn": "Mechanoscribe",
     "NameFr": "Mécano-scribe",
     "NameJa": "メカノスクライブ",
-    "LocationId": 60
+    "LocationId": 60,
+    "BNpcNameId": 5236
   },
   {
     "Id": 107,
@@ -856,7 +946,8 @@
     "NameEn": "Arena Scribe",
     "NameFr": "Scribe de l'arène",
     "NameJa": "アリーナ・スクライブ",
-    "LocationId": 61
+    "LocationId": 61,
+    "BNpcNameId": 8128
   },
   {
     "Id": 108,
@@ -864,7 +955,8 @@
     "NameEn": "Ghrah Luminary",
     "NameFr": "Ghrah Luminary",
     "NameJa": "ルミナリー・ゴラホ",
-    "LocationId": 71
+    "LocationId": 71,
+    "BNpcNameId": 4567
   },
   {
     "Id": 109,
@@ -872,7 +964,8 @@
     "NameEn": "Ravana",
     "NameFr": "Ravana",
     "NameJa": "ラーヴァナ",
-    "LocationId": 72
+    "LocationId": 72,
+    "BNpcNameId": 3660
   },
   {
     "Id": 110,
@@ -880,7 +973,8 @@
     "NameEn": "Sophia",
     "NameFr": "Sophia",
     "NameJa": "ソフィア",
-    "LocationId": 73
+    "LocationId": 73,
+    "BNpcNameId": 5199
   },
   {
     "Id": 111,
@@ -888,7 +982,8 @@
     "NameEn": "Brute Justice",
     "NameFr": "Brute Justice",
     "NameJa": "ブルートジャスティス",
-    "LocationId": 17
+    "LocationId": 17,
+    "BNpcNameId": 4708
   },
   {
     "Id": 112,
@@ -896,7 +991,8 @@
     "NameEn": "Ebisu Catfish",
     "NameFr": "Namazu ebisu",
     "NameJa": "エビス・ナマズオ",
-    "LocationId": 74
+    "LocationId": 74,
+    "BNpcNameId": 5769
   },
   {
     "Id": 113,
@@ -904,7 +1000,8 @@
     "NameEn": "Dojun-maru",
     "NameFr": "Dojun-maru",
     "NameJa": "ドウジュン丸",
-    "LocationId": 75
+    "LocationId": 75,
+    "BNpcNameId": 6087
   },
   {
     "Id": 114,
@@ -912,7 +1009,8 @@
     "NameEn": "Mist Dragon",
     "NameFr": "Dragon des brumes",
     "NameJa": "ミストドラゴン",
-    "LocationId": 76
+    "LocationId": 76,
+    "BNpcNameId": 7672
   },
   {
     "Id": 115,
@@ -920,7 +1018,8 @@
     "NameEn": "Lakshmi",
     "NameFr": "Lakshmi",
     "NameJa": "ラクシュミ",
-    "LocationId": 77
+    "LocationId": 77,
+    "BNpcNameId": 6385
   },
   {
     "Id": 116,
@@ -928,7 +1027,8 @@
     "NameEn": "Phantom Train",
     "NameFr": "Train fantôme",
     "NameJa": "魔列車",
-    "LocationId": 78
+    "LocationId": 78,
+    "BNpcNameId": 7127
   },
   {
     "Id": 117,
@@ -936,7 +1036,8 @@
     "NameEn": "Tokkapchi",
     "NameFr": "Tokkapchi",
     "NameJa": "トカップチ",
-    "LocationId": 69
+    "LocationId": 69,
+    "BNpcNameId": 7662
   },
   {
     "Id": 118,
@@ -952,7 +1053,8 @@
     "NameEn": "Genbu",
     "NameFr": "Genbu",
     "NameJa": "玄武",
-    "LocationId": 79
+    "LocationId": 79,
+    "BNpcNameId": 6996
   },
   {
     "Id": 120,
@@ -960,7 +1062,8 @@
     "NameEn": "Ivon Coeurlfist",
     "NameFr": "Ivon le Coeurl",
     "NameJa": "双豹のイヴォン",
-    "LocationId": 80
+    "LocationId": 80,
+    "BNpcNameId": 6117
   },
   {
     "Id": 121,
@@ -968,7 +1071,8 @@
     "NameEn": "Master Coeurl",
     "NameFr": "Maître coeurl",
     "NameJa": "マスタークァール",
-    "LocationId": 81
+    "LocationId": 81,
+    "BNpcNameId": 9911
   },
   {
     "Id": 122,
@@ -984,7 +1088,8 @@
     "NameEn": "Kongamato",
     "NameFr": "Kongamato",
     "NameJa": "コンガマトー",
-    "LocationId": 82
+    "LocationId": 82,
+    "BNpcNameId": 5714
   },
   {
     "Id": 124,
@@ -992,7 +1097,8 @@
     "NameEn": "Alte Roite",
     "NameFr": "Alte Roite",
     "NameJa": "アルテ・ロイテ",
-    "LocationId": 83
+    "LocationId": 83,
+    "BNpcNameId": 5629
   },
   {
     "Id": 125,
@@ -1008,7 +1114,8 @@
     "NameEn": "Salt Dhruva",
     "NameFr": "Dhruva de sel",
     "NameJa": "ドルヴァ",
-    "LocationId": 84
+    "LocationId": 84,
+    "BNpcNameId": 5722
   },
   {
     "Id": 127,
@@ -1016,7 +1123,8 @@
     "NameEn": "Kelpie",
     "NameFr": "Kelpie",
     "NameJa": "ケルピー",
-    "LocationId": 85
+    "LocationId": 85,
+    "BNpcNameId": 6907
   },
   {
     "Id": 128,
@@ -1024,7 +1132,8 @@
     "NameEn": "Sai Taisui",
     "NameFr": "Sai Taisui",
     "NameJa": "サイタイサイ",
-    "LocationId": 86
+    "LocationId": 86,
+    "BNpcNameId": 7206
   },
   {
     "Id": 129,
@@ -1032,7 +1141,8 @@
     "NameEn": "Courser Chocobo",
     "NameFr": "Chocobo coursier",
     "NameJa": "コーサーチョコボ",
-    "LocationId": 87
+    "LocationId": 87,
+    "BNpcNameId": 9912
   },
   {
     "Id": 130,
@@ -1040,7 +1150,8 @@
     "NameEn": "Qitian Dasheng",
     "NameFr": "Qitian Dasheng",
     "NameJa": "セイテンタイセイ",
-    "LocationId": 86
+    "LocationId": 86,
+    "BNpcNameId": 7203
   },
   {
     "Id": 131,
@@ -1048,7 +1159,8 @@
     "NameEn": "Suzaku",
     "NameFr": "Suzaku",
     "NameJa": "朱雀",
-    "LocationId": 88
+    "LocationId": 88,
+    "BNpcNameId": 7702
   },
   {
     "Id": 132,
@@ -1056,7 +1168,8 @@
     "NameEn": "Tsukuyomi",
     "NameFr": "Tsukuyomi",
     "NameJa": "ツクヨミ",
-    "LocationId": 89
+    "LocationId": 89,
+    "BNpcNameId": 7225
   },
   {
     "Id": 133,
@@ -1064,7 +1177,8 @@
     "NameEn": "Hobgoblin",
     "NameFr": "Hobgobelin",
     "NameJa": "ホブゴブリン",
-    "LocationId": 90
+    "LocationId": 90,
+    "BNpcNameId": 8518
   },
   {
     "Id": 134,
@@ -1072,7 +1186,8 @@
     "NameEn": "Greater Armadillo",
     "NameFr": "Grand tatou",
     "NameJa": "グレーター・アルマジロ",
-    "LocationId": 91
+    "LocationId": 91,
+    "BNpcNameId": 8252
   },
   {
     "Id": 135,
@@ -1080,7 +1195,8 @@
     "NameEn": "Long-tailed Armadillo",
     "NameFr": "Tatou longue-queue",
     "NameJa": "ロングテール・アルマジロ",
-    "LocationId": 92
+    "LocationId": 92,
+    "BNpcNameId": 8546
   },
   {
     "Id": 136,
@@ -1088,7 +1204,8 @@
     "NameEn": "Slippery Armadillo",
     "NameFr": "Tatou fuyard",
     "NameJa": "スリッパリー・アルマジロ",
-    "LocationId": 92
+    "LocationId": 92,
+    "BNpcNameId": 10902
   },
   {
     "Id": 137,
@@ -1104,7 +1221,8 @@
     "NameEn": "Spectral Berserker",
     "NameFr": "Berserker spectral",
     "NameJa": "幻光のバーサーカー",
-    "LocationId": 93
+    "LocationId": 93,
+    "BNpcNameId": 9511
   },
   {
     "Id": 139,
@@ -1112,7 +1230,8 @@
     "NameEn": "Mudman",
     "NameFr": "Tadboue",
     "NameJa": "マッドマン",
-    "LocationId": 94
+    "LocationId": 94,
+    "BNpcNameId": 9735
   },
   {
     "Id": 140,
@@ -1120,7 +1239,8 @@
     "NameEn": "Seeker Of Solitude",
     "NameFr": "Ermite du palais",
     "NameJa": "宮殿の隠者",
-    "LocationId": 95
+    "LocationId": 95,
+    "BNpcNameId": 9041
   },
   {
     "Id": 141,
@@ -1128,7 +1248,8 @@
     "NameEn": "The Ruby Weapon",
     "NameFr": "Arme Rubis",
     "NameJa": "ルビーウェポン",
-    "LocationId": 96
+    "LocationId": 96,
+    "BNpcNameId": 9250
   },
   {
     "Id": 142,
@@ -1136,7 +1257,8 @@
     "NameEn": "Titania",
     "NameFr": "Titania",
     "NameJa": "ティターニア",
-    "LocationId": 97
+    "LocationId": 97,
+    "BNpcNameId": 8361
   },
   {
     "Id": 143,
@@ -1144,7 +1266,8 @@
     "NameEn": "Eden Prime",
     "NameFr": "Primo-Éden",
     "NameJa": "エデン・プライム",
-    "LocationId": 98
+    "LocationId": 98,
+    "BNpcNameId": 8345
   },
   {
     "Id": 144,
@@ -1152,7 +1275,8 @@
     "NameEn": "Forgiven Obscenity",
     "NameFr": "Obscénité pardonnée",
     "NameJa": "フォーギヴン・オブセニティー",
-    "LocationId": 99
+    "LocationId": 99,
+    "BNpcNameId": 8262
   },
   {
     "Id": 145,
@@ -1168,7 +1292,8 @@
     "NameEn": "Sephirot",
     "NameFr": "Sephirot",
     "NameJa": "セフィロト",
-    "LocationId": 100
+    "LocationId": 100,
+    "BNpcNameId": 4776
   },
   {
     "Id": 147,
@@ -1176,7 +1301,8 @@
     "NameEn": "Innocence",
     "NameFr": "Innocence",
     "NameJa": "イノセンス",
-    "LocationId": 101
+    "LocationId": 101,
+    "BNpcNameId": 8297
   },
   {
     "Id": 148,
@@ -1184,7 +1310,8 @@
     "NameEn": "Eden's Promise",
     "NameFr": "Promesse d'Éden",
     "NameJa": "プロミス・オブ・エデン",
-    "LocationId": 102
+    "LocationId": 102,
+    "BNpcNameId": 9813
   },
   {
     "Id": 149,
@@ -1208,7 +1335,8 @@
     "NameEn": "Lugus",
     "NameFr": "Lugus",
     "NameJa": "ルゴス",
-    "LocationId": 95
+    "LocationId": 95,
+    "BNpcNameId": 9046
   },
   {
     "Id": 152,
@@ -1216,7 +1344,8 @@
     "NameEn": "Nixie",
     "NameFr": "Nixe",
     "NameJa": "ノッケン",
-    "LocationId": 94
+    "LocationId": 94,
+    "BNpcNameId": 9738
   },
   {
     "Id": 153,
@@ -1224,7 +1353,8 @@
     "NameEn": "Therion",
     "NameFr": "Mégatherion",
     "NameJa": "メガセリオン",
-    "LocationId": 104
+    "LocationId": 104,
+    "BNpcNameId": 8210
   },
   {
     "Id": 154,
@@ -1233,7 +1363,8 @@
     "NameFr": "Orthros",
     "NameJa": "オルトロス",
     "Notes": "Masked Carnivale: erscheint als \"Miss Typhon\"",
-    "LocationId": 2
+    "LocationId": 2,
+    "BNpcNameId": 3047
   },
   {
     "Id": 155,
@@ -1242,7 +1373,8 @@
     "NameFr": "Sergent-major Dalvag (Rang B)",
     "NameJa": "不滅のフェランド闘軍曹",
     "Notes": "B-Rang-Mark",
-    "LocationId": 21
+    "LocationId": 21,
+    "BNpcNameId": 2927
   },
   {
     "Id": 156,
@@ -1250,7 +1382,8 @@
     "NameEn": "Baalzephon",
     "NameFr": "Baalzephon",
     "NameJa": "バールゼフォン",
-    "LocationId": 57
+    "LocationId": 57,
+    "BNpcNameId": 2573
   },
   {
     "Id": 157,
@@ -1258,7 +1391,8 @@
     "NameEn": "Dantalion",
     "NameFr": "Dantalion",
     "NameJa": "ダンタリオン",
-    "LocationId": 16
+    "LocationId": 16,
+    "BNpcNameId": 2846
   },
   {
     "Id": 158,
@@ -1266,7 +1400,8 @@
     "NameEn": "Phantom Knight",
     "NameFr": "Phantom Knight",
     "NameJa": "ファントムナイト",
-    "LocationId": 16
+    "LocationId": 16,
+    "BNpcNameId": 2847
   },
   {
     "Id": 159,
@@ -1274,7 +1409,8 @@
     "NameEn": "Glide Bomb",
     "NameFr": "Bombo planeur",
     "NameJa": "グライド・ボム",
-    "LocationId": 105
+    "LocationId": 105,
+    "BNpcNameId": 8135
   },
   {
     "Id": 160,
@@ -1282,7 +1418,8 @@
     "NameEn": "Bomb",
     "NameFr": "Bomb",
     "NameJa": "Bomb",
-    "LocationId": 106
+    "LocationId": 106,
+    "BNpcNameId": 316
   },
   {
     "Id": 161,
@@ -1290,7 +1427,8 @@
     "NameEn": "Bomb",
     "NameFr": "Bomb",
     "NameJa": "Bomb",
-    "LocationId": 107
+    "LocationId": 107,
+    "BNpcNameId": 316
   },
   {
     "Id": 162,
@@ -1298,7 +1436,8 @@
     "NameEn": "Bomb",
     "NameFr": "Bomb",
     "NameJa": "Bomb",
-    "LocationId": 36
+    "LocationId": 36,
+    "BNpcNameId": 316
   },
   {
     "Id": 163,
@@ -1306,7 +1445,8 @@
     "NameEn": "Cherry Bomb",
     "NameFr": "Cherry Bomb",
     "NameJa": "タイニーボム",
-    "LocationId": 108
+    "LocationId": 108,
+    "BNpcNameId": 11521
   },
   {
     "Id": 164,
@@ -1315,5 +1455,14 @@
     "NameFr": "Connu dès le départ",
     "NameJa": "最初から習得",
     "Notes": "Von Anfang an bekannt (Default-Spell), kein echtes Monster."
+  },
+  {
+    "Id": 165,
+    "NameDe": "Todesweide",
+    "NameEn": "Stroper",
+    "NameFr": "Storoper",
+    "NameJa": "ストローパー",
+    "LocationId": 8,
+    "BNpcNameId": 238
   }
 ]

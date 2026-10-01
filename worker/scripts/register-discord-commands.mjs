@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Registriert "/blunion browse" als GUILD-Command (NICHT global, siehe DISCORD_INTEGRATION.md
+ * Registriert "/blunion browse" und "/blunion online" als GUILD-Command (NICHT global, siehe DISCORD_INTEGRATION.md
  * Punkt "Noch KEINE globale Command-Registrierung") für genau EINEN Testserver. Bewusst ein
  * eigenständiges Node-Skript statt Teil des Workers: läuft einmalig lokal von Hand, braucht dafür
  * den Bot-Token deiner Discord-Application - der NIE im Worker/in KV/in wrangler.toml landet, nur
@@ -70,6 +70,21 @@ const commandDefinition = {
             { name: "Groups", value: "groups" },
             { name: "Players", value: "players" },
           ],
+        },
+      ],
+    },
+    // "/blunion online datacenter:<DC>" - gleiche datacenter-Option wie bei browse (freier Text,
+    // kanonisiert/validiert im Worker), hier aber Pflicht. Antwort ist ephemeral (nur für den Aufrufer).
+    {
+      name: "online",
+      description: "Show listed Blue Mages who share their online status and are online right now",
+      type: 1, // SUB_COMMAND
+      options: [
+        {
+          name: "datacenter",
+          description: 'Data center, e.g. "Aether", "Chaos", "Light"',
+          type: 3, // STRING
+          required: true,
         },
       ],
     },

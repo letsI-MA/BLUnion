@@ -23,11 +23,13 @@ public static class Onboarding
         return true;
     }
 
-    // Übernimmt die Auswahl aus dem Fenster. Online-Status nur zusammen mit Live-Sync.
+    // Übernimmt die Auswahl aus dem Fenster. Online-Status nur zusammen mit Live-Sync. Das Fenster hat
+    // die Option gezeigt - der Bestandsnutzer-Hinweis (PresenceHints.ShowNewOptionNotice) entfällt.
     public static void ApplyChoice(Configuration configuration, bool enableLiveSync, bool sharePresence)
     {
         configuration.LiveSyncEnabled = enableLiveSync;
         configuration.SharePresence = enableLiveSync && sharePresence;
         configuration.OnboardingCompleted = true;
+        configuration.SharePresenceNoticeDismissed = true;
     }
 }

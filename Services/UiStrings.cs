@@ -244,6 +244,10 @@ public static class UiStrings
         SharePresenceToggle,
         SharePresenceHint,
         SharePresenceRequiresLiveSyncHint,
+        SharePresenceListedOnlyHint,
+        SharePresenceNotListedWarning,
+        SharePresenceNewOptionNotice,
+        SharePresenceNewOptionDismissButton,
         PresenceOnline,
         PresenceLastSeenMinutesFormat,
         PresenceLastSeenHoursFormat,
@@ -2029,10 +2033,38 @@ public static class UiStrings
         },
         [Key.SharePresenceHint] = new()
         {
-            [DisplayLanguage.German] = "Andere sehen im Group Finder, ob du gerade online bist bzw. grob wann zuletzt - nur solange dein Eintrag gelistet ist.",
-            [DisplayLanguage.English] = "Others see in the Group Finder whether you are online right now or roughly when you last were - only while your entry is listed.",
-            [DisplayLanguage.French] = "Les autres voient dans le Group Finder si tu es en ligne ou, approximativement, quand tu l'étais pour la dernière fois - uniquement tant que ton entrée est inscrite.",
-            [DisplayLanguage.Japanese] = "グループファインダーで、あなたが現在オンラインか、または最後にオンラインだったおおよその時間が表示されます(掲載中のみ)。",
+            [DisplayLanguage.German] = "Andere sehen im Group Finder, ob du gerade online bist bzw. grob wann zuletzt.",
+            [DisplayLanguage.English] = "Others see in the Group Finder whether you are online right now or roughly when you last were.",
+            [DisplayLanguage.French] = "Les autres voient dans le Group Finder si tu es en ligne ou, approximativement, quand tu l'étais pour la dernière fois.",
+            [DisplayLanguage.Japanese] = "グループファインダーで、あなたが現在オンラインか、または最後にオンラインだったおおよその時間が表示されます。",
+        },
+        [Key.SharePresenceListedOnlyHint] = new()
+        {
+            [DisplayLanguage.German] = "Der Status ist nur sichtbar, wenn dein eigener Eintrag im Group Finder gelistet ist.",
+            [DisplayLanguage.English] = "The status is only visible if your own entry is listed in the Group Finder.",
+            [DisplayLanguage.French] = "Le statut n'est visible que si ta propre entrée est inscrite dans le Group Finder.",
+            [DisplayLanguage.Japanese] = "ステータスは、自分のエントリーがグループファインダーに掲載されている場合のみ表示されます。",
+        },
+        [Key.SharePresenceNotListedWarning] = new()
+        {
+            [DisplayLanguage.German] = "Dein Eintrag ist nicht gelistet - der Status ist für andere nicht sichtbar.",
+            [DisplayLanguage.English] = "Your entry is not listed - others cannot see your status.",
+            [DisplayLanguage.French] = "Ton entrée n'est pas inscrite - les autres ne voient pas ton statut.",
+            [DisplayLanguage.Japanese] = "エントリーが掲載されていないため、他の人にはステータスが表示されません。",
+        },
+        [Key.SharePresenceNewOptionNotice] = new()
+        {
+            [DisplayLanguage.German] = "Neu: \"Online-Status teilen\" - andere sehen im Group Finder, ob du gerade online bist (Einstellungen).",
+            [DisplayLanguage.English] = "New: \"Share online status\" - others see in the Group Finder whether you are online (settings).",
+            [DisplayLanguage.French] = "Nouveau : \"Partager le statut en ligne\" - les autres voient dans le Group Finder si tu es en ligne (paramètres).",
+            [DisplayLanguage.Japanese] = "新機能:「オンライン状況を共有」- グループファインダーで、あなたがオンラインかどうかが表示されます(設定)。",
+        },
+        [Key.SharePresenceNewOptionDismissButton] = new()
+        {
+            [DisplayLanguage.German] = "Ausblenden",
+            [DisplayLanguage.English] = "Dismiss",
+            [DisplayLanguage.French] = "Masquer",
+            [DisplayLanguage.Japanese] = "閉じる",
         },
         [Key.SharePresenceRequiresLiveSyncHint] = new()
         {

@@ -70,8 +70,13 @@ public sealed partial class MainWindow
         this.DrawHintText(UiStrings.Get(
             this.configuration.LiveSyncEnabled ? UiStrings.Key.SharePresenceHint : UiStrings.Key.SharePresenceRequiresLiveSyncHint,
             this.displayLanguage));
+        this.DrawHintText(UiStrings.Get(UiStrings.Key.SharePresenceListedOnlyHint, this.displayLanguage));
 
         var hasLiveSyncProfile = this.liveSyncService.HasEditTokenForLocalCharacter();
+        if (PresenceHints.ShowNotListedWarning(
+                this.configuration, hasLiveSyncProfile, this.liveSyncService.LastKnownOwnProfile?.VisibleInGroupFinder))
+            ImGui.TextColored(ErrorMessageColor, UiStrings.Get(UiStrings.Key.SharePresenceNotListedWarning, this.displayLanguage));
+
         ImGui.BeginDisabled(!hasLiveSyncProfile);
         if (ImGui.Button(UiStrings.Get(UiStrings.Key.LiveSyncDeleteProfileButton, this.displayLanguage)))
             this.liveSyncService.DeleteOwnProfile();
@@ -86,6 +91,31 @@ public sealed partial class MainWindow
         // werden, nicht mehr im normalen Alltagsfluss.
         if (ImGui.CollapsingHeader(UiStrings.Get(UiStrings.Key.SettingsAdvancedSyncHeader, this.displayLanguage)))
             this.DrawSyncSection();
+    }
+
+    // Einmalige Infozeile über den Tabs für Bestandsnutzer (Bedingung: PresenceHints.ShowNewOptionNotice).
+    // Klick auf den Button oder "Ausblenden" blendet sie dauerhaft aus - keine Chat-Nachricht, kein Toast.
+    private void DrawSharePresenceNotice()
+    {
+        this.DrawHintText(UiStrings.Get(UiStrings.Key.SharePresenceNewOptionNotice, this.displayLanguage));
+
+        if (ImGui.SmallButton(UiStrings.Get(UiStrings.Key.DashboardGoToSettingsButton, this.displayLanguage) + "##SharePresenceNotice"))
+        {
+            this.DismissSharePresenceNotice();
+            this.pendingActiveCategoryTabId = "TabSettings";
+        }
+
+        ImGui.SameLine();
+        if (ImGui.SmallButton(UiStrings.Get(UiStrings.Key.SharePresenceNewOptionDismissButton, this.displayLanguage) + "##SharePresenceNotice"))
+            this.DismissSharePresenceNotice();
+
+        ImGui.Separator();
+    }
+
+    private void DismissSharePresenceNotice()
+    {
+        PresenceHints.DismissNewOptionNotice(this.configuration);
+        this.configuration.Save();
     }
 
     private void SetDisplayLanguageSetting(DisplayLanguage? language)

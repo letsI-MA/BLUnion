@@ -11,7 +11,7 @@
  *   PUT    /group/:groupId                  - Gruppen-Listung anlegen/aktualisieren
  *   DELETE /group/:groupId                  - Gruppen-Listung löschen (X-Edit-Token)
  *   GET    /groups/browse?dataCenter=<DC>   - Gruppen-Gruppenfinder
- *   POST   /discord/interactions            - Discord-Slash-Command "/blunion browse" (nur lesend)
+ *   POST   /discord/interactions            - Discord-Slash-Commands "/blunion browse" und "/blunion online" (nur lesend)
  *
  * Gruppenfinder ist kein separates Profil: visibility/availabilityTags/note/wantedPlayerCount/
  * targetSpellIds erweitern dasselbe StoredProfile aus Phase 1, kein eigener "Login". Eine
@@ -188,6 +188,8 @@ const DISCORD_INTERACTION_TYPE_APPLICATION_COMMAND = 2;
 const DISCORD_OPTION_TYPE_SUB_COMMAND = 1;
 const DISCORD_RESPONSE_TYPE_PONG = 1;
 const DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE = 4;
+/** Message-Flag EPHEMERAL - Antwort nur für den Aufrufer sichtbar (genutzt von "/blunion online"). */
+const DISCORD_MESSAGE_FLAG_EPHEMERAL = 64;
 /** Aktuell ungenutzt, für eine spätere schreibende Discord-Command-Phase vorgehalten. */
 const DISCORD_RESPONSE_TYPE_DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 
@@ -392,6 +394,10 @@ interface PutGroupRequestBody {
 interface DiscordInteraction {
   type: number;
   data?: DiscordInteractionCommandData;
+  /** Aufrufer: in einem Server unter member.user, in einer DM unter user (nur id gebraucht, siehe
+   * isDiscordReadRateLimited). */
+  member?: { user?: { id?: string } };
+  user?: { id?: string };
 }
 
 /** Ein Sub-Command-Aufruf ("/blunion browse ...") verschachtelt seine Parameter: das äußere
@@ -491,6 +497,19 @@ async function enforceWriteRateLimit(env: Env, request: Request): Promise<Respon
  * GET /profile/..., /profiles/browse und /groups/browse - gleiche Logik, eigenes Kontingent. */
 async function enforceReadRateLimit(env: Env, request: Request): Promise<Response | null> {
   return enforceRateLimit(env.READ_RATE_LIMITER, request);
+}
+
+/** Lese-Kontingent für "/blunion online": Discord-Interactions kommen von Discords eigenen Servern,
+ * CF-Connecting-IP wäre also für alle Nutzer dieselbe - daher pro Discord-User-ID, im selben
+ * READ_RATE_LIMITER-Kontingent (eigener Key-Präfix). Ohne User-ID nicht limitiert (wie ohne IP).
+ * true = Limit erreicht. */
+async function isDiscordReadRateLimited(env: Env, interaction: DiscordInteraction): Promise<boolean> {
+  const userId = interaction.member?.user?.id ?? interaction.user?.id;
+  if (!userId)
+    return false;
+
+  const { success } = await env.READ_RATE_LIMITER.limit({ key: `discord:${userId}` });
+  return !success;
 }
 
 async function enforceRateLimit(limiter: RateLimit, request: Request): Promise<Response | null> {
@@ -1923,6 +1942,55 @@ export function buildPlayersBrowseEmbed(
   );
 }
 
+/** Anzahl gelernter Spells aus spellBitmaskBase64 - Bit i = i-ter Spell (Kodierung siehe
+ * ManualCodeSyncProvider.EncodeBitmask im Plugin), nur die ersten KNOWN_SPELL_IDS.size Bits zählen
+ * (die restlichen Bits der 128-Bit-Maske sind unbenutzt). undefined bei kaputter Bitmaske. */
+export function countLearnedSpells(spellBitmaskBase64: string): number | undefined {
+  let bytes: Uint8Array;
+  try {
+    bytes = base64UrlDecode(spellBitmaskBase64);
+  } catch {
+    return undefined;
+  }
+
+  if (bytes.length !== BITMASK_BYTES)
+    return undefined;
+
+  let count = 0;
+  for (let index = 0; index < KNOWN_SPELL_IDS.size; index++) {
+    if (bytes[index >> 3]! & (1 << (index % 8)))
+      count++;
+  }
+
+  return count;
+}
+
+/** Ein Feld pro Online-Spieler: "Name@World", gelernte Spells, Notiz (falls vorhanden). */
+function buildOnlinePlayerEmbedField(player: BrowsePlayer): DiscordEmbedField {
+  const learned = countLearnedSpells(player.spellBitmaskBase64);
+  let value = `Spells: ${learned ?? "?"}/${KNOWN_SPELL_IDS.size}`;
+
+  const safeNote = sanitizeForDiscord(player.note);
+  if (safeNote.length > 0)
+    value += `\n${safeNote}`;
+
+  return {
+    name: truncateForDiscord(
+      `${sanitizeForDiscord(player.characterName)}@${sanitizeForDiscord(player.world)}`, DISCORD_EMBED_FIELD_NAME_MAX),
+    value: truncateForDiscord(value, DISCORD_EMBED_FIELD_VALUE_MAX),
+    inline: false,
+  };
+}
+
+/** Embed für "/blunion online" - gleiche Limits/Fußzeile wie die Browse-Embeds (buildBrowseEmbed). */
+export function buildOnlinePlayersEmbed(dataCenter: string, players: BrowsePlayer[]): Record<string, unknown> {
+  return buildBrowseEmbed(
+    `Blue Mages online on ${sanitizeForDiscord(dataCenter)}`,
+    players.map(buildOnlinePlayerEmbedField),
+    (shown, total) => `Showing ${shown} of ${total} online players.`,
+  );
+}
+
 /** Link-Button zur Web-Companion-Seite - style 5 ("Link") braucht keine custom_id. */
 const DISCORD_WEBSITE_LINK_COMPONENTS = [
   {
@@ -2004,6 +2072,52 @@ async function handleDiscordBrowse(
   });
 }
 
+/** Wie discordMessageResponse, aber nur für den Aufrufer sichtbar (EPHEMERAL) - für "/blunion online". */
+function discordEphemeralResponse(data: Record<string, unknown>): Response {
+  return jsonResponse({
+    type: DISCORD_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
+    data: { ...data, flags: DISCORD_MESSAGE_FLAG_EPHEMERAL, allowed_mentions: { parse: [] } },
+  });
+}
+
+/** "/blunion online datacenter:<DC>" - gelistete Spieler mit sharePresence, die gerade online sind.
+ * Nutzt computePlayersBrowse (online === true heißt dort bereits: listed + sharePresence + Signal
+ * jünger als PRESENCE_ONLINE_WINDOW_MS) über denselben normalisierten Cache-Eintrag wie
+ * GET /profiles/browse (withCache, 20 s). Alle Antworten ephemeral, damit Kanäle nicht vollgespammt
+ * werden. Reihenfolge wie handleBrowse: Rate-Limit, dataCenter-Prüfung, dann Cache/KV. */
+async function handleDiscordOnline(
+  env: Env, request: Request, ctx: ExecutionContext, interaction: DiscordInteraction, dataCenter: string | undefined,
+): Promise<Response> {
+  if (!presenceEnabled(env))
+    return discordEphemeralResponse({ content: "Online status is currently disabled." });
+
+  if (await isDiscordReadRateLimited(env, interaction))
+    return discordEphemeralResponse({ content: "Too many requests - please wait a moment and try again." });
+
+  if (!dataCenter)
+    return discordEphemeralResponse({ content: 'Please specify a data center, e.g. "/blunion online datacenter:Aether".' });
+
+  // Ab hier nur die kanonische Schreibweise - die rohe Eingabe landet nie in der Antwort.
+  const canonicalDataCenter = lookupCanonicalDataCenter(dataCenter);
+  if (!canonicalDataCenter)
+    return discordEphemeralResponse({ content: 'Unknown data center - e.g. "/blunion online datacenter:Aether".' });
+
+  const browseRequest = new Request(new URL("/profiles/browse", request.url), { method: "GET" });
+  const browseResponse = await withCache(
+    browseRequest, canonicalDataCenter, ctx, () => computePlayersBrowse(env, canonicalDataCenter));
+  if (!browseResponse.ok)
+    return discordEphemeralResponse({ content: "Something went wrong while loading the online players." });
+
+  const onlinePlayers = (await browseResponse.json<BrowsePlayer[]>()).filter((player) => player.online === true);
+  if (onlinePlayers.length === 0)
+    return discordEphemeralResponse({ content: `Nobody is online on ${canonicalDataCenter} right now.` });
+
+  return discordEphemeralResponse({
+    embeds: [buildOnlinePlayersEmbed(canonicalDataCenter, onlinePlayers)],
+    components: DISCORD_WEBSITE_LINK_COMPONENTS,
+  });
+}
+
 function findDiscordSubcommand(
   data: DiscordInteractionCommandData | undefined,
   name: string,
@@ -2016,16 +2130,24 @@ function findDiscordStringOption(options: DiscordInteractionOption[] | undefined
   return typeof option?.value === "string" ? option.value : undefined;
 }
 
-/** Phase 1 kennt nur "/blunion browse" - unbekannte Commands enden in einer Chat-Antwort statt
+/** Kennt "/blunion browse" und "/blunion online" - unbekannte Commands enden in einer Chat-Antwort statt
  * einem Fehlerstatus (kann bei geänderter Command-Registrierung mit noch gecachtem alten Command
  * auftreten). */
-async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInteraction): Promise<Response> {
+async function handleDiscordApplicationCommand(
+  env: Env, request: Request, ctx: ExecutionContext, interaction: DiscordInteraction,
+): Promise<Response> {
   if (interaction.data?.name !== "blunion")
     return discordMessageResponse(`Unknown command "${sanitizeForDiscord(interaction.data?.name ?? "?")}".`);
 
+  const onlineSubcommand = findDiscordSubcommand(interaction.data, "online");
+  if (onlineSubcommand) {
+    return handleDiscordOnline(
+      env, request, ctx, interaction, findDiscordStringOption(onlineSubcommand.options, "datacenter"));
+  }
+
   const browseSubcommand = findDiscordSubcommand(interaction.data, "browse");
   if (!browseSubcommand)
-    return discordMessageResponse('Unknown subcommand - currently only "browse" is supported.');
+    return discordMessageResponse('Unknown subcommand - supported are "browse" and "online".');
 
   const dataCenter = findDiscordStringOption(browseSubcommand.options, "datacenter");
 
@@ -2054,7 +2176,7 @@ async function handleDiscordApplicationCommand(env: Env, interaction: DiscordInt
 
 /** Reihenfolge nicht vertauschbar: erst rawBody lesen (einmal, per request.text()), dann Signatur
  * verifizieren (jeder Fehlschlag -> sofort 401), ERST DANACH als JSON parsen/dispatchen. */
-async function handleDiscordInteractions(env: Env, request: Request): Promise<Response> {
+async function handleDiscordInteractions(env: Env, request: Request, ctx: ExecutionContext): Promise<Response> {
   const rawBody = await request.text();
 
   const isValidSignature = await verifyDiscordSignature(env, request, rawBody);
@@ -2073,7 +2195,7 @@ async function handleDiscordInteractions(env: Env, request: Request): Promise<Re
       return jsonResponse({ type: DISCORD_RESPONSE_TYPE_PONG }); // von Discord beim Setup gefordert
 
     case DISCORD_INTERACTION_TYPE_APPLICATION_COMMAND:
-      return handleDiscordApplicationCommand(env, interaction);
+      return handleDiscordApplicationCommand(env, request, ctx, interaction);
 
     default:
       return errorResponse(400, `Unbekannter Interaction-Typ ${interaction.type}.`);
@@ -2142,7 +2264,7 @@ export default {
       if (request.method !== "POST")
         return errorResponse(405, `Methode "${request.method}" wird für diesen Endpoint nicht unterstützt.`);
 
-      return handleDiscordInteractions(env, request);
+      return handleDiscordInteractions(env, request, ctx);
     }
 
     const presenceMatch = url.pathname.match(PRESENCE_PATH);

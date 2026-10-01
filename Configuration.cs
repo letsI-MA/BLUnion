@@ -17,6 +17,10 @@ public sealed class Configuration : IPluginConfiguration
     // "Online-Status teilen" (nur zusammen mit Live-Sync, siehe PresenceService) - setzt sharePresence am Profil.
     public bool SharePresence { get; set; }
 
+    // Einmaliger Hinweis auf die Option "Online-Status teilen" für Bestandsnutzer (siehe PresenceHints) -
+    // true nach Schließen/Klick oder wenn das Onboarding die Option schon gezeigt hat.
+    public bool SharePresenceNoticeDismissed { get; set; }
+
     public bool AutoImportSyncCodesFromPartyChat { get; set; } = true;
 
     // null = automatisch anhand der Client-Sprache (siehe MainWindow-Konstruktor).

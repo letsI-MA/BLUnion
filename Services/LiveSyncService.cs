@@ -93,6 +93,9 @@ public sealed class LiveSyncService : IDisposable
     // sharePresence), sobald kein anderer Push läuft.
     private volatile bool sharePresencePushPending;
 
+    // Der Push mit der geänderten Einstellung läuft gerade (siehe SharePresenceUpdatePending).
+    private volatile bool sharePresencePushInFlight;
+
     private volatile bool groupBrowseInFlight;
 
 #if DEBUG
@@ -157,13 +160,20 @@ public sealed class LiveSyncService : IDisposable
         {
             this.sharePresencePushPending = false;
             if (this.HasEditTokenForLocalCharacter())
+            {
+                this.sharePresencePushInFlight = true;
                 this.PushOwnProfile(markListed: false);
+            }
         }
     }
 
     // Nach Änderung der Einstellung "Online-Status teilen" (Settings) - ohne Profil passiert nichts,
     // der nächste reguläre Push nimmt den Wert dann ohnehin mit.
     public void RequestSharePresenceUpdate() => this.sharePresencePushPending = true;
+
+    // true, solange die geänderte Einstellung noch nicht beim Worker ist (angefordert oder Push läuft) -
+    // PresenceService schickt "online" erst danach (siehe PresenceSignalPlanner.CanSend).
+    public bool SharePresenceUpdatePending => this.sharePresencePushPending || this.sharePresencePushInFlight;
 
     private void TickPushDiff()
     {
@@ -289,7 +299,11 @@ public sealed class LiveSyncService : IDisposable
 
                 this.SetPendingResult(LiveSyncEventKind.PushSucceeded, null);
             },
-            () => this.pushInFlight = false,
+            () =>
+            {
+                this.pushInFlight = false;
+                this.sharePresencePushInFlight = false;
+            },
             LiveSyncEventKind.PushFailed,
             "LiveSyncService: unerwarteter Fehler beim Push des eigenen Profils.");
 

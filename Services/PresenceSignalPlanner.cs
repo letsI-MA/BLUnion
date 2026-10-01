@@ -29,6 +29,14 @@ public sealed class PresenceSignalPlanner
     private PresenceCharacter? announced;
     private DateTimeOffset lastOnlineAt;
 
+    // Bedingung für canSend (siehe PresenceService): Option an, Live-Sync aktiv, Profil (Token) vorhanden
+    // und keine Änderung von sharePresence mehr unterwegs. Letzteres sorgt beim Einschalten für die
+    // richtige Reihenfolge: erst das Profil-PUT mit sharePresence = true, dann sofort (nächster Tick)
+    // "online" - vorher würde der Worker das Signal mit 403 ablehnen und es käme erst mit dem nächsten
+    // Lebenszeichen. Beim Ausschalten ist SharePresence sofort false -> sofort "offline".
+    public static bool CanSend(bool liveSyncEnabled, bool sharePresence, bool hasEditToken, bool sharePresenceUpdatePending) =>
+        liveSyncEnabled && sharePresence && hasEditToken && !sharePresenceUpdatePending;
+
     // canSend: Einstellung "Online-Status teilen" an, Live-Sync aktiv und Profil (Token) vorhanden.
     public IReadOnlyList<PresenceSignal> Update(DateTimeOffset now, PresenceCharacter? current, Func<PresenceCharacter, bool> canSend)
     {

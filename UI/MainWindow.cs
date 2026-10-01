@@ -351,6 +351,9 @@ public sealed partial class MainWindow : Window, IDisposable
 
         this.WindowName = UiStrings.Get(UiStrings.Key.WindowTitle, this.displayLanguage) + "###BLUnion";
 
+        if (PresenceHints.ShowNewOptionNotice(this.configuration))
+            this.DrawSharePresenceNotice();
+
         if (ImGui.BeginTabBar("BLUnionTabs"))
         {
             this.DrawCategoryAccentStripe();

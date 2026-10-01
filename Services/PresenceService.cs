@@ -52,9 +52,11 @@ public sealed class PresenceService : IDisposable
     }
 
     private bool CanSend(PresenceCharacter character) =>
-        this.configuration.LiveSyncEnabled
-        && this.configuration.SharePresence
-        && this.liveSyncService.HasEditToken(character.CharacterName, character.World);
+        PresenceSignalPlanner.CanSend(
+            this.configuration.LiveSyncEnabled,
+            this.configuration.SharePresence,
+            this.liveSyncService.HasEditToken(character.CharacterName, character.World),
+            this.liveSyncService.SharePresenceUpdatePending);
 
     // Muss VOR LiveSyncService.Dispose laufen (siehe Plugin.Dispose) - sonst ist der HttpClient schon weg.
     public void Dispose()

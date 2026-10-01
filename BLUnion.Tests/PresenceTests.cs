@@ -188,6 +188,113 @@ public class PresenceTests
         Assert.Null(planner.Shutdown());
     }
 
+    // ----- Sofort-Signal beim Umschalten der Option -----
+
+    [Theory]
+    [InlineData(true, true, true, false, true)]
+    [InlineData(false, true, true, false, false)]
+    [InlineData(true, false, true, false, false)]
+    [InlineData(true, true, false, false, false)]
+    [InlineData(true, true, true, true, false)] // Profil-PUT mit sharePresence noch unterwegs
+    public void CanSend_RequiresLiveSyncConsentProfileAndNoPendingUpdate(
+        bool liveSync, bool sharePresence, bool hasToken, bool updatePending, bool expected)
+    {
+        Assert.Equal(expected, PresenceSignalPlanner.CanSend(liveSync, sharePresence, hasToken, updatePending));
+    }
+
+    [Fact]
+    public void SwitchingOn_SendsOnline_RightAfterTheProfileUpdate_NotWithTheNextHeartbeat()
+    {
+        var planner = new PresenceSignalPlanner();
+        var sharePresence = false;
+        var updatePending = false;
+        bool CanSend(PresenceCharacter _) => PresenceSignalPlanner.CanSend(true, sharePresence, true, updatePending);
+
+        Assert.Empty(planner.Update(Start, Alice, CanSend));
+
+        // Einschalten: Profil-PUT angefordert -> noch kein Signal (der Worker würde es mit 403 ablehnen).
+        sharePresence = true;
+        updatePending = true;
+        Assert.Empty(planner.Update(Start.AddSeconds(1), Alice, CanSend));
+
+        // PUT fertig -> beim nächsten Tick sofort "online".
+        updatePending = false;
+        Assert.Equal([new PresenceSignal(Alice, PresenceState.Online)], planner.Update(Start.AddSeconds(2), Alice, CanSend));
+    }
+
+    [Fact]
+    public void SwitchingOff_SendsOfflineImmediately_EvenWhileTheProfileUpdateIsPending()
+    {
+        var planner = new PresenceSignalPlanner();
+        var sharePresence = true;
+        var updatePending = false;
+        bool CanSend(PresenceCharacter _) => PresenceSignalPlanner.CanSend(true, sharePresence, true, updatePending);
+        planner.Update(Start, Alice, CanSend);
+
+        sharePresence = false;
+        updatePending = true;
+        Assert.Equal([new PresenceSignal(Alice, PresenceState.Offline)], planner.Update(Start.AddSeconds(1), Alice, CanSend));
+    }
+
+    [Fact]
+    public void LiveSyncService_SharePresenceUpdate_IsPendingAfterRequest()
+    {
+        var service = CreateService(new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)), new Configuration { LiveSyncEnabled = true, SharePresence = true });
+
+        Assert.False(service.SharePresenceUpdatePending);
+        service.RequestSharePresenceUpdate();
+        Assert.True(service.SharePresenceUpdatePending);
+    }
+
+    // ----- Hinweise (Settings-Warnung, Bestandsnutzer-Hinweis) -----
+
+    [Theory]
+    [InlineData(true, true, true, false, true)]   // Profil vorhanden, nicht gelistet
+    [InlineData(true, true, false, null, true)]   // noch gar kein Profil -> sicher nicht gelistet
+    [InlineData(true, true, true, true, false)]   // gelistet
+    [InlineData(true, true, true, null, false)]   // Stand noch unbekannt -> keine (womöglich falsche) Warnung
+    [InlineData(true, false, true, false, false)] // Option aus
+    [InlineData(false, true, true, false, false)] // Live-Sync aus
+    public void NotListedWarning_OnlyWithOptionOnAndEntryNotListed(
+        bool liveSync, bool sharePresence, bool hasProfile, bool? listed, bool expected)
+    {
+        var configuration = new Configuration { LiveSyncEnabled = liveSync, SharePresence = sharePresence };
+
+        Assert.Equal(expected, PresenceHints.ShowNotListedWarning(configuration, hasProfile, listed));
+    }
+
+    [Fact]
+    public void NewOptionNotice_ShownOnceForExistingLiveSyncUsers()
+    {
+        var configuration = new Configuration { LiveSyncEnabled = true };
+        Onboarding.MarkExistingUserAsDecided(configuration);
+
+        Assert.True(PresenceHints.ShowNewOptionNotice(configuration));
+
+        PresenceHints.DismissNewOptionNotice(configuration);
+        Assert.False(PresenceHints.ShowNewOptionNotice(configuration));
+    }
+
+    [Fact]
+    public void NewOptionNotice_NotShown_WhenOptionActive_OnboardingPending_OrWithoutLiveSync()
+    {
+        Assert.False(PresenceHints.ShowNewOptionNotice(new Configuration { LiveSyncEnabled = true, SharePresence = true }));
+        Assert.False(PresenceHints.ShowNewOptionNotice(new Configuration())); // Onboarding steht noch aus
+        Assert.False(PresenceHints.ShowNewOptionNotice(new Configuration { OnboardingCompleted = true }));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void NewOptionNotice_NotShown_AfterTheOnboardingShowedTheOption(bool enableLiveSync)
+    {
+        var configuration = new Configuration();
+        Onboarding.ApplyChoice(configuration, enableLiveSync, sharePresence: false);
+
+        Assert.True(configuration.SharePresenceNoticeDismissed);
+        Assert.False(PresenceHints.ShowNewOptionNotice(configuration));
+    }
+
     // ----- Formatierung -----
 
     [Theory]

@@ -49,6 +49,7 @@ public sealed class OnboardingWindow : Window
             ImGui.Checkbox(UiStrings.Get(UiStrings.Key.SharePresenceToggle, language), ref this.sharePresence);
             ImGui.PushStyleColor(ImGuiCol.Text, HintTextColor);
             ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.SharePresenceHint, language));
+            ImGui.TextWrapped(UiStrings.Get(UiStrings.Key.SharePresenceListedOnlyHint, language));
             ImGui.PopStyleColor();
 
             ImGui.TableSetColumnIndex(1);

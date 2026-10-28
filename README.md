@@ -1,6 +1,18 @@
+<p align="center"><img src="images/icon.png" width="160" alt="BLUnion logo"></p>
+
 # BLUnion
 
 A Dalamud plugin for FINAL FANTASY XIV that helps groups of Blue Mages figure out what to learn next, together.
+
+<p align="center">
+  <a href="#installing-it"><b>Install</b></a> ·
+  <a href="#what-it-does">Features</a> ·
+  <a href="#how-sync-works">Sync</a> ·
+  <a href="#group-finder">Group Finder</a> ·
+  <a href="#what-gets-stored">Privacy</a> ·
+  <a href="#discord-integration">Discord</a> ·
+  <a href="#known-gaps">Known gaps</a>
+</p>
 
 If you've ever tried to organize a BLU spell-hunting session with friends, you know the drill: someone asks "wait, who still needs Diamondback?", nobody remembers, and you end up cross-referencing spellbooks by hand. BLUnion automates that part.
 
@@ -15,8 +27,8 @@ It started out as a tool for me and a few friends. By now other people are using
 - Overview page with your party's average progress and a "next best target" - the spell that helps the most people at once
 - Compares multiple players and sorts missing spells by how many people actually need them
 - Spellbook view with all 124 spells, filterable by learned/missing
-- Loadouts for all 32 Masked Carnivale stages, including how many of the needed spells you already have
-- Shows monster/zone/coordinates for 123 of the 124 spells
+- Loadouts for all 32 Masked Carnivale stages plus role loadouts (Tank, Healer, Off-Healer, Damage Dealer), including how many of the needed spells you already have
+- Shows where to get every spell - monster, zone or duty, and map coordinates for most open-world sources
 - Clickable locations: a duty name opens the Duty Finder with that duty selected (for grouped entries like "Thornmarch (Hard or Extreme)" you pick the variant first), an open-world zone name teleports you to the matching aetheryte and flags the monster on your map. Map icons open the map with a flag or post the map link into your own chat window
 - Filter by name or spell number (`58`, `#058`, whatever)
 - Option to hide totem-only spells if you're not chasing those right now
@@ -46,6 +58,8 @@ If you don't have (or don't want) the Dalamud plugin, the [companion site](https
 ## Group Finder
 
 Built on top of Live-Sync. You can put yourself into a public list for your data center, with a short note, when you usually play (morning, evening, weekend, ...), how many people you're looking for, and which spells you want to farm. Others can browse that list, filter it by the spells they need, and see right away what they would bring to a group and what they would still be missing. One click adds a player to your comparison.
+
+If you opt in to sharing your online status, others browsing the list can see whether you're currently online.
 
 For now the Group Finder only has entries for single players - group listings are switched off.
 
@@ -89,13 +103,11 @@ Game data lives separately from your own settings, on purpose.
 
 There's a community Discord at https://discord.gg/uGW7kBG67.
 
-Every public Group Finder entry also gets its own card in one of four region channels (North America, Europe, Japan, Oceania). The cards are created, updated, and removed automatically along with the entry itself. There's also a `/blunion browse` slash command if you just want to check the list from Discord. For now Discord is read-only - you can't create entries from there. See [DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md) for setup/registration/testing.
+Every public Group Finder entry also gets its own card in one of four region channels (North America, Europe, Japan, Oceania). The cards are created, updated, and removed automatically along with the entry itself. There are also two slash commands: `/blunion browse` to check the list from Discord, and `/blunion online` to see who on a data center is online right now (only entries that share their online status). For now Discord is read-only - you can't create entries from there. See [DISCORD_INTEGRATION.md](DISCORD_INTEGRATION.md) for setup/registration/testing.
 
 ## Known gaps
 
-- 1 of 124 spells doesn't have full source info yet
-- A few monsters (mostly NPCs like "Goblin Fisher & Gambler") and grouped duty entries (e.g. "Thornmarch (Hard or Extreme)", the individual Masked Carnivale stages) have no game-data match, so their names still come from the hand-maintained data - see [`tools/data-enrich/report.md`](tools/data-enrich/report.md)
-- Map coordinates for open-world sources are hand-maintained and only exist for a few locations - they can't be read from the game files
+- Map coordinates for open-world sources are hand-maintained (they can't be read from the game files), so a few locations still don't have any
 - New Group Finder entries can take up to about a minute to show up for others (that's how the storage behind it works, not a bug)
 
 ## License

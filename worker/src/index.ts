@@ -552,6 +552,55 @@ function discordCardsIndexKey(region: Region): string {
   return `discordcards:${region}`;
 }
 
+/** KV-Metadata an jedem "profile:"- und "group:"-Key - genau die zwei Felder, nach denen die
+ * Browse-Endpunkte filtern. list() liefert sie mit, das Browse braucht so nur noch für passende
+ * Einträge ein get() statt eines pro Key (N+1). Wenige Dutzend Byte, weit unter dem KV-Limit von
+ * 1024 Byte. dataCenter ist lowercase (Vergleich wie im Browse). */
+interface BrowseKvMetadata {
+  visibility: "listed" | "unlisted";
+  dataCenter: string;
+}
+
+function browseKvMetadata(record: { visibility: "listed" | "unlisted"; dataCenter: string }): BrowseKvMetadata {
+  return { visibility: record.visibility, dataCenter: record.dataCenter.toLowerCase() };
+}
+
+/** null = keine/unbrauchbare Metadata (Bestandsprofil vor der Umstellung) -> per get() prüfen. */
+function readBrowseKvMetadata(metadata: unknown): BrowseKvMetadata | null {
+  if (typeof metadata !== "object" || metadata === null)
+    return null;
+
+  const { visibility, dataCenter } = metadata as Record<string, unknown>;
+  if ((visibility !== "listed" && visibility !== "unlisted") || typeof dataCenter !== "string")
+    return null;
+
+  return { visibility, dataCenter };
+}
+
+/** true = der Key ist laut Metadata sicher kein Treffer und braucht kein get(). Ohne Metadata
+ * immer false - Bestandsprofile werden wie bisher per get() geprüft. */
+function isExcludedByKvMetadata(metadata: unknown, normalizedDataCenter: string): boolean {
+  const parsed = readBrowseKvMetadata(metadata);
+  return parsed !== null && (parsed.visibility !== "listed" || parsed.dataCenter !== normalizedDataCenter);
+}
+
+/** EINZIGER Schreibpfad für "profile:"-Keys. KV ersetzt Metadata bei jedem put() - ein put() ohne
+ * metadata würde sie also löschen; darum laufen alle Schreibvorgänge hierüber. */
+async function putProfileRecord(env: Env, key: string, record: StoredProfile, ttlSeconds: number): Promise<void> {
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(record), {
+    expirationTtl: ttlSeconds,
+    metadata: browseKvMetadata(record),
+  });
+}
+
+/** Gruppen-Pendant zu putProfileRecord - einziger Schreibpfad für "group:"-Keys. */
+async function putGroupRecord(env: Env, key: string, record: StoredGroupProfile, ttlSeconds: number): Promise<void> {
+  await env.BLUNION_PROFILES.put(key, JSON.stringify(record), {
+    expirationTtl: ttlSeconds,
+    metadata: browseKvMetadata(record),
+  });
+}
+
 /** Separater Index nötig: ein abgelaufener group:-Eintrag verschwindet still per KV-TTL, ohne
  * diesen Index bliebe eine verwaiste Karte für immer unentdeckt (siehe
  * cleanupOrphanedDiscordCards). Bewusst ohne eigenes TTL, sonst könnte der Index-Eintrag selbst
@@ -926,7 +975,7 @@ async function handlePut(
     updatedAt: now,
   };
 
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: resolveTtlSeconds(body.ttlHours) });
+  await putProfileRecord(env, key, record, resolveTtlSeconds(body.ttlHours));
 
   // Zustimmung zurückgenommen -> Online-Status sofort entfernen (nur dann ein D1-Write).
   if (!sharePresence && existing?.sharePresence)
@@ -944,8 +993,10 @@ async function handlePut(
 
 /** Kernlogik von GET /profiles/browse, ohne das HTTP-Cache-Wrapping von handleBrowse - so kann
  * handleDiscordBrowse dieselbe Logik nutzen. Liefert alle "listed"-Profile auf dem Data Center.
- * Bewusst ohne Sekundär-Index: iteriert über alle "profile:"-Keys und filtert in-memory - für die
- * erwartete Nutzerzahl unkritisch, ein Index wäre verfrühte Optimierung. */
+ * Ohne Sekundär-Index: list() über alle "profile:"-Keys, vorgefiltert über die KV-Metadata
+ * (siehe BrowseKvMetadata) - get() nur für "listed"-Profile auf diesem Data Center und für
+ * Bestandsprofile ohne Metadata (bis backfillKvMetadata sie nachgetragen hat). Nach dem get()
+ * wird trotzdem noch einmal am gespeicherten Wert geprüft. */
 async function computePlayersBrowse(env: Env, dataCenter: string | null): Promise<Response> {
   const canonicalDataCenter = resolveBrowseDataCenter(dataCenter);
   if (canonicalDataCenter instanceof Response)
@@ -960,6 +1011,9 @@ async function computePlayersBrowse(env: Env, dataCenter: string | null): Promis
     const listResult = await env.BLUNION_PROFILES.list({ prefix: "profile:", cursor });
 
     for (const listedKey of listResult.keys) {
+      if (isExcludedByKvMetadata(listedKey.metadata, normalizedDataCenter))
+        continue;
+
       const stored = await env.BLUNION_PROFILES.get<StoredProfile>(listedKey.name, "json");
       if (!stored)
         continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
@@ -1310,7 +1364,7 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
   // keinen automatischen Refresh - sie läuft nach der TTL ab, wenn niemand erneut PUT aufruft.
   // In einer Variable, weil syncGroupDiscordCard denselben Wert für ihren eigenen Put braucht.
   const ttlSeconds = resolveTtlSeconds(body.ttlHours);
-  await env.BLUNION_PROFILES.put(key, JSON.stringify(record), { expirationTtl: ttlSeconds });
+  await putGroupRecord(env, key, record, ttlSeconds);
 
   ctx.waitUntil(syncGroupDiscordCard(env, key, record, ttlSeconds));
 
@@ -1322,7 +1376,7 @@ async function handleGroupPut(env: Env, request: Request, groupId: string, ctx: 
 }
 
 /** Kernlogik von GET /groups/browse, ohne das HTTP-Cache-Wrapping von handleGroupsBrowse - so kann
- * handleDiscordBrowse dieselbe Logik nutzen. */
+ * handleDiscordBrowse dieselbe Logik nutzen. Vorfilter über die KV-Metadata wie computePlayersBrowse. */
 async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise<Response> {
   const canonicalDataCenter = resolveBrowseDataCenter(dataCenter);
   if (canonicalDataCenter instanceof Response)
@@ -1336,6 +1390,9 @@ async function computeGroupsBrowse(env: Env, dataCenter: string | null): Promise
     const listResult = await env.BLUNION_PROFILES.list({ prefix: "group:", cursor });
 
     for (const listedKey of listResult.keys) {
+      if (isExcludedByKvMetadata(listedKey.metadata, normalizedDataCenter))
+        continue;
+
       const stored = await env.BLUNION_PROFILES.get<StoredGroupProfile>(listedKey.name, "json");
       if (!stored)
         continue; // Zwischen list() und get() gelöscht/abgelaufen - überspringen statt Fehler.
@@ -1828,7 +1885,7 @@ async function syncGroupDiscordCard(
 
   if (!discordCardsEqual(record.discordCard, nextCard)) {
     const updated: StoredGroupProfile = { ...record, discordCard: nextCard };
-    await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
+    await putGroupRecord(env, key, updated, ttlSeconds);
   }
 }
 
@@ -1849,7 +1906,7 @@ export async function syncPlayerDiscordCard(
 
   if (!discordCardsEqual(stored.discordCard, nextCard)) {
     const updated: StoredProfile = { ...stored, discordCard: nextCard };
-    await env.BLUNION_PROFILES.put(key, JSON.stringify(updated), { expirationTtl: ttlSeconds });
+    await putProfileRecord(env, key, updated, ttlSeconds);
   }
 }
 
@@ -2017,9 +2074,11 @@ function discordMessageResponse(content: string): Response {
 /** "/blunion browse [datacenter] [type]" - reicht computeGroupsBrowse/computePlayersBrowse durch
  * und formatiert das Ergebnis als Discord-Embed. Fehlendes dataCenter gibt bewusst eine normale
  * Chat-Antwort statt HTTP 400 - eine rohe 4xx-Response zeigt Discord nur als "App hat nicht
- * geantwortet" an. */
+ * geantwortet" an. Läuft über denselben Cache-Eintrag wie GET /profiles/browse bzw.
+ * GET /groups/browse (siehe discordBrowseFromCache) - sonst löste jeder Slash-Command einen
+ * kompletten KV-Scan aus. */
 async function handleDiscordBrowse(
-  env: Env, dataCenter: string | undefined, type: "groups" | "players",
+  env: Env, request: Request, ctx: ExecutionContext, dataCenter: string | undefined, type: "groups" | "players",
 ): Promise<Response> {
   if (!dataCenter) {
     return discordMessageResponse(
@@ -2036,7 +2095,8 @@ async function handleDiscordBrowse(
   dataCenter = canonicalDataCenter;
 
   if (type === "players") {
-    const browseResponse = await computePlayersBrowse(env, dataCenter);
+    const browseResponse = await discordBrowseFromCache(
+      request, ctx, "/profiles/browse", canonicalDataCenter, () => computePlayersBrowse(env, canonicalDataCenter));
     if (!browseResponse.ok) {
       return discordMessageResponse("Something went wrong while loading the players.");
     }
@@ -2054,7 +2114,8 @@ async function handleDiscordBrowse(
     });
   }
 
-  const browseResponse = await computeGroupsBrowse(env, dataCenter);
+  const browseResponse = await discordBrowseFromCache(
+    request, ctx, "/groups/browse", canonicalDataCenter, () => computeGroupsBrowse(env, canonicalDataCenter));
   if (!browseResponse.ok) {
     return discordMessageResponse("Something went wrong while loading the groups.");
   }
@@ -2070,6 +2131,17 @@ async function handleDiscordBrowse(
       components: DISCORD_WEBSITE_LINK_COMPONENTS,
     },
   });
+}
+
+/** Browse-Ergebnis für Discord über withCache mit exakt dem Cache-Key des Plugin-Endpunkts
+ * (origin der Interaction + browsePath + kanonisches dataCenter) - Discord und Plugin teilen sich
+ * also denselben 20-s-Eintrag. */
+function discordBrowseFromCache(
+  request: Request, ctx: ExecutionContext, browsePath: "/profiles/browse" | "/groups/browse",
+  canonicalDataCenter: string, compute: () => Promise<Response>,
+): Promise<Response> {
+  const browseRequest = new Request(new URL(browsePath, request.url), { method: "GET" });
+  return withCache(browseRequest, canonicalDataCenter, ctx, compute);
 }
 
 /** Wie discordMessageResponse, aber nur für den Aufrufer sichtbar (EPHEMERAL) - für "/blunion online". */
@@ -2102,9 +2174,8 @@ async function handleDiscordOnline(
   if (!canonicalDataCenter)
     return discordEphemeralResponse({ content: 'Unknown data center - e.g. "/blunion online datacenter:Aether".' });
 
-  const browseRequest = new Request(new URL("/profiles/browse", request.url), { method: "GET" });
-  const browseResponse = await withCache(
-    browseRequest, canonicalDataCenter, ctx, () => computePlayersBrowse(env, canonicalDataCenter));
+  const browseResponse = await discordBrowseFromCache(
+    request, ctx, "/profiles/browse", canonicalDataCenter, () => computePlayersBrowse(env, canonicalDataCenter));
   if (!browseResponse.ok)
     return discordEphemeralResponse({ content: "Something went wrong while loading the online players." });
 
@@ -2166,12 +2237,12 @@ async function handleDiscordApplicationCommand(
     if (rawType === "groups")
       return discordMessageResponse('Groups are currently disabled - use "/blunion browse type:players".');
 
-    return handleDiscordBrowse(env, dataCenter, "players");
+    return handleDiscordBrowse(env, request, ctx, dataCenter, "players");
   }
 
   const type: "groups" | "players" = rawType === "players" ? "players" : "groups";
 
-  return handleDiscordBrowse(env, dataCenter, type);
+  return handleDiscordBrowse(env, request, ctx, dataCenter, type);
 }
 
 /** Reihenfolge nicht vertauschbar: erst rawBody lesen (einmal, per request.text()), dann Signatur
@@ -2233,6 +2304,90 @@ async function cleanupOrphanedDiscordCards(env: Env): Promise<void> {
         }
       }
     }
+  }
+}
+
+/** Obergrenze pro Cron-Lauf für backfillKvMetadata: so viele Keys ohne Metadata werden pro Lauf
+ * gelesen (je 1 get + höchstens 1 put). Klein gehalten wegen der KV-Schreibkontingente und der
+ * KV-Operationen pro Aufruf, die sich der Backfill mit den übrigen Cron-Aufgaben teilt. Aktive
+ * Profile brauchen ihn ohnehin nicht - jeder PUT schreibt die Metadata selbst mit. */
+export const KV_METADATA_BACKFILL_MAX_KEYS_PER_RUN = 100;
+
+/** KV verlangt für "expiration" einen Zeitpunkt mindestens 60 s in der Zukunft. */
+const KV_MIN_EXPIRATION_SECONDS_AHEAD = 60;
+
+export interface KvMetadataBackfillResult {
+  /** Keys, die jetzt Metadata haben. */
+  updated: number;
+  /** Gelesen, aber nicht geschrieben: zwischenzeitlich gelöscht, kein gültiges JSON/ohne
+   * visibility+dataCenter oder läuft in weniger als 60 s ohnehin ab. */
+  skipped: number;
+  /** Grenze erreicht - der nächste Lauf macht weiter. */
+  limitReached: boolean;
+}
+
+/** Einmaliger, über den täglichen Cron verteilter Backfill: trägt bei Bestands-"profile:"- und
+ * "group:"-Keys ohne Metadata (vor der Umstellung geschrieben) die BrowseKvMetadata nach.
+ * Idempotent: Keys mit gültiger Metadata werden nur gelistet, nicht gelesen/geschrieben - sind alle
+ * nachgetragen, kostet ein Lauf nur noch die list()-Aufrufe. Wert und Ablaufzeitpunkt bleiben
+ * unverändert (expiration aus list(), kein neues expirationTtl - die Lebensdauer verlängert sich
+ * also nicht). Wirft nie (der Cron soll an einem KV-Fehler nicht scheitern). */
+export async function backfillKvMetadata(
+  env: Env, maxKeys: number = KV_METADATA_BACKFILL_MAX_KEYS_PER_RUN, nowMs: number = Date.now(),
+): Promise<KvMetadataBackfillResult> {
+  const result: KvMetadataBackfillResult = { updated: 0, skipped: 0, limitReached: false };
+  let processed = 0;
+
+  try {
+    for (const prefix of ["profile:", "group:"]) {
+      let cursor: string | undefined;
+      do {
+        const listResult = await env.BLUNION_PROFILES.list({ prefix, cursor });
+
+        for (const listedKey of listResult.keys) {
+          if (readBrowseKvMetadata(listedKey.metadata))
+            continue;
+
+          if (processed >= maxKeys) {
+            result.limitReached = true;
+            return result;
+          }
+          processed++;
+
+          // Text statt "json": derselbe Wert wird unverändert zurückgeschrieben.
+          const text = await env.BLUNION_PROFILES.get(listedKey.name, "text");
+          const record = text === null ? null : parseBrowseRecord(text);
+          const expiresTooSoon = listedKey.expiration !== undefined
+            && listedKey.expiration - nowMs / 1000 < KV_MIN_EXPIRATION_SECONDS_AHEAD;
+          if (text === null || record === null || expiresTooSoon) {
+            result.skipped++;
+            continue;
+          }
+
+          await env.BLUNION_PROFILES.put(listedKey.name, text, {
+            metadata: browseKvMetadata(record),
+            ...(listedKey.expiration !== undefined ? { expiration: listedKey.expiration } : {}),
+          });
+          result.updated++;
+        }
+
+        cursor = listResult.list_complete ? undefined : listResult.cursor;
+      } while (cursor);
+    }
+  } catch (err) {
+    console.error("KV-Metadata-Backfill fehlgeschlagen", err);
+  }
+
+  return result;
+}
+
+/** visibility + dataCenter aus einem gespeicherten Profil/einer Gruppe (gleiche Feldnamen wie die
+ * Metadata), null bei unbrauchbarem Wert. */
+function parseBrowseRecord(text: string): BrowseKvMetadata | null {
+  try {
+    return readBrowseKvMetadata(JSON.parse(text));
+  } catch {
+    return null;
   }
 }
 
@@ -2337,9 +2492,14 @@ export default {
   },
 
   /** Cron Trigger (siehe wrangler.toml) - räumt Karten von still per TTL abgelaufenen Einträgen auf
-   * (bei GROUPS_ENABLED = "false" zusätzlich alle Gruppen-Karten). */
+   * (bei GROUPS_ENABLED = "false" zusätzlich alle Gruppen-Karten) und trägt schrittweise die
+   * KV-Metadata von Bestands-Keys nach (backfillKvMetadata). */
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(cleanupOrphanedDiscordCards(env));
     ctx.waitUntil(cleanupPresence(env));
+    ctx.waitUntil(backfillKvMetadata(env).then((result) => {
+      if (result.updated > 0 || result.skipped > 0 || result.limitReached)
+        console.log("KV-Metadata-Backfill", result);
+    }));
   },
 };

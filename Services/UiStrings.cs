@@ -199,6 +199,7 @@ public static class UiStrings
         SourceMethodTotemSpellCount,
         SourceMethodTotemLevel,
         SourceMethodMaskedCarnivaleProgress,
+        MaskedCarnivaleStageFormat,
         SourceMethodStartingSpell,
         GroupPublishRequiresOwnProfileHint,
         GroupPublishCreatorAlwaysMemberHint,
@@ -1548,12 +1549,13 @@ public static class UiStrings
             [DisplayLanguage.French] = "Sets de sorts",
             [DisplayLanguage.Japanese] = "ロードアウト",
         },
+        // Masked-Carnivale-Begriffe wie im Spiel (Addon 8832), siehe MaskedCarnivaleStageFormat.
         [Key.LoadoutContentTypeMaskedCarnivale] = new()
         {
-            [DisplayLanguage.German] = "Maskenkarneval",
+            [DisplayLanguage.German] = "Die Große Maskerade",
             [DisplayLanguage.English] = "Masked Carnivale",
-            [DisplayLanguage.French] = "Carnaval masqué",
-            [DisplayLanguage.Japanese] = "仮面舞踏会",
+            [DisplayLanguage.French] = "La Grande Mascarade",
+            [DisplayLanguage.Japanese] = "マスクカーニバル",
         },
         [Key.LoadoutContentTypeTank] = new()
         {
@@ -1651,7 +1653,7 @@ public static class UiStrings
         },
         [Key.SourceMethodMaskedCarnivale] = new()
         {
-            [DisplayLanguage.German] = "Masked Carnivale",
+            [DisplayLanguage.German] = "Die Große Maskerade",
             [DisplayLanguage.English] = "Masked Carnivale",
             [DisplayLanguage.French] = "La Grande Mascarade",
             [DisplayLanguage.Japanese] = "マスクカーニバル",
@@ -1685,10 +1687,21 @@ public static class UiStrings
         },
         [Key.SourceMethodMaskedCarnivaleProgress] = new()
         {
-            [DisplayLanguage.German] = "Masked Carnivale (Fortschritt)",
+            [DisplayLanguage.German] = "Die Große Maskerade (Fortschritt)",
             [DisplayLanguage.English] = "Masked Carnivale (progress)",
             [DisplayLanguage.French] = "La Grande Mascarade (progression)",
             [DisplayLanguage.Japanese] = "マスクカーニバル(進行度)",
+        },
+        // Anzeigename einer Masked-Carnivale-Stage (Location.MaskedCarnivaleStage), {0} = Stage-Nummer.
+        // Grundbegriff wie im Spiel (Addon 8832: "Die Große Maskerade" / "The Masked Carnivale" /
+        // "La Grande Mascarade" / "マスクカーニバル").
+        [Key.MaskedCarnivaleStageFormat] = new()
+        {
+            [DisplayLanguage.German] = "Die Große Maskerade Nr. {0}",
+            [DisplayLanguage.English] = "Masked Carnivale #{0}",
+            [DisplayLanguage.French] = "La Grande Mascarade n°{0}",
+            // TODO: Übersetzung prüfen (Nummern-Schreibweise im japanischen Client)
+            [DisplayLanguage.Japanese] = "マスクカーニバル No.{0}",
         },
         [Key.SourceMethodStartingSpell] = new()
         {
@@ -1840,7 +1853,7 @@ public static class UiStrings
         },
         [Key.LearningPlanCarnivaleHeader] = new()
         {
-            [DisplayLanguage.German] = "Masked Carnivale:",
+            [DisplayLanguage.German] = "Die Große Maskerade:",
             [DisplayLanguage.English] = "Masked Carnivale:",
             [DisplayLanguage.French] = "La Grande Mascarade :",
             [DisplayLanguage.Japanese] = "マスクカーニバル:",

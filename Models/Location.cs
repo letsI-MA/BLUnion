@@ -1,3 +1,5 @@
+using BLUnion.Services;
+
 namespace BLUnion.Models;
 
 public sealed class Location
@@ -31,6 +33,11 @@ public sealed class Location
     // (siehe GameTextService.GetZoneName).
     public IReadOnlyList<uint>? ContentFinderConditionIds { get; init; }
 
+    // Masked-Carnivale-Stage (Nummer im Spiel). Die Stages haben keine eigenen Game-IDs - der
+    // Anzeigename kommt dann aus dem UiStrings-Template (MaskedCarnivaleStageFormat) statt aus den
+    // ZoneName-Feldern, damit alle Stages in allen Sprachen gleich aussehen.
+    public int? MaskedCarnivaleStage { get; init; }
+
     // Alle Duties dieses Orts: die Varianten, sonst die Einzel-Duty, sonst keine.
     public IReadOnlyList<uint> GetContentFinderConditionIds() =>
         this.ContentFinderConditionIds is { Count: > 0 } ids ? ids
@@ -38,5 +45,7 @@ public sealed class Location
         : [];
 
     public string GetZoneName(DisplayLanguage language) =>
-        DisplayLanguageText.Select(language, this.ZoneNameDe, this.ZoneNameEn, this.ZoneNameFr, this.ZoneNameJa);
+        this.MaskedCarnivaleStage is { } stage
+            ? UiStrings.Format(UiStrings.Key.MaskedCarnivaleStageFormat, language, stage)
+            : DisplayLanguageText.Select(language, this.ZoneNameDe, this.ZoneNameEn, this.ZoneNameFr, this.ZoneNameJa);
 }

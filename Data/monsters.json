@@ -55,11 +55,12 @@
   },
   {
     "Id": 7,
-    "NameDe": "A.D.S.",
-    "NameEn": "A.D.S.",
-    "NameFr": "A.D.S.",
-    "NameJa": "A.D.S.",
-    "LocationId": 6
+    "NameDe": "ADS",
+    "NameEn": "ADS",
+    "NameFr": "ADS",
+    "NameJa": "ADS",
+    "LocationId": 6,
+    "BNpcNameId": 1459
   },
   {
     "Id": 8,
@@ -72,11 +73,12 @@
   },
   {
     "Id": 9,
-    "NameDe": "Haliostroper",
-    "NameEn": "Haliostroper",
-    "NameFr": "Haliostroper",
-    "NameJa": "Haliostroper",
-    "LocationId": 109
+    "NameDe": "Halitostroper",
+    "NameEn": "Halitostroper",
+    "NameFr": "Halitostroper",
+    "NameJa": "Halitostroper",
+    "LocationId": 109,
+    "BNpcNameId": 2057
   },
   {
     "Id": 10,
@@ -89,11 +91,12 @@
   },
   {
     "Id": 11,
-    "NameDe": "Reflective Rebekah",
-    "NameEn": "Reflective Rebekah",
-    "NameFr": "Reflective Rebekah",
-    "NameJa": "Reflective Rebekah",
-    "LocationId": 10
+    "NameDe": "Reflective Rebekkah",
+    "NameEn": "Reflective Rebekkah",
+    "NameFr": "Reflective Rebekkah",
+    "NameJa": "Reflective Rebekkah",
+    "LocationId": 10,
+    "BNpcNameId": 8117
   },
   {
     "Id": 12,
@@ -227,15 +230,20 @@
     "NameEn": "Goblin Fisher & Gambler",
     "NameFr": "Goblin Fisher & Gambler",
     "NameJa": "Goblin Fisher & Gambler",
-    "LocationId": 20
+    "LocationId": 20,
+    "BNpcNameIds": [
+      367,
+      3099
+    ]
   },
   {
     "Id": 27,
-    "NameDe": "Sabetonder Bailaor",
-    "NameEn": "Sabetonder Bailaor",
-    "NameFr": "Sabetonder Bailaor",
-    "NameJa": "Sabetonder Bailaor",
-    "LocationId": 12
+    "NameDe": "Sabotender Bailaor",
+    "NameEn": "Sabotender Bailaor",
+    "NameFr": "Sabotender Bailaor",
+    "NameJa": "Sabotender Bailaor",
+    "LocationId": 12,
+    "BNpcNameId": 8137
   },
   {
     "Id": 28,
@@ -266,12 +274,13 @@
   },
   {
     "Id": 31,
-    "NameDe": "Denezen of the Dark",
-    "NameEn": "Denezen of the Dark",
-    "NameFr": "Denezen of the Dark",
-    "NameJa": "Denezen of the Dark",
+    "NameDe": "Denizen of the Dark",
+    "NameEn": "Denizen of the Dark",
+    "NameFr": "Denizen of the Dark",
+    "NameJa": "Denizen of the Dark",
     "Notes": "(Levequest)",
-    "LocationId": 24
+    "LocationId": 24,
+    "BNpcNameId": 1769
   },
   {
     "Id": 32,
@@ -464,19 +473,19 @@
   },
   {
     "Id": 53,
-    "NameDe": "Maskenkarneval",
+    "NameDe": "Die Große Maskerade",
     "NameEn": "Masked Carnivale",
-    "NameFr": "Carnaval masqué",
-    "NameJa": "仮面の謝肉祭",
+    "NameFr": "La Grande Mascarade",
+    "NameJa": "マスクカーニバル",
     "Notes": "Complete 10 Masked Carnivale stages",
     "RequirementValue": 10
   },
   {
     "Id": 54,
-    "NameDe": "Maskenkarneval",
+    "NameDe": "Die Große Maskerade",
     "NameEn": "Masked Carnivale",
-    "NameFr": "Carnaval masqué",
-    "NameJa": "仮面の謝肉祭",
+    "NameFr": "La Grande Mascarade",
+    "NameJa": "マスクカーニバル",
     "Notes": "Clear 20 Masked Carnivale stages",
     "RequirementValue": 20
   },
@@ -718,11 +727,12 @@
   },
   {
     "Id": 81,
-    "NameDe": "Everlasting Bibliotaph",
-    "NameEn": "Everlasting Bibliotaph",
-    "NameFr": "Everlasting Bibliotaph",
-    "NameJa": "Everlasting Bibliotaph",
-    "LocationId": 55
+    "NameDe": "The Everliving Bibliotaph",
+    "NameEn": "The Everliving Bibliotaph",
+    "NameFr": "The Everliving Bibliotaph",
+    "NameJa": "The Everliving Bibliotaph",
+    "LocationId": 55,
+    "BNpcNameId": 3930
   },
   {
     "Id": 82,
@@ -753,11 +763,12 @@
   },
   {
     "Id": 85,
-    "NameDe": "Furryfoot Kupil Kipp",
-    "NameEn": "Furryfoot Kupil Kipp",
-    "NameFr": "Furryfoot Kupil Kipp",
-    "NameJa": "Furryfoot Kupil Kipp",
-    "LocationId": 58
+    "NameDe": "Furryfoot Kupli Kipp",
+    "NameEn": "Furryfoot Kupli Kipp",
+    "NameFr": "Furryfoot Kupli Kipp",
+    "NameJa": "Furryfoot Kupli Kipp",
+    "LocationId": 58,
+    "BNpcNameId": 720
   },
   {
     "Id": 86,
@@ -887,10 +898,10 @@
   },
   {
     "Id": 100,
-    "NameDe": "Maskenkarneval",
+    "NameDe": "Die Große Maskerade",
     "NameEn": "Masked Carnivale",
-    "NameFr": "Carnaval masqué",
-    "NameJa": "仮面の謝肉祭",
+    "NameFr": "La Grande Mascarade",
+    "NameJa": "マスクカーニバル",
     "Notes": "Complete 30 Masked Carnivale stages",
     "RequirementValue": 30
   },
@@ -1089,7 +1100,11 @@
     "NameEn": "Coeurl Sruti or Smriti",
     "NameFr": "Coeurl Sruti or Smriti",
     "NameJa": "Coeurl Sruti or Smriti",
-    "LocationId": 80
+    "LocationId": 80,
+    "BNpcNameIds": [
+      6119,
+      6120
+    ]
   },
   {
     "Id": 123,
@@ -1327,19 +1342,12 @@
   },
   {
     "Id": 149,
-    "NameDe": "Aenc Thon",
-    "NameEn": "Aenc Thon",
-    "NameFr": "Aenc Thon",
-    "NameJa": "Aenc Thon",
-    "LocationId": 103
-  },
-  {
-    "Id": 150,
-    "NameDe": "Lord of the Lingering Gaze",
-    "NameEn": "Lord of the Lingering Gaze",
-    "NameFr": "Lord of the Lingering Gaze",
-    "NameJa": "Lord of the Lingering Gaze",
-    "LocationId": 103
+    "NameDe": "Aenc Thon, Lord of the Lingering Gaze",
+    "NameEn": "Aenc Thon, Lord of the Lingering Gaze",
+    "NameFr": "Aenc Thon, Lord of the Lingering Gaze",
+    "NameJa": "Aenc Thon, Lord of the Lingering Gaze",
+    "LocationId": 103,
+    "BNpcNameId": 8141
   },
   {
     "Id": 151,

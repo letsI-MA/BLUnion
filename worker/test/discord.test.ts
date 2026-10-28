@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { formatTargetSpellOrders } from "../src/index";
 import {
-  browseProfiles, callWorker, KNOWN_SPELL_IDS_SAMPLE, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, putProfile,
-  uniqueGroupId, uniqueName, validBitmaskBase64,
+  browseGroups, browseProfiles, callWorker, KNOWN_SPELL_IDS_SAMPLE, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup,
+  putProfile, uniqueBrowseOrigin, uniqueGroupId, uniqueName, validBitmaskBase64,
 } from "./helpers";
 
 /**
@@ -35,13 +35,18 @@ function bytesToHex(bytes: Uint8Array): string {
 /** Signiert einen Discord-Interaction-Request exakt wie ein echter Discord-Server (siehe
  * verifyDiscordSignature-Doc in src/index.ts: Nachricht = timestamp + rawBody, Ed25519 über
  * SubtleCrypto) - baut daraus direkt das fertige Request-Objekt inkl. beider Signatur-Header. */
-async function signedDiscordRequest(bodyText: string, timestamp = `${Math.floor(Date.now() / 1000)}`) {
+/** Eigene origin pro Aufruf (Default): "/blunion browse" nutzt den 20-s-Browse-Cache, dessen Key
+ * aus origin + Pfad + Data Center besteht - mit fester origin sähe ein Test das Ergebnis des
+ * vorherigen. Tests, die den Cache prüfen, geben eine gemeinsame origin mit. */
+async function signedDiscordRequest(
+  bodyText: string, timestamp = `${Math.floor(Date.now() / 1000)}`, origin = uniqueBrowseOrigin("discord"),
+) {
   const privateKey = await crypto.subtle.importKey(
     "jwk", DISCORD_TEST_KEY_PAIR_JWK, { name: "Ed25519" }, false, ["sign"]);
   const message = new TextEncoder().encode(timestamp + bodyText);
   const signature = await crypto.subtle.sign({ name: "Ed25519" }, privateKey, message);
 
-  return new Request("http://example.com/discord/interactions", {
+  return new Request(`${origin}/discord/interactions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -472,6 +477,70 @@ describe("POST /discord/interactions - /blunion browse type:players", () => {
       const names = JSON.stringify(json.data.embeds);
       expect(names).not.toContain(characterName);
     }
+  });
+});
+
+describe("POST /discord/interactions - /blunion browse uses the browse cache", () => {
+  type BrowseEmbedJson = { data: { content?: string; embeds?: { fields: { name: string }[] }[] } };
+
+  async function discordBrowseAt(origin: string, type: "players" | "groups"): Promise<string[]> {
+    const request = await signedDiscordRequest(
+      JSON.stringify(browseCommandInteraction(KNOWN_WORLD_DATA_CENTER, type)), undefined, origin);
+    const json = await callWorker(request).then((r) => r.json<BrowseEmbedJson>());
+    return json.data.embeds?.[0]?.fields.map((field) => field.name) ?? [];
+  }
+
+  it("serves players from the same cache entry as GET /profiles/browse", async () => {
+    const origin = uniqueBrowseOrigin("discordcache");
+    const first = uniqueName("CacheErster");
+    await putProfile(KNOWN_WORLD, first, { spellBitmaskBase64: validBitmaskBase64(), visibility: "listed" });
+
+    // Plugin-Endpunkt füllt den Cache (Key: origin + /profiles/browse + kanonisches Data Center) ...
+    expect((await browseProfiles(KNOWN_WORLD_DATA_CENTER.toLowerCase(), origin)).status).toBe(200);
+
+    const second = uniqueName("CacheZweiter");
+    await putProfile(KNOWN_WORLD, second, { spellBitmaskBase64: validBitmaskBase64(), visibility: "listed" });
+
+    // ... und Discord liest denselben Eintrag: der danach angelegte Spieler fehlt noch.
+    const names = await discordBrowseAt(origin, "players");
+    expect(names).toContain(`${first} (${KNOWN_WORLD})`);
+    expect(names).not.toContain(`${second} (${KNOWN_WORLD})`);
+
+    // Gegenprobe: neue origin = neuer Cache-Eintrag, der zweite Spieler ist da.
+    expect(await discordBrowseAt(uniqueBrowseOrigin("discordcache"), "players")).toContain(`${second} (${KNOWN_WORLD})`);
+  });
+
+  it("fills the cache itself, so repeated commands do not rescan KV", async () => {
+    const origin = uniqueBrowseOrigin("discordcache");
+    const first = uniqueName("CacheDiscordA");
+    await putProfile(KNOWN_WORLD, first, { spellBitmaskBase64: validBitmaskBase64(), visibility: "listed" });
+    expect(await discordBrowseAt(origin, "players")).toContain(`${first} (${KNOWN_WORLD})`);
+
+    const second = uniqueName("CacheDiscordB");
+    await putProfile(KNOWN_WORLD, second, { spellBitmaskBase64: validBitmaskBase64(), visibility: "listed" });
+
+    expect(await discordBrowseAt(origin, "players")).not.toContain(`${second} (${KNOWN_WORLD})`);
+    // Der Plugin-Endpunkt sieht denselben (Discord-befüllten) Eintrag.
+    const pluginNames = (await (await browseProfiles(KNOWN_WORLD_DATA_CENTER, origin)).json<{ characterName: string }[]>())
+      .map((player) => player.characterName);
+    expect(pluginNames).toContain(first);
+    expect(pluginNames).not.toContain(second);
+  });
+
+  it("serves groups from the same cache entry as GET /groups/browse", async () => {
+    const origin = uniqueBrowseOrigin("discordcache");
+    await putGroup(uniqueGroupId(), {
+      members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }], visibility: "listed", note: "Cache-Gruppe-1",
+    });
+    expect((await browseGroups(KNOWN_WORLD_DATA_CENTER, origin)).status).toBe(200);
+
+    await putGroup(uniqueGroupId(), {
+      members: [{ world: KNOWN_WORLD, characterName: uniqueName("M") }], visibility: "listed", note: "Cache-Gruppe-2",
+    });
+
+    const names = await discordBrowseAt(origin, "groups");
+    expect(names).toContain("Cache-Gruppe-1");
+    expect(names).not.toContain("Cache-Gruppe-2");
   });
 });
 

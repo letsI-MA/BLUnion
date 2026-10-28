@@ -23,6 +23,13 @@ public sealed class Monster
     // der Reihenfolge des Namens. Hat Vorrang vor BNpcNameId (siehe GameTextService.GetMonsterName).
     public IReadOnlyList<uint>? BNpcNameIds { get; init; }
 
+    // Alle BNpcName-IDs dieses Eintrags: die Sammel-IDs, sonst die Einzel-ID, sonst keine. Beide
+    // JSON-Formen ("BNpcNameId": 1 bzw. "BNpcNameIds": [1, 2]) bleiben damit gültig.
+    public IReadOnlyList<uint> GetBNpcNameIds() =>
+        this.BNpcNameIds is { Count: > 0 } ids ? ids
+        : this.BNpcNameId is { } id ? [id]
+        : [];
+
     // Bedingung als Zahl für Totem-Einträge (gelernte Spells bzw. Blaumagier-Stufe, je nach
     // SourceMethod) und Carnivale-Fortschritt (abgeschlossene Stages) - siehe LearningPlanService.
     // Notes bleiben als Freitext daneben stehen.

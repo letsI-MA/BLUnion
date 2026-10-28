@@ -133,6 +133,8 @@ public static class LearningPlanService
             carnivale
                 .OrderBy(entry => entry.RequiredStages is not null)
                 .ThenBy(entry => entry.RequiredStages ?? 0)
+                // Stage-Nummer numerisch (sonst stünde "Nr. 8" als Text hinter "Nr. 24").
+                .ThenBy(entry => entry.Stage?.MaskedCarnivaleStage ?? int.MaxValue)
                 .ThenBy(entry => entry.Stage is null ? "" : locationName(entry.Stage), StringComparer.CurrentCultureIgnoreCase)
                 .ThenBy(entry => spells[entry.Spell.SpellId].SpellbookOrder)
                 .ToList(),

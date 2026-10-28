@@ -19,11 +19,11 @@ public class SourceMethodTests
         [SourceMethod.OpenWorld] = ("Open World", "Open World"),
         [SourceMethod.Levequest] = ("Levequest", "Levequest"),
         [SourceMethod.DungeonTrash] = ("Dungeon-Trash", "Dungeon trash"),
-        [SourceMethod.MaskedCarnivale] = ("Masked Carnivale", "Masked Carnivale"),
+        [SourceMethod.MaskedCarnivale] = ("Die Große Maskerade", "Masked Carnivale"),
         [SourceMethod.Totem] = ("Totem", "Totem"),
         [SourceMethod.TotemSpellCount] = ("Totem (nach Spell-Anzahl)", "Totem (by spell count)"),
         [SourceMethod.TotemLevel] = ("Totem (nach Level)", "Totem (by level)"),
-        [SourceMethod.MaskedCarnivaleProgress] = ("Masked Carnivale (Fortschritt)", "Masked Carnivale (progress)"),
+        [SourceMethod.MaskedCarnivaleProgress] = ("Die Große Maskerade (Fortschritt)", "Masked Carnivale (progress)"),
         [SourceMethod.StartingSpell] = ("Von Anfang an bekannt", "Known from the start"),
     };
 

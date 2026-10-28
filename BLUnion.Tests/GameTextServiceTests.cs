@@ -188,6 +188,38 @@ public class GameTextServiceTests
         Assert.Equal("Pharos Sirius", new GameTextService(source).GetZoneName(CreateLocation(cfcId: 30), DisplayLanguage.Japanese));
     }
 
+    [Theory]
+    [InlineData(DisplayLanguage.German, "Die Große Maskerade Nr. 25")]
+    [InlineData(DisplayLanguage.English, "Masked Carnivale #25")]
+    [InlineData(DisplayLanguage.French, "La Grande Mascarade n°25")]
+    [InlineData(DisplayLanguage.Japanese, "マスクカーニバル No.25")]
+    public void ZoneName_OfMaskedCarnivaleStage_ComesFromTemplate_NotFromJsonText(DisplayLanguage language, string expected)
+    {
+        var stage = new Location
+        {
+            Id = 37,
+            ZoneNameDe = "veraltet",
+            ZoneNameEn = "Masked Carnivale",
+            ZoneNameFr = "veraltet",
+            ZoneNameJa = "Masked Carnivale",
+            DutyName = "Masked Carnivale: 25",
+            MaskedCarnivaleStage = 25,
+        };
+
+        Assert.Equal(expected, new GameTextService(new FakeGameTextSource()).GetZoneName(stage, language));
+    }
+
+    [Fact]
+    public void SingleEntryBNpcNameIds_BehavesLikeBNpcNameId()
+    {
+        var source = new FakeGameTextSource();
+        source.Texts[("bnpc", 7, DisplayLanguage.English)] = "mudpuppy";
+
+        Assert.Equal([7u], CreateMonster().GetBNpcNameIds());
+        Assert.Empty(CreateMonster(bnpcNameId: null).GetBNpcNameIds());
+        Assert.Equal("Mudpuppy", new GameTextService(source).GetMonsterName(CreateCombinedMonster([7]), DisplayLanguage.English));
+    }
+
     [Fact]
     public void Description_FromGame_KeepsLineBreaksAndIsNotCapitalized()
     {

@@ -6,7 +6,7 @@ import type { Env } from "../src/index";
 import { setDiscordFetchForTests } from "../src/discordWebhook";
 import {
   browseGroups, callWorker, deleteGroup, KNOWN_WORLD, KNOWN_WORLD_DATA_CENTER, putGroup, putProfile, uniqueGroupId,
-  uniqueName, validBitmaskBase64,
+  uniqueBrowseOrigin, uniqueName, validBitmaskBase64,
 } from "./helpers";
 
 /**
@@ -168,7 +168,8 @@ async function discordBrowse(type?: string): Promise<{ data: { content?: string;
   const signature = await crypto.subtle.sign({ name: "Ed25519" }, privateKey, new TextEncoder().encode(timestamp + bodyText));
   const hex = Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
 
-  const response = await callWorker(new Request("http://example.com/discord/interactions", {
+  // Eigene origin: "/blunion browse" nutzt den 20-s-Browse-Cache (siehe uniqueBrowseOrigin).
+  const response = await callWorker(new Request(`${uniqueBrowseOrigin("discord")}/discord/interactions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Signature-Ed25519": hex, "X-Signature-Timestamp": timestamp },
     body: bodyText,

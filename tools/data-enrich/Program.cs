@@ -2,7 +2,7 @@
 //
 // Liest die Spieldateien per Lumina direkt aus einem sqpack-Ordner und ergänzt Game-IDs:
 //   spells.json    -> ActionId, AozActionId
-//   monsters.json  -> BNpcNameId
+//   monsters.json  -> BNpcNameId bzw. bei Sammelnamen BNpcNameIds
 //   locations.json -> TerritoryTypeId, MapId, PlaceNameId, ContentFinderConditionId bzw. bei
 //                     Sammeleinträgen mit mehreren Duty-Varianten ContentFinderConditionIds
 // Bestehende Felder bleiben erhalten, neue Felder werden am Ende des jeweiligen Objekts angehängt.
@@ -171,9 +171,12 @@ internal static class Program
         // Normalisierter englischer Name -> niedrigste ID (mehrere gleichnamige BNpcs sind für die
         // Namensauflösung gleichwertig, siehe Aufgabenstellung).
         var idByName = new Dictionary<string, uint>();
+        var nameById = new Dictionary<uint, string>();
         foreach (var row in bnpcNames)
         {
             var name = Normalize(Text(row.Singular));
+            if (name.Length > 0)
+                nameById[row.RowId] = name;
             if (name.Length > 0 && (!idByName.TryGetValue(name, out var existing) || row.RowId < existing))
                 idByName[name] = row.RowId;
         }
@@ -219,6 +222,24 @@ internal static class Program
                 }
 
                 var missing = parts.Where((_, index) => partIds[index] is null).ToList();
+
+                // Von Hand ergänzte IDs (Report-Kandidaten) gelten als zugeordnet, wenn sie zum Namen
+                // passen: je Teil eine ID, die automatisch gefundenen Teile stimmen überein, und jede
+                // ID ist ein existierender BNpcName.
+                if (ReadIds(monster, "BNpcNameIds") is { } manualIds && manualIds.Count == parts.Count
+                    && manualIds.All(manualId => nameById.ContainsKey(manualId))
+                    && partIds.Select((partId, index) => partId is null || partId == manualIds[index]).All(ok => ok))
+                {
+                    monster.Remove("BNpcNameId");
+                    section.Matched++;
+                    section.Notes.Add($"{label}: von Hand ergänzt: " + string.Join(", ", missing.Select(part =>
+                    {
+                        var manualId = manualIds[parts.IndexOf(part)];
+                        return $"\"{part}\" = {manualId} \"{nameById[manualId]}\"";
+                    })));
+                    continue;
+                }
+
                 var matchedText = string.Join(", ", parts
                     .Select((part, index) => (part, partIds[index]))
                     .Where(entry => entry.Item2 is not null)
@@ -289,16 +310,23 @@ internal static class Program
             var dutyName = location["DutyName"]?.GetValue<string>();
             var label = $"{id} {dutyName ?? zoneEn}";
 
+            // Masked-Carnivale-Stages sind keine eigenen ContentFinderCondition-Einträge - eine Zuordnung
+            // zum gemeinsamen Arena-Gebiet würde die Stage-Nummer verlieren. Mit MaskedCarnivaleStage
+            // kommt der Anzeigename aus dem UiStrings-Template (alle Sprachen), eine Game-ID braucht es nicht.
+            if (location["MaskedCarnivaleStage"] is JsonValue stageValue && stageValue.TryGetValue<int>(out var stage) && stage > 0)
+            {
+                section.Skipped.Add($"{label}: Masked-Carnivale-Stage {stage} - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID");
+                continue;
+            }
+
             if (dutyName is not null)
             {
                 if (dutyName.StartsWith("Masked Carnivale", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Die einzelnen Stages sind keine eigenen ContentFinderCondition-Einträge - eine
-                    // Zuordnung zum gemeinsamen Arena-Gebiet würde die Stage-Nummer verlieren.
                     var carnivale = string.Join(", ", cfcByName
                         .Where(pair => pair.Key.Contains("masked carnivale"))
                         .SelectMany(pair => pair.Value.Select(cfcId => $"CFC {cfcId} \"{Text(cfcs.GetRow(cfcId).Name)}\"")));
-                    KeepOrClear(location, section, label, "Masked-Carnivale-Stage, kein eindeutiger Spieleintrag", carnivale, allFields);
+                    KeepOrClear(location, section, label, "Masked-Carnivale-Stage ohne MaskedCarnivaleStage (Stage-Nummer fehlt)", carnivale, allFields);
                     continue;
                 }
 
@@ -542,6 +570,9 @@ internal static class Program
         var kept = fields.Where(field => obj.ContainsKey(field)).ToList();
         section.Open.Add(new Report.OpenEntry(label, reason, candidates, kept.Count > 0 ? $"beibehalten: {string.Join(", ", kept)}" : ""));
     }
+
+    private static List<uint>? ReadIds(JsonObject obj, string field) =>
+        obj[field] is JsonArray array ? array.Select(node => node!.GetValue<uint>()).ToList() : null;
 
     private static void SetOrRemove(JsonObject obj, string field, uint value)
     {

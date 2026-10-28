@@ -14,18 +14,20 @@
   {
     "Id": 2,
     "ZoneNameDe": "Die Große Maskerade Nr. 20",
-    "ZoneNameEn": "Masked Carnivale: 20",
+    "ZoneNameEn": "Masked Carnivale #20",
     "ZoneNameFr": "La Grande Mascarade n°20",
-    "ZoneNameJa": "Masked Carnivale: 20",
-    "DutyName": "Masked Carnivale: 20"
+    "ZoneNameJa": "マスクカーニバル No.20",
+    "DutyName": "Masked Carnivale: 20",
+    "MaskedCarnivaleStage": 20
   },
   {
     "Id": 3,
-    "ZoneNameDe": "Masked Carnivale: 27",
-    "ZoneNameEn": "Masked Carnivale: 27",
-    "ZoneNameFr": "Masked Carnivale: 27",
-    "ZoneNameJa": "Masked Carnivale: 27",
-    "DutyName": "Masked Carnivale: 27"
+    "ZoneNameDe": "Die Große Maskerade Nr. 27",
+    "ZoneNameEn": "Masked Carnivale #27",
+    "ZoneNameFr": "La Grande Mascarade n°27",
+    "ZoneNameJa": "マスクカーニバル No.27",
+    "DutyName": "Masked Carnivale: 27",
+    "MaskedCarnivaleStage": 27
   },
   {
     "Id": 4,
@@ -42,10 +44,11 @@
   {
     "Id": 5,
     "ZoneNameDe": "Die Große Maskerade Nr. 15",
-    "ZoneNameEn": "Masked Carnivale: 15",
+    "ZoneNameEn": "Masked Carnivale #15",
     "ZoneNameFr": "La Grande Mascarade n°15",
-    "ZoneNameJa": "Masked Carnivale: 15",
-    "DutyName": "Masked Carnivale: 15"
+    "ZoneNameJa": "マスクカーニバル No.15",
+    "DutyName": "Masked Carnivale: 15",
+    "MaskedCarnivaleStage": 15
   },
   {
     "Id": 6,
@@ -95,11 +98,12 @@
   },
   {
     "Id": 10,
-    "ZoneNameDe": "Masked Carnivale: 19",
-    "ZoneNameEn": "Masked Carnivale: 19",
-    "ZoneNameFr": "Masked Carnivale: 19",
-    "ZoneNameJa": "Masked Carnivale: 19",
-    "DutyName": "Masked Carnivale: 19"
+    "ZoneNameDe": "Die Große Maskerade Nr. 19",
+    "ZoneNameEn": "Masked Carnivale #19",
+    "ZoneNameFr": "La Grande Mascarade n°19",
+    "ZoneNameJa": "マスクカーニバル No.19",
+    "DutyName": "Masked Carnivale: 19",
+    "MaskedCarnivaleStage": 19
   },
   {
     "Id": 11,
@@ -135,11 +139,12 @@
   },
   {
     "Id": 14,
-    "ZoneNameDe": "Die große Maskerade Nr. 25",
-    "ZoneNameEn": "Masked Carnivale: 25",
+    "ZoneNameDe": "Die Große Maskerade Nr. 25",
+    "ZoneNameEn": "Masked Carnivale #25",
     "ZoneNameFr": "La Grande Mascarade n°25",
-    "ZoneNameJa": "Masked Carnivale: 25",
-    "DutyName": "Masked Carnivale: 25"
+    "ZoneNameJa": "マスクカーニバル No.25",
+    "DutyName": "Masked Carnivale: 25",
+    "MaskedCarnivaleStage": 25
   },
   {
     "Id": 15,
@@ -398,11 +403,12 @@
   },
   {
     "Id": 37,
-    "ZoneNameDe": "Die große Maskerade Nr. 25",
-    "ZoneNameEn": "Masked Carnivale",
+    "ZoneNameDe": "Die Große Maskerade Nr. 25",
+    "ZoneNameEn": "Masked Carnivale #25",
     "ZoneNameFr": "La Grande Mascarade n°25",
-    "ZoneNameJa": "Masked Carnivale",
-    "DutyName": "Masked Carnivale"
+    "ZoneNameJa": "マスクカーニバル No.25",
+    "DutyName": "Masked Carnivale: 25",
+    "MaskedCarnivaleStage": 25
   },
   {
     "Id": 38,
@@ -537,11 +543,12 @@
   },
   {
     "Id": 49,
-    "ZoneNameDe": "Masked Carnivale: 29",
-    "ZoneNameEn": "Masked Carnivale: 29",
-    "ZoneNameFr": "Masked Carnivale: 29",
-    "ZoneNameJa": "Masked Carnivale: 29",
-    "DutyName": "Masked Carnivale: 29"
+    "ZoneNameDe": "Die Große Maskerade Nr. 29",
+    "ZoneNameEn": "Masked Carnivale #29",
+    "ZoneNameFr": "La Grande Mascarade n°29",
+    "ZoneNameJa": "マスクカーニバル No.29",
+    "DutyName": "Masked Carnivale: 29",
+    "MaskedCarnivaleStage": 29
   },
   {
     "Id": 50,
@@ -674,10 +681,11 @@
   {
     "Id": 61,
     "ZoneNameDe": "Die Große Maskerade Nr. 24",
-    "ZoneNameEn": "Masked Carnivale: 24",
+    "ZoneNameEn": "Masked Carnivale #24",
     "ZoneNameFr": "La Grande Mascarade n°24",
-    "ZoneNameJa": "Masked Carnivale: 24",
-    "DutyName": "Masked Carnivale: 24"
+    "ZoneNameJa": "マスクカーニバル No.24",
+    "DutyName": "Masked Carnivale: 24",
+    "MaskedCarnivaleStage": 24
   },
   {
     "Id": 62,
@@ -1222,11 +1230,12 @@
   },
   {
     "Id": 108,
-    "ZoneNameDe": "Masked Carnivale: 08",
-    "ZoneNameEn": "Masked Carnivale: 08",
-    "ZoneNameFr": "Masked Carnivale: 08",
-    "ZoneNameJa": "Masked Carnivale: 08",
-    "DutyName": "Masked Carnivale: 08"
+    "ZoneNameDe": "Die Große Maskerade Nr. 8",
+    "ZoneNameEn": "Masked Carnivale #8",
+    "ZoneNameFr": "La Grande Mascarade n°8",
+    "ZoneNameJa": "マスクカーニバル No.8",
+    "DutyName": "Masked Carnivale: 8",
+    "MaskedCarnivaleStage": 8
   },
   {
     "Id": 109,

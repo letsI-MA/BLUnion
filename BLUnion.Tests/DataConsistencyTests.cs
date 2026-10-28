@@ -93,4 +93,112 @@ public class DataConsistencyTests
 
         Assert.True(violations.Count == 0, "Koordinaten ohne Karten-Link:\n" + string.Join("\n", violations));
     }
+
+    // Sammelnamen ("Goblin Fisher & Gambler", "Coeurl Sruti or Smriti") brauchen je Teil eine ID in
+    // BNpcNameIds - eine einzelne BNpcNameId würde in der Anzeige einen der Namen verschlucken.
+    [Fact]
+    public void CombinedMonsterNames_HaveOneBNpcNameIdPerPart()
+    {
+        var data = LoadRealData();
+
+        var combined = data.Monsters.Values
+            .Select(monster => (Monster: monster, Parts: monster.NameEn.Split([" & ", " or "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)))
+            .Where(entry => entry.Parts.Length > 1)
+            .ToList();
+        Assert.NotEmpty(combined);
+
+        var violations = combined
+            .Where(entry => entry.Monster.BNpcNameId is not null
+                || entry.Monster.BNpcNameIds is not { } ids
+                || ids.Count != entry.Parts.Length
+                || ids.Distinct().Count() != ids.Count)
+            .Select(entry => $"Monster {entry.Monster.Id} \"{entry.Monster.NameEn}\"")
+            .ToList();
+
+        Assert.True(violations.Count == 0, "Sammelnamen ohne passende BNpcNameIds:\n" + string.Join("\n", violations));
+    }
+
+    [Fact]
+    public void Monsters_UseEitherBNpcNameIdOrBNpcNameIds()
+    {
+        var data = LoadRealData();
+
+        var violations = data.Monsters.Values
+            .Where(monster => monster.BNpcNameId is not null && monster.BNpcNameIds is not null
+                || monster.BNpcNameIds is { Count: < 2 })
+            .Select(monster => $"Monster {monster.Id} \"{monster.NameEn}\"")
+            .ToList();
+
+        Assert.True(violations.Count == 0, "BNpcNameId und BNpcNameIds gemischt oder BNpcNameIds mit < 2 IDs:\n" + string.Join("\n", violations));
+    }
+
+    // Fängt verwaiste Einträge ab, z.B. einen am Komma zerschnittenen Namen ("Aenc Thon" /
+    // "Lord of the Lingering Gaze"), dessen zweite Hälfte beim Zusammenführen übrig bleibt.
+    [Fact]
+    public void EveryMonster_IsUsedByASource_AndEverySourceMonsterExists()
+    {
+        var data = LoadRealData();
+        var usedMonsterIds = data.Sources.Select(source => source.MonsterId).ToHashSet();
+
+        var unused = data.Monsters.Values.Where(monster => !usedMonsterIds.Contains(monster.Id))
+            .Select(monster => $"Monster {monster.Id} \"{monster.NameEn}\" ohne Quelle");
+        var missing = usedMonsterIds.Where(id => !data.Monsters.ContainsKey(id))
+            .Select(id => $"Quelle verweist auf fehlendes Monster {id}");
+        var violations = unused.Concat(missing).ToList();
+
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
+
+    // Masked-Carnivale-Stages: Stage-Nummer als Feld, Anzeigename aus dem UiStrings-Template. Die
+    // ZoneName-Felder im JSON müssen dazu passen (Fallback/Lesbarkeit), DutyName = "Masked Carnivale: <n>".
+    [Fact]
+    public void MaskedCarnivaleStages_HaveStageNumber_AndConsistentNames()
+    {
+        var data = LoadRealData();
+
+        var stages = data.Locations.Values
+            .Where(location => location.MaskedCarnivaleStage is not null
+                || location.DutyName?.StartsWith("Masked Carnivale", StringComparison.OrdinalIgnoreCase) == true)
+            .ToList();
+        Assert.NotEmpty(stages);
+
+        var violations = new List<string>();
+        foreach (var location in stages)
+        {
+            var label = $"Location {location.Id} \"{location.DutyName ?? location.ZoneNameEn}\"";
+            if (location.MaskedCarnivaleStage is not { } stage || stage is < 1 or > 40)
+            {
+                violations.Add($"{label}: MaskedCarnivaleStage fehlt oder ungültig");
+                continue;
+            }
+
+            if (location.DutyName != $"Masked Carnivale: {stage}")
+                violations.Add($"{label}: DutyName passt nicht zu Stage {stage}");
+            if (location.GetContentFinderConditionIds().Count > 0 || location.TerritoryTypeId is not null || location.PlaceNameId is not null)
+                violations.Add($"{label}: Game-IDs gesetzt - der Name käme dann nicht aus dem Template");
+
+            var jsonNames = new Dictionary<DisplayLanguage, string>
+            {
+                [DisplayLanguage.German] = location.ZoneNameDe,
+                [DisplayLanguage.English] = location.ZoneNameEn,
+                [DisplayLanguage.French] = location.ZoneNameFr,
+                [DisplayLanguage.Japanese] = location.ZoneNameJa,
+            };
+            foreach (var (language, jsonName) in jsonNames)
+            {
+                var expected = UiStrings.Format(UiStrings.Key.MaskedCarnivaleStageFormat, language, stage);
+                if (jsonName != expected)
+                    violations.Add($"{label}: ZoneName ({language}) \"{jsonName}\" statt \"{expected}\"");
+            }
+        }
+
+        // Jede Carnivale-Quelle zeigt auf eine Stage mit Nummer.
+        violations.AddRange(data.Sources
+            .Where(source => source.Method == SourceMethod.MaskedCarnivale)
+            .Select(source => data.Monsters.GetValueOrDefault(source.MonsterId))
+            .Where(monster => monster is null || data.Locations.GetValueOrDefault(monster.LocationId)?.MaskedCarnivaleStage is null)
+            .Select(monster => $"Carnivale-Quelle ohne Stage-Location: Monster {monster?.Id} \"{monster?.NameEn}\""));
+
+        Assert.True(violations.Count == 0, "Masked-Carnivale-Stages inkonsistent:\n" + string.Join("\n", violations));
+    }
 }

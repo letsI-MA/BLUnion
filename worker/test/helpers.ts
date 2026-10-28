@@ -73,14 +73,16 @@ export async function deleteProfile(
  * (Schutz gegen Cache-Busting) - ein Zusatzparameter reicht deshalb NICHT mehr, um in Tests den
  * 20-Sekunden-Cache-Eintrag eines vorherigen Tests zu umgehen (caches.default ist nicht pro Test
  * isoliert, anders als KV). Ein anderer Host ist eine andere origin und damit ein anderer Key. */
-function uniqueBrowseOrigin(): string {
-  return `http://browse-${Date.now()}-${Math.random().toString(36).slice(2)}.example.com`;
+export function uniqueBrowseOrigin(prefix = "browse"): string {
+  return `http://${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}.example.com`;
 }
 
-export async function browseProfiles(dataCenter: string | null): Promise<Response> {
+/** origin optional - nur Tests, die den Cache bewusst teilen wollen (z.B. Plugin-Browse und
+ * Discord-Browse auf denselben Eintrag), geben eine eigene mit. */
+export async function browseProfiles(dataCenter: string | null, origin = uniqueBrowseOrigin()): Promise<Response> {
   const url = dataCenter
-    ? `${uniqueBrowseOrigin()}/profiles/browse?dataCenter=${encodeURIComponent(dataCenter)}`
-    : `${uniqueBrowseOrigin()}/profiles/browse`;
+    ? `${origin}/profiles/browse?dataCenter=${encodeURIComponent(dataCenter)}`
+    : `${origin}/profiles/browse`;
   return callWorker(new Request(url, { method: "GET" }));
 }
 
@@ -101,10 +103,10 @@ export async function deleteGroup(groupId: string, editToken?: string): Promise<
   return callWorker(new Request(groupUrl(groupId), { method: "DELETE", headers }));
 }
 
-export async function browseGroups(dataCenter: string | null): Promise<Response> {
+export async function browseGroups(dataCenter: string | null, origin = uniqueBrowseOrigin()): Promise<Response> {
   const url = dataCenter
-    ? `${uniqueBrowseOrigin()}/groups/browse?dataCenter=${encodeURIComponent(dataCenter)}`
-    : `${uniqueBrowseOrigin()}/groups/browse`;
+    ? `${origin}/groups/browse?dataCenter=${encodeURIComponent(dataCenter)}`
+    : `${origin}/groups/browse`;
   return callWorker(new Request(url, { method: "GET" }));
 }
 

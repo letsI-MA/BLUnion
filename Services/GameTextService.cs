@@ -74,11 +74,12 @@ public sealed class GameTextService
             : null, spell.Description, null, capitalize: false);
 
     public string GetMonsterName(Monster monster, DisplayLanguage language) =>
-        this.Resolve(TextKind.MonsterName, monster.Id, language, () => monster.BNpcNameIds is { Count: > 0 } bnpcNameIds
-            ? this.JoinBNpcNames(bnpcNameIds, language)
-            : monster.BNpcNameId is { } bnpcNameId
-                ? this.source.GetBNpcName(bnpcNameId, language)
-                : null, monster.GetName(language), monster.NameEn)!;
+        this.Resolve(TextKind.MonsterName, monster.Id, language, () => monster.GetBNpcNameIds() switch
+        {
+            [] => null,
+            [var bnpcNameId] => this.source.GetBNpcName(bnpcNameId, language),
+            var bnpcNameIds => this.JoinBNpcNames(bnpcNameIds, language),
+        }, monster.GetName(language), monster.NameEn)!;
 
     // Sammeleintrag: alle Teile müssen auflösbar sein, sonst null -> kompletter JSON-Fallback.
     // Ein einzelner fehlender Teil würde sonst stillschweigend einen Monsternamen verschlucken; den

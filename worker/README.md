@@ -54,6 +54,15 @@ Spells, die dieser Solo-Spieler farmen möchte - ein Array aus höchstens 30 bek
 Profile laufen automatisch nach 90 Tagen Inaktivität ab (KV `expirationTtl`, wird bei jedem
 Update neu gesetzt) - kein Cron-Job nötig.
 
+**KV-Metadata:** Jeder `profile:`- und `group:`-Key trägt zusätzlich die KV-Metadata
+`{ "visibility": "listed" | "unlisted", "dataCenter": "<lowercase>" }` (alle Schreibvorgänge laufen
+über `putProfileRecord`/`putGroupRecord` in `src/index.ts`). Die Browse-Endpunkte filtern damit
+schon im `list()`-Ergebnis und lesen per `get()` nur noch passende Einträge statt jedes einzelnen.
+Keys ohne Metadata (vor der Umstellung geschrieben) werden weiter per `get()` geprüft; der tägliche
+Cron trägt ihre Metadata schrittweise nach (`backfillKvMetadata`, höchstens
+`KV_METADATA_BACKFILL_MAX_KEYS_PER_RUN` = 100 Keys pro Lauf, Wert und Ablaufzeitpunkt bleiben
+unverändert, idempotent).
+
 ## Endpunkte
 
 | Methode | Pfad | Auth | Zweck |
@@ -224,7 +233,8 @@ Größe nicht die deutlich höhere Infrastruktur-Komplexität.
 
 **Kurzzeit-Caching der Browse-Endpunkte:** `GET /profiles/browse` und `GET /groups/browse` werden
 serverseitig für 20 Sekunden gecached (Standard-Workers-Cache-API, `caches.default`, siehe
-`withCache` in `src/index.ts`) - Grund ist das Plugin, das den Gruppenfinder-Tab automatisch alle
+`withCache` in `src/index.ts`; `/blunion browse` und `/blunion online` in Discord nutzen denselben
+Cache-Eintrag) - Grund ist das Plugin, das den Gruppenfinder-Tab automatisch alle
 15 Sekunden neu abruft (`UI/MainWindow.cs` `GroupFinderAutoRefreshInterval`); ohne diesen Cache
 würde jeder offen gelassene Gruppenfinder-Tab mit der Nutzerzahl skalierend wiederholt über ALLE
 KV-Keys iterieren. `PUT`/`DELETE` bleiben davon komplett unberührt (nie gecached) - ein frisch

@@ -30,13 +30,19 @@ Optionen: `--data <Ordner>` (Standard: der `Data`-Ordner im Repo, wird von hier 
 - Sammelnamen („Goblin Fisher & Gambler") bekommen `BNpcNameIds` nur, wenn **jeder** Teil exakt
   passt. Teile, die für sich kein vollständiger Monstername sind (z.B. „Gambler"), stehen mit
   Kandidaten im Report und werden von Hand eingetragen - z.B. `"BNpcNameIds": [367, 3099]` (in der
-  Reihenfolge des Namens). Von Hand gesetzte Werte bleiben bei weiteren Läufen erhalten.
+  Reihenfolge des Namens). Von Hand gesetzte Werte bleiben bei weiteren Läufen erhalten und zählen
+  als zugeordnet, wenn sie zum Namen passen (je Teil eine existierende ID, automatisch gefundene Teile
+  stimmen überein) - der Report nennt sie dann unter „Hinweise“. Die Anzeige verbindet die Namen
+  pro Sprache mit „ / “ (`GameTextService.GetMonsterName`).
 - Sammeleinträge mit mehreren Duty-Varianten („<Basis> (Hard oder Extreme)“, „(Normal, Hard oder Extreme)“,
   „(Turn 1-2)“) bleiben EIN Eintrag mit dem Sammelnamen und bekommen `ContentFinderConditionIds` - nur
   wenn jede Variante genau einen Treffer hat („<Basis> (<Variante>)“ bzw. „<Basis> - <Variante>“, mit/ohne
   führendes „The“; „Normal“ = nur die Basis). Keine TerritoryType-/PlaceName-ID, die unterscheiden sich je
   Variante. Ergibt sich nur eine Variante, wird sie wie eine Einzel-Duty zugeordnet.
-- Masked-Carnivale-Stages sind keine eigenen Spieleinträge und bleiben leer.
+- Masked-Carnivale-Stages sind keine eigenen Spieleinträge und bekommen keine Game-ID. Sie tragen
+  stattdessen `MaskedCarnivaleStage` (Stage-Nummer, von Hand gepflegt); der Anzeigename kommt aus
+  `UiStrings.Key.MaskedCarnivaleStageFormat` in allen Sprachen. Ohne diese Nummer steht die Stage als
+  offen im Report.
 - Ist ein Gebiet mehrdeutig, der Ortsname aber eindeutig, wird nur `PlaceNameId` gesetzt (reicht
   für die Namensauflösung).
 - `Coordinates` bleiben handgepflegt - die stehen in keinem Sheet.

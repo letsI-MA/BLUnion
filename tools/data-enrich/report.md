@@ -1,13 +1,13 @@
 # Data-Enrich Report
 
-Erzeugt von `tools/data-enrich` gegen Spielversion `2026.09.15.0000.0000`. Nicht von Hand bearbeiten -
+Erzeugt von `tools/data-enrich` gegen Spielversion `2026.10.16.0000.0000`. Nicht von Hand bearbeiten -
 wird bei jedem Lauf neu geschrieben.
 
 | Datei | Einträge | zugeordnet | teilweise | offen | bewusst übersprungen |
 |---|---|---|---|---|---|
 | spells.json | 124 | 124 | 0 | 0 | 0 |
-| monsters.json | 168 | 144 | 0 | 11 | 13 |
-| locations.json | 130 | 121 | 0 | 9 | 0 |
+| monsters.json | 167 | 154 | 0 | 0 | 13 |
+| locations.json | 130 | 121 | 0 | 0 | 9 |
 
 ## spells.json
 
@@ -15,19 +15,7 @@ Alle Einträge zugeordnet.
 
 ## monsters.json
 
-| Eintrag | Grund | Kandidaten | Hinweis |
-|---|---|---|---|
-| 7 A.D.S. | kein BNpcName mit diesem englischen Namen |  |  |
-| 9 Haliostroper | kein BNpcName mit diesem englischen Namen |  |  |
-| 11 Reflective Rebekah | kein BNpcName mit diesem englischen Namen |  |  |
-| 26 Goblin Fisher & Gambler | Sammelname, nicht zuordenbar: "Gambler" (zugeordnet: "Goblin Fisher" = 367) | "Gambler": 3099 "goblin gambler" |  |
-| 27 Sabetonder Bailaor | kein BNpcName mit diesem englischen Namen |  |  |
-| 31 Denezen of the Dark | kein BNpcName mit diesem englischen Namen |  |  |
-| 81 Everlasting Bibliotaph | kein BNpcName mit diesem englischen Namen |  |  |
-| 85 Furryfoot Kupil Kipp | kein BNpcName mit diesem englischen Namen |  |  |
-| 122 Coeurl Sruti or Smriti | Sammelname, nicht zuordenbar: "Smriti" (zugeordnet: "Coeurl Sruti" = 6119) | "Smriti": 6120 "coeurl smriti" |  |
-| 149 Aenc Thon | kein BNpcName mit diesem englischen Namen |  |  |
-| 150 Lord of the Lingering Gaze | kein BNpcName mit diesem englischen Namen |  |  |
+Alle Einträge zugeordnet.
 
 Bewusst übersprungen:
 
@@ -45,19 +33,26 @@ Bewusst übersprungen:
 - 145 Totem: kein echtes Monster (TotemSpellCount) - bewusst ohne BNpcNameId
 - 164 Learned First: kein echtes Monster (StartingSpell) - bewusst ohne BNpcNameId
 
+Hinweise:
+
+- 26 Goblin Fisher & Gambler: von Hand ergänzt: "Gambler" = 3099 "goblin gambler"
+- 122 Coeurl Sruti or Smriti: von Hand ergänzt: "Smriti" = 6120 "coeurl smriti"
+
 ## locations.json
 
-| Eintrag | Grund | Kandidaten | Hinweis |
-|---|---|---|---|
-| 2 Masked Carnivale: 20 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 3 Masked Carnivale: 27 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 5 Masked Carnivale: 15 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 10 Masked Carnivale: 19 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 14 Masked Carnivale: 25 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 37 Masked Carnivale | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 49 Masked Carnivale: 29 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 61 Masked Carnivale: 24 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
-| 108 Masked Carnivale: 08 | Masked-Carnivale-Stage, kein eindeutiger Spieleintrag |  |  |
+Alle Einträge zugeordnet.
+
+Bewusst übersprungen:
+
+- 2 Masked Carnivale: 20: Masked-Carnivale-Stage 20 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 3 Masked Carnivale: 27: Masked-Carnivale-Stage 27 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 5 Masked Carnivale: 15: Masked-Carnivale-Stage 15 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 10 Masked Carnivale: 19: Masked-Carnivale-Stage 19 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 14 Masked Carnivale: 25: Masked-Carnivale-Stage 25 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 37 Masked Carnivale: 25: Masked-Carnivale-Stage 25 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 49 Masked Carnivale: 29: Masked-Carnivale-Stage 29 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 61 Masked Carnivale: 24: Masked-Carnivale-Stage 24 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
+- 108 Masked Carnivale: 8: Masked-Carnivale-Stage 8 - Name über UiStrings.MaskedCarnivaleStageFormat, bewusst ohne Game-ID
 
 Hinweise:
 
